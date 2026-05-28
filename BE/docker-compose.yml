@@ -1,0 +1,92 @@
+services:
+  postgres:
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
+    container_name: vnmap_postgres
+    environment:
+      POSTGRES_DB: vnmapdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "123456"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d vnmapdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - vnmap_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: vnmap_redis
+    command: redis-server --requirepass redis123 --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis123", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - vnmap_network
+
+  import:
+    build:
+      context: ./postgres
+      dockerfile: Dockerfile
+    container_name: vnmap_import
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./gadm41_VNM.gpkg:/data/gadm41_VNM.gpkg:ro
+      - ./postgres/import.sh:/import.sh:ro
+    entrypoint: ["/bin/sh", "/import.sh"]
+    restart: "no"
+    networks:
+      - vnmap_network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vnmap_backend
+    environment:
+      DB_HOST: vnmap_postgres
+      DB_PORT: "5432"
+      DB_NAME: vnmapdb
+      DB_USERNAME: postgres
+      DB_PASSWORD: "123456"
+      REDIS_HOST: vnmap_redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: redis123
+      OWM_BASE_URL: ${OWM_BASE_URL:-https://api.openweathermap.org}
+      OWM_API_KEY: ${OWM_API_KEY}
+      SPRING_PROFILES_ACTIVE: dev
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - vnmap_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  vnmap_network:

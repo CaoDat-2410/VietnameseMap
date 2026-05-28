@@ -1,0 +1,19 @@
+spring:
+  jpa:
+    show-sql: false
+    open-in-view: false
+
+logging:
+  level:
+    root: WARN
+    com.vnmap: INFO
+
+# Production-specific settings
+server:
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
+  compression:
+    enabled: true
