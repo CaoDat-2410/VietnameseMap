@@ -29,6 +29,7 @@ dependencies:
 
   # Env config
   flutter_dotenv: ^5.1.0
+  geolocator: ^14.0.2
 
 dev_dependencies:
   flutter_test:

@@ -37,3 +37,5 @@ final districtsProvider =
         (ref, provinceCode) {
   return ref.watch(getDistrictsProvider).call(provinceCode);
 });
+
+final selectedProvinceProvider = StateProvider<AdministrativeUnitSummary?>((ref) => null);
