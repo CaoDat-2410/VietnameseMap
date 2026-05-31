@@ -20,6 +20,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -65,9 +66,8 @@ public class GeoController {
     })
     @GetMapping("/provinces/{code}/boundary")
     public ResponseEntity<ApiResponse<GeoJsonFeatureDto>> getProvinceBoundary(
-            @Parameter(description = "Province code (e.g., 01 for Hanoi)")
-            @PathVariable @NotBlank @Size(max = 10)
-            @Pattern(regexp = "^[0-9]{1,3}$") String code) {
+            @Parameter(description = "Province code")
+            @PathVariable String code) {
         GeoJsonFeatureDto boundary = geoService.getBoundaryByCode(code);
         return ResponseEntity.ok(ApiResponse.success(boundary, "Province boundary retrieved"));
     }
@@ -84,7 +84,7 @@ public class GeoController {
     public ResponseEntity<ApiResponse<List<AdministrativeUnitSummaryDto>>> getDistricts(
             @Parameter(description = "Province code", required = true)
             @RequestParam @NotBlank
-            @Pattern(regexp = "^[0-9]{1,3}$") String provinceCode) {
+            @Pattern(regexp = "^[A-Za-z0-9._-]+$") String provinceCode) {
         List<AdministrativeUnitSummaryDto> districts = geoService.getDistrictsByProvince(provinceCode);
         return ResponseEntity.ok(ApiResponse.success(districts, "Districts retrieved successfully"));
     }
@@ -101,7 +101,7 @@ public class GeoController {
     public ResponseEntity<ApiResponse<List<AdministrativeUnitSummaryDto>>> getWards(
             @Parameter(description = "District code", required = true)
             @RequestParam @NotBlank
-            @Pattern(regexp = "^[0-9]{2,6}$") String districtCode) {
+            @Pattern(regexp = "^[A-Za-z0-9._-]+$") String districtCode) {
         List<AdministrativeUnitSummaryDto> wards = geoService.getWardsByDistrict(districtCode);
         return ResponseEntity.ok(ApiResponse.success(wards, "Wards retrieved successfully"));
     }
@@ -117,7 +117,7 @@ public class GeoController {
     @GetMapping("/units/{code}")
     public ResponseEntity<ApiResponse<AdministrativeUnitDto>> getUnitByCode(
             @Parameter(description = "Administrative unit code")
-            @PathVariable @NotBlank @Size(max = 10) String code) {
+            @PathVariable String code) {
         AdministrativeUnitDto unit = geoService.getByCode(code);
         return ResponseEntity.ok(ApiResponse.success(unit, "Unit retrieved successfully"));
     }
@@ -133,7 +133,7 @@ public class GeoController {
     @GetMapping("/units/{code}/boundary")
     public ResponseEntity<ApiResponse<GeoJsonFeatureDto>> getUnitBoundary(
             @Parameter(description = "Administrative unit code")
-            @PathVariable @NotBlank @Size(max = 10) String code) {
+            @PathVariable String code) {
         GeoJsonFeatureDto boundary = geoService.getBoundaryByCode(code);
         return ResponseEntity.ok(ApiResponse.success(boundary, "Boundary retrieved successfully"));
     }
@@ -154,5 +154,18 @@ public class GeoController {
             @RequestParam @DecimalMin("-180.0") @DecimalMax("180.0") double lng) {
         AdministrativeUnitDto unit = geoService.findUnitByCoordinate(lat, lng);
         return ResponseEntity.ok(ApiResponse.success(unit, "Reverse geocoding successful"));
+    }
+
+    @Operation(
+            summary = "Calculate centroids for all units",
+            description = "Calculates and stores centroid coordinates from boundary geometries (admin)"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Centroids calculated")
+    })
+    @PostMapping("/admin/calculate-centroids")
+    public ResponseEntity<ApiResponse<Integer>> calculateCentroids() {
+        int count = geoService.calculateCentroids();
+        return ResponseEntity.ok(ApiResponse.success(count, "Calculated " + count + " centroids"));
     }
 }

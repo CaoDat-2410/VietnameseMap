@@ -19,4 +19,6 @@ public interface GeoService {
     GeoJsonFeatureDto getBoundaryByCode(String code);
 
     AdministrativeUnitDto findUnitByCoordinate(double lat, double lng);
+
+    int calculateCentroids();
 }

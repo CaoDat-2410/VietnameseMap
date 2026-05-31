@@ -64,7 +64,18 @@ public class WeatherServiceImpl implements WeatherService {
     @Override
     public CurrentWeatherDto getWeatherByUnitCode(String unitCode) {
         log.debug("Fetching weather for unit code: {}", unitCode);
-        throw new ExternalApiException("Weather", "Weather by unit code requires coordinate data. Please use weather by coordinates instead.");
+
+        AdministrativeUnitDto unit = geoService.getByCode(unitCode);
+
+        Double lat = unit.getCentroidLat();
+        Double lng = unit.getCentroidLng();
+
+        if (lat == null || lng == null) {
+            throw new ExternalApiException("Weather",
+                    "Centroid data not available for unit '" + unitCode + "'. Please use weather by coordinates instead.");
+        }
+
+        return getCurrentWeather(lat, lng);
     }
 
     @Override

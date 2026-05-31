@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Arrays;
 import java.util.List;
@@ -42,7 +43,7 @@ class GeoServiceTest {
 
     @BeforeEach
     void setUp() {
-        geoService = new GeoServiceImpl(repository, geoMapper);
+        geoService = new GeoServiceImpl(repository, geoMapper, new ObjectMapper());
     }
 
     @Nested
