@@ -12,25 +12,11 @@ class MapPage extends StatelessWidget {
       body: LayoutBuilder(
         builder: (context, constraints) {
           if (constraints.maxWidth > 600) {
-            // Wide Screen
-            return Row(
-              children: [
-                const Expanded(
-                  flex: 6,
-                  child: VietnamMapView(),
-                ),
-                Container(
-                  width: 1,
-                  color: Colors.grey.shade300,
-                ),
-                const Expanded(
-                  flex: 4,
-                  child: ColoredBox(
-                    color: Colors.white,
-                    child: ProvinceListBody(),
-                  ),
-                ),
-              ],
+            // Wide Screen: Map is rendered on the left by _AppShell
+            // We just render the list on the right side.
+            return const ColoredBox(
+              color: Colors.white,
+              child: ProvinceListBody(),
             );
           } else {
             // Mobile Screen

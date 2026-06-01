@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/dio_client.dart';
 import '../../../../core/utils/result.dart';
+import '../../data/datasources/geo_local_datasource.dart';
 import '../../data/datasources/geo_remote_datasource.dart';
 import '../../data/repositories/geo_repository_impl.dart';
 import '../../domain/entities/administrative_unit_summary.dart';
@@ -39,3 +40,20 @@ final districtsProvider =
 });
 
 final selectedProvinceProvider = StateProvider<AdministrativeUnitSummary?>((ref) => null);
+
+// ---------------------------------------------------------------------------
+// Local GeoJSON asset providers (for map boundary overlays)
+// ---------------------------------------------------------------------------
+
+final geoLocalDataSourceProvider = Provider<GeoLocalDataSource>(
+  (_) => GeoLocalDataSource(),
+);
+
+/// Loads all province boundary features from the bundled GeoJSON asset.
+/// Returns a list of raw GeoJSON Feature maps for polygon rendering.
+final allProvinceBoundariesProvider =
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final ds = ref.watch(geoLocalDataSourceProvider);
+  return ds.getProvinceFeatures();
+});
+
