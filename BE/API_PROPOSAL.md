@@ -1,138 +1,19 @@
-# Vietnam Map + Weather API Proposal
+# Vietnam Map + Weather API
 
-**Version:** 1.0.0
-**Last Updated:** 2026-05-28
 **Base URL:** `http://localhost:8080/api/v1`
+**Swagger UI:** `http://localhost:8080/swagger-ui.html`
+**API Docs:** `http://localhost:8080/api-docs`
 
 ---
 
-## Table of Contents
+## 1. Geo APIs
 
-1. [Overview](#overview)
-2. [Authentication](#authentication)
-3. [Rate Limiting](#rate-limiting)
-4. [Response Format](#response-format)
-5. [Error Handling](#error-handling)
-6. [Geo API Endpoints](#geo-api-endpoints)
-7. [Weather API Endpoints](#weather-api-endpoints)
-8. [Data Models](#data-models)
+### 1.1 Get All Provinces
 
----
+**Endpoint:** `GET /api/v1/geo/provinces`
 
-## Overview
-
-This API provides two main services:
-
-- **Geo API**: Administrative boundary data for Vietnam (provinces, districts, wards) with GeoJSON polygons
-- **Weather API**: Real-time weather data from OpenWeatherMap with Redis caching
-
-### Tech Stack
-
-- **Framework**: Spring Boot 3.3.2 (Java 21)
-- **Database**: PostgreSQL 16 + PostGIS 3.4
-- **Cache**: Redis 7
-- **API Documentation**: OpenAPI 3.0 / Swagger UI
-
-### Base Configuration
-
-| Environment | URL |
-|------------|-----|
-| Local Development | `http://localhost:8080/api/v1` |
-| Production | `https://api.vnmap.com/api/v1` |
-
----
-
-## Authentication
-
-Currently, no authentication is required for public endpoints. The API is intended for client-side applications (Flutter mobile/web).
-
-> **Note**: If authentication is needed in the future, JWT Bearer tokens will be implemented.
-
----
-
-## Rate Limiting
-
-| Tier | Limit | Window |
-|------|-------|--------|
-| Default | 100 requests | per minute |
-| Weather | 60 requests | per minute |
-
-Rate limit headers are included in responses:
-- `X-RateLimit-Limit`: Maximum requests allowed
-- `X-RateLimit-Remaining`: Remaining requests in window
-- `X-RateLimit-Reset`: Unix timestamp when limit resets
-
----
-
-## Response Format
-
-All responses follow a standard wrapper format:
-
-### Success Response
-
-```json
-{
-  "success": true,
-  "message": "Operation completed successfully",
-  "data": { ... },
-  "timestamp": "2026-05-28T18:00:00"
-}
-```
-
-### Error Response
-
-```json
-{
-  "success": false,
-  "message": "Error description",
-  "timestamp": "2026-05-28T18:00:00",
-  "status": 404,
-  "error": "Not Found"
-}
-```
-
----
-
-## Error Handling
-
-### HTTP Status Codes
-
-| Code | Meaning | Description |
-|------|---------|-------------|
-| 200 | OK | Successful request |
-| 400 | Bad Request | Invalid parameters or validation failed |
-| 404 | Not Found | Resource does not exist |
-| 500 | Internal Server Error | Unexpected server error |
-| 502 | Bad Gateway | External service unavailable |
-
-### Error Response Schema
-
-```json
-{
-  "timestamp": "2026-05-28T18:00:00",
-  "status": 400,
-  "error": "Bad Request",
-  "message": "Validation failed",
-  "path": "/api/v1/geo/reverse",
-  "validationErrors": {
-    "lat": ["must be between -90 and 90"]
-  }
-}
-```
-
----
-
-## Geo API Endpoints
-
-### Base Path: `/api/v1/geo`
-
-### 1. Get All Provinces
-
-**Endpoint:** `GET /provinces`
-
-Retrieves a list of all provinces in Vietnam.
-
-**Parameters:** None
+**Method:** `GET`
+**Status:** `200 OK`
 
 **Response:**
 ```json
@@ -141,43 +22,44 @@ Retrieves a list of all provinces in Vietnam.
   "message": "Provinces retrieved successfully",
   "data": [
     {
-      "code": "01",
-      "name": "Hà Nội",
-      "level": "PROVINCE"
-    },
-    {
-      "code": "79",
-      "name": "Hồ Chí Minh",
-      "level": "PROVINCE"
+      "code": "1_1",
+      "name": "An Giang",
+      "level": "PROVINCE",
+      "parentId": null,
+      "parentCode": null
     }
-  ]
+  ],
+  "timestamp": "2026-05-31T11:02:30.889"
 }
 ```
 
 ---
 
-### 2. Get Districts by Province
+### 1.2 Get Districts by Province
 
-**Endpoint:** `GET /districts`
+**Endpoint:** `GET /api/v1/geo/districts`
 
-**Parameters:**
+**Method:** `GET`
+**Status:** `200 OK`
 
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| provinceCode | string | Yes | Province code (1-3 digits) |
+| Parameter | Type | Location | Required | Description |
+|-----------|------|---------|----------|-------------|
+| provinceCode | string | query | Yes | Province code (e.g., `1_1`) |
 
-**Example:** `GET /api/v1/geo/districts?provinceCode=01`
+**Example:** `GET /api/v1/geo/districts?provinceCode=1_1`
 
 **Response:**
 ```json
 {
   "success": true,
+  "message": "Districts retrieved successfully",
   "data": [
     {
-      "code": "001",
-      "name": "Ba Đình",
+      "code": "1_1_1_2_1",
+      "name": "Chợ Mới",
       "level": "DISTRICT",
-      "parentId": 1
+      "parentId": 1,
+      "parentCode": null
     }
   ]
 }
@@ -185,70 +67,99 @@ Retrieves a list of all provinces in Vietnam.
 
 ---
 
-### 3. Get Wards by District
+### 1.3 Get Wards by District
 
-**Endpoint:** `GET /wards`
+**Endpoint:** `GET /api/v1/geo/wards`
 
-**Parameters:**
+**Method:** `GET`
+**Status:** `200 OK`
 
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| districtCode | string | Yes | District code (2-6 digits) |
+| Parameter | Type | Location | Required | Description |
+|-----------|------|---------|----------|-------------|
+| districtCode | string | query | Yes | District code (e.g., `1_1_1_1_1`) |
 
-**Example:** `GET /api/v1/geo/wards?districtCode=001`
-
----
-
-### 4. Get Administrative Unit by Code
-
-**Endpoint:** `GET /units/{code}`
-
-**Parameters:**
-
-| Name | Type | Required | Description |
-|------|------|----------|-------------|
-| code | string | Yes | Unit code (province, district, or ward) |
-
-**Example:** `GET /api/v1/geo/units/01`
+**Example:** `GET /api/v1/geo/wards?districtCode=1_1_1_1_1`
 
 **Response:**
 ```json
 {
   "success": true,
+  "message": "Wards retrieved successfully",
+  "data": [
+    {
+      "code": "1_1_6_1",
+      "name": "Nhơn Hội",
+      "level": "WARD",
+      "parentId": 79,
+      "parentCode": null
+    }
+  ]
+}
+```
+
+---
+
+### 1.4 Get Administrative Unit by Code
+
+**Endpoint:** `GET /api/v1/geo/units/{code}`
+
+**Method:** `GET`
+**Status:** `200 OK`
+
+| Parameter | Type | Location | Required | Description |
+|-----------|------|---------|----------|-------------|
+| code | string | path | Yes | Province, district, or ward code |
+
+**Example:** `GET /api/v1/geo/units/1_1`
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Unit retrieved successfully",
   "data": {
     "id": 1,
-    "code": "01",
-    "name": "Hà Nội",
+    "name": "An Giang",
+    "code": "1_1",
     "level": "PROVINCE",
-    "centroidLat": 21.0285,
-    "centroidLng": 105.8542,
-    "childCount": 30
+    "parentId": null,
+    "parentCode": null,
+    "centroidLat": 10.51132120487664,
+    "centroidLng": 105.18275473791417,
+    "childCount": 11
   }
 }
 ```
 
 ---
 
-### 5. Get Unit Boundary (GeoJSON)
+### 1.5 Get Province Boundary
 
-**Endpoint:** `GET /units/{code}/boundary`
+**Endpoint:** `GET /api/v1/geo/provinces/{code}/boundary`
 
-Returns simplified GeoJSON polygon for map rendering.
+**Method:** `GET`
+**Status:** `200 OK`
 
-**Example:** `GET /api/v1/geo/units/01/boundary`
+| Parameter | Type | Location | Required | Description |
+|-----------|------|---------|----------|-------------|
+| code | string | path | Yes | Province code |
+
+**Example:** `GET /api/v1/geo/provinces/1_1/boundary`
 
 **Response:**
 ```json
 {
   "success": true,
+  "message": "Province boundary retrieved",
   "data": {
     "type": "Feature",
-    "code": "01",
-    "name": "Hà Nội",
+    "code": "1_1",
+    "name": "An Giang",
     "level": "PROVINCE",
+    "parentCode": null,
     "geometry": {
       "type": "MultiPolygon",
-      "coordinates": [[[[105.7, 20.9], ...]]]
+      "coordinates": [[[[105.54862213, 10.429475785], ...]]]
     }
   }
 }
@@ -256,18 +167,34 @@ Returns simplified GeoJSON polygon for map rendering.
 
 ---
 
-### 6. Reverse Geocode
+### 1.6 Get Unit Boundary
 
-**Endpoint:** `GET /reverse`
+**Endpoint:** `GET /api/v1/geo/units/{code}/boundary`
 
-Finds the administrative unit containing given GPS coordinates.
+**Method:** `GET`
+**Status:** `200 OK`
 
-**Parameters:**
+| Parameter | Type | Location | Required | Description |
+|-----------|------|---------|----------|-------------|
+| code | string | path | Yes | Unit code (province, district, or ward) |
 
-| Name | Type | Required | Range | Description |
-|------|------|----------|-------|-------------|
-| lat | double | Yes | -90 to 90 | Latitude |
-| lng | double | Yes | -180 to 180 | Longitude |
+**Example:** `GET /api/v1/geo/units/1_1/boundary`
+
+Returns GeoJSON Feature with boundary polygon for any administrative unit.
+
+---
+
+### 1.7 Reverse Geocode
+
+**Endpoint:** `GET /api/v1/geo/reverse`
+
+**Method:** `GET`
+**Status:** `200 OK`
+
+| Parameter | Type | Location | Required | Description |
+|-----------|------|---------|----------|-------------|
+| lat | double | query | Yes | Latitude (-90 to 90) |
+| lng | double | query | Yes | Longitude (-180 to 180) |
 
 **Example:** `GET /api/v1/geo/reverse?lat=21.0285&lng=105.8542`
 
@@ -275,34 +202,58 @@ Finds the administrative unit containing given GPS coordinates.
 ```json
 {
   "success": true,
+  "message": "Reverse geocoding successful",
   "data": {
-    "code": "01",
-    "name": "Hà Nội",
-    "level": "PROVINCE",
-    "centroidLat": 21.0285,
-    "centroidLng": 105.8542
+    "id": 234,
+    "name": "Lý Thái Tổ",
+    "code": "27_14_14_1",
+    "level": "WARD",
+    "parentId": 437,
+    "parentCode": "27_1_27_14_1",
+    "centroidLat": 21.03054474906241,
+    "centroidLng": 105.85525776427964,
+    "childCount": 0
   }
 }
 ```
 
 ---
 
-## Weather API Endpoints
+### 1.8 Calculate Centroids (Admin)
 
-### Base Path: `/api/v1/weather`
+**Endpoint:** `POST /api/v1/geo/admin/calculate-centroids`
 
-### 1. Get Weather by Coordinates
+**Method:** `POST`
+**Status:** `200 OK`
 
-**Endpoint:** `GET /`
+Recalculates centroid coordinates from boundary geometries for all units with NULL centroids.
 
-**Parameters:**
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Calculated 0 centroids",
+  "data": 0
+}
+```
 
-| Name | Type | Required | Range | Description |
-|------|------|----------|-------|-------------|
-| lat | double | Yes | -90 to 90 | Latitude |
-| lng | double | Yes | -180 to 180 | Longitude |
+---
 
-**Example:** `GET /api/v1/weather?lat=21.0285&lng=105.8542`
+## 2. Weather APIs
+
+### 2.1 Get Weather by Coordinates
+
+**Endpoint:** `GET /api/v1/weather`
+
+**Method:** `GET`
+**Status:** `200 OK`
+
+| Parameter | Type | Location | Required | Description |
+|-----------|------|---------|----------|-------------|
+| lat | double | query | Yes | Latitude (-90 to 90) |
+| lng | double | query | Yes | Longitude (-180 to 180) |
+
+**Example:** `GET /api/v1/weather?lat=21&lng=105`
 
 **Response:**
 ```json
@@ -310,49 +261,82 @@ Finds the administrative unit containing given GPS coordinates.
   "success": true,
   "message": "Weather data (fresh)",
   "data": {
-    "temperature": 28.5,
-    "feelsLike": 31.2,
-    "humidity": 75,
-    "windSpeed": 3.5,
-    "description": "mây thưa",
-    "iconCode": "02d",
-    "locationName": "Hanoi",
-    "pressure": 1013,
+    "temperature": 28.25,
+    "feelsLike": 32.4,
+    "humidity": 78,
+    "windSpeed": 0.81,
+    "description": "mây cụm",
+    "iconCode": "04d",
+    "locationName": "Huyện Thanh Sơn",
+    "pressure": 1006,
     "visibility": 10000,
-    "tempMin": 26.0,
-    "tempMax": 30.0,
-    "timestamp": "2026-05-28T17:00:00Z",
+    "tempMin": 28.25,
+    "tempMax": 28.25,
+    "timestamp": "2026-05-31T11:02:44Z",
     "source": "OpenWeatherMap",
     "cached": false
   }
 }
 ```
 
-**Weather Icons:** `01d`, `01n`, `02d`, `02n`, `03d`, `03n`, `04d`, `04n`, `09d`, `09n`, `10d`, `10n`, `11d`, `11n`, `13d`, `13n`, `50d`, `50n`
-
 ---
 
-### 2. Get Weather by Administrative Unit
+### 2.2 Get Weather by Administrative Unit
 
-**Endpoint:** `GET /unit/{unitCode}`
+**Endpoint:** `GET /api/v1/weather/unit/{unitCode}`
 
-Retrieves weather for the centroid of an administrative unit.
+**Method:** `GET`
+**Status:** `200 OK`
 
-**Example:** `GET /api/v1/weather/unit/01`
+| Parameter | Type | Location | Required | Description |
+|-----------|------|---------|----------|-------------|
+| unitCode | string | path | Yes | Administrative unit code |
 
-**Response:** Same structure as weather by coordinates.
+**Example:** `GET /api/v1/weather/unit/1_1`
 
----
-
-### 3. Check Cache Status
-
-**Endpoint:** `GET /cache`
-
-Checks if weather data exists in Redis cache.
-
-**Parameters:** Same as weather by coordinates.
+Uses centroid coordinates of the unit to fetch weather from OpenWeatherMap.
 
 **Response:**
+```json
+{
+  "success": true,
+  "message": "Weather data (fresh)",
+  "data": {
+    "temperature": 26.62,
+    "feelsLike": 26.62,
+    "humidity": 86,
+    "windSpeed": 4.18,
+    "description": "mưa nhẹ",
+    "iconCode": "10d",
+    "locationName": "An Giang",
+    "pressure": 1008,
+    "visibility": 10000,
+    "tempMin": 26.62,
+    "tempMax": 26.62,
+    "timestamp": "2026-05-31T10:55:23Z",
+    "source": "OpenWeatherMap",
+    "cached": false
+  }
+}
+```
+
+---
+
+### 2.3 Check Cache Status
+
+**Endpoint:** `GET /api/v1/weather/cache`
+
+**Method:** `GET`
+**Status:** `200 OK`
+
+| Parameter | Type | Location | Required | Description |
+|-----------|------|---------|----------|-------------|
+| lat | double | query | Yes | Latitude |
+| lng | double | query | Yes | Longitude |
+
+**Example:** `GET /api/v1/weather/cache?lat=21&lng=105`
+
+**Response (cached):**
 ```json
 {
   "success": true,
@@ -361,117 +345,74 @@ Checks if weather data exists in Redis cache.
 }
 ```
 
----
-
-## Data Models
-
-### UnitLevel Enum
-
+**Response (not cached):**
 ```json
 {
-  "PROVINCE": "Tỉnh/Thành phố",
-  "DISTRICT": "Quận/Huyện/Thị xã",
-  "WARD": "Xã/Phường/Thị trấn"
+  "success": true,
+  "message": "No cached data available",
+  "data": null
 }
 ```
 
-### GeoJSON Feature
-
-GeoJSON follows the RFC 7946 specification:
-- Type: `Feature`
-- Geometry: `MultiPolygon` (WGS84, EPSG:4326)
-- Simplified for performance based on zoom level
-
 ---
 
-## Caching Strategy
+## 3. System APIs
 
-| Data Type | Cache Name | TTL | Key Pattern |
-|-----------|------------|-----|-------------|
-| Provinces List | geo | 1 hour | `geo:provinces` |
-| Districts List | geo | 1 hour | `geo:districts:{code}` |
-| Wards List | geo | 1 hour | `geo:wards:{code}` |
-| Unit Boundary | geo | 1 hour | `geo:boundary:{code}` |
-| Weather Data | weather | 10 minutes | `weather:{lat}:{lng}` |
+### 3.1 Health Check
 
-Weather coordinates are rounded to 2 decimal places (~1km precision) to increase cache hit rate.
+**Endpoint:** `GET /actuator/health`
 
----
+**Method:** `GET`
+**Status:** `200 OK`
 
-## Performance Considerations
-
-1. **Spatial Indexes**: GIST indexes on boundary and centroid columns
-2. **Polygon Simplification**: ST_Simplify applied before returning GeoJSON
-   - Province: tolerance 0.001 (~100m)
-   - District: tolerance 0.0005 (~50m)
-   - Ward: tolerance 0.0001 (~10m)
-3. **Connection Pooling**: HikariCP with max 20 connections
-4. **Redis Cache**: Reduces external API calls by 95%
-
----
-
-## API Versioning
-
-Current version: **v1**
-
-Version is included in the URL path: `/api/v1/`
-
-Breaking changes will result in a new version (v2, v3, etc.)
-
----
-
-## SDK Examples
-
-### Flutter (Dio)
-
-```dart
-final dio = Dio(BaseOptions(
-  baseUrl: 'http://localhost:8080/api/v1',
-  connectTimeout: const Duration(seconds: 10),
-  receiveTimeout: const Duration(seconds: 10),
-));
-
-// Get provinces
-final provinces = await dio.get('/geo/provinces');
-
-// Get weather
-final weather = await dio.get('/weather', queryParameters: {
-  'lat': 21.0285,
-  'lng': 105.8542,
-});
-```
-
-### JavaScript (Fetch)
-
-```javascript
-const API_BASE = 'http://localhost:8080/api/v1';
-
-// Get provinces
-const provinces = await fetch(`${API_BASE}/geo/provinces`);
-const { data } = await provinces.json();
-
-// Get weather
-const weather = await fetch(`${API_BASE}/weather?lat=21.0285&lng=105.8542`);
-const { data } = await weather.json();
+**Response:**
+```json
+{"status": "UP"}
 ```
 
 ---
 
-## Support & Documentation
+### 3.2 API Documentation
 
-- **Swagger UI**: `http://localhost:8080/swagger-ui.html`
-- **OpenAPI JSON**: `http://localhost:8080/api-docs`
-- **Health Check**: `http://localhost:8080/actuator/health`
+**Endpoint:** `GET /api-docs`
+**Swagger UI:** `GET /swagger-ui.html`
 
 ---
 
-## Changelog
+## Code Format Reference
 
-### v1.0.0 (2026-05-28)
+Administrative unit codes follow this format:
 
-- Initial release
-- Geo API with administrative boundaries
-- Weather API with OpenWeatherMap integration
-- Redis caching for performance
-- PostGIS spatial queries
-- SonarQube Quality Gate compliance
+| Level | Format | Example |
+|-------|--------|---------|
+| Province | `{GID1}_{suffix}` | `1_1` |
+| District | `{GID1}_{GID2}_{suffix}` | `1_1_1_1_1` |
+| Ward | `{GID1}_{GID2}_{GID3}_{suffix}` | `1_1_6_1` |
+
+---
+
+## Database Record Counts
+
+```
+  level   | count
+----------+-------
+ DISTRICT |   710
+ PROVINCE |    63
+ WARD     | 11163
+```
+
+**Districts with parent:** 710
+**Wards with parent:** 11,146 / 11,163
+**Units with centroid:** 11,936
+
+---
+
+## CORS Configuration
+
+Allowed origins:
+- `http://localhost:3000`
+- `http://localhost:5173`
+- `http://127.0.0.1:3000`
+- `http://127.0.0.1:5173`
+
+Supported methods: GET, POST, PUT, DELETE, OPTIONS, PATCH

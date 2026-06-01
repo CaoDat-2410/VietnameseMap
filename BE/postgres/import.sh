@@ -1,4 +1,4 @@
-#!/bin/sh
+﻿#!/bin/sh
 echo "============================================="
 echo "GADM Data Import Script"
 echo "============================================="
@@ -40,33 +40,60 @@ fi
 echo "File: $(ls -lh $GADM_FILE | awk '{print $5}')"
 echo ""
 echo "Step 2: Import provinces..."
+# GID_1 = VNM.14_1 -> extract province number (chars between '.' and '_')
 ogr2ogr -f PostgreSQL "PG:host=vnmap_postgres port=5432 dbname=vnmapdb user=postgres password=123456" "$GADM_FILE" \
-    -sql "SELECT NAME_1 as name, GID_1 as code, 'PROVINCE' as level, geom FROM ADM_ADM_1" \
-    -nln administrative_units -overwrite 2>&1
+    -sql "SELECT NAME_1 as name, SUBSTR(GID_1, INSTR(GID_1, '.')+1, INSTR(GID_1, '_')-INSTR(GID_1, '.')-1) as code, 'PROVINCE' as level, geom as boundary FROM ADM_ADM_1" \
+    -nln administrative_units -append 2>&1
 echo ""
 echo "Step 3: Import districts..."
+# GID_2 = VNM.14_1 -> province=14, district=1 -> code="14_1"
 ogr2ogr -f PostgreSQL "PG:host=vnmap_postgres port=5432 dbname=vnmapdb user=postgres password=123456" "$GADM_FILE" \
-    -sql "SELECT NAME_2 as name, GID_1 || '.' || GID_2 as code, 'DISTRICT' as level, geom FROM ADM_ADM_2" \
+    -sql "SELECT NAME_2 as name, SUBSTR(GID_2, INSTR(GID_2, '.')+1, INSTR(GID_2, '_')-INSTR(GID_2, '.')-1) || '_' || SUBSTR(GID_2, INSTR(GID_2, '_')+1) as code, 'DISTRICT' as level, geom as boundary FROM ADM_ADM_2" \
     -nln administrative_units -append 2>&1
 echo ""
 echo "Step 4: Import wards..."
+# GID_2 = VNM.14_1, GID_3 = VNM.14_1_1 -> province=14, district=1, ward=1 -> code="14_1_1"
 ogr2ogr -f PostgreSQL "PG:host=vnmap_postgres port=5432 dbname=vnmapdb user=postgres password=123456" "$GADM_FILE" \
-    -sql "SELECT NAME_3 as name, GID_3 as code, 'WARD' as level, geom FROM ADM_ADM_3" \
+    -sql "SELECT NAME_3 as name, SUBSTR(GID_2, INSTR(GID_2, '.')+1, INSTR(GID_2, '_')-INSTR(GID_2, '.')-1) || '_' || SUBSTR(GID_2, INSTR(GID_2, '_')+1) || '_' || SUBSTR(GID_3, INSTR(GID_3, '_')+1) as code, 'WARD' as level, geom as boundary FROM ADM_ADM_3" \
     -nln administrative_units -append 2>&1
 echo ""
-echo "Step 5: Rename geom column..."
-PGPASSWORD=123456 psql -h vnmap_postgres -U postgres -d vnmapdb -c "ALTER TABLE administrative_units RENAME COLUMN geom TO boundary;" 2>&1 || true
+echo "Step 5: Fix district codes (replace dot with underscore)..."
+PGPASSWORD=123456 psql -h vnmap_postgres -U postgres -d vnmapdb -c "UPDATE administrative_units SET code = REPLACE(code, '.', '_') WHERE level = 'DISTRICT';" 2>&1
 echo ""
-echo "Step 6: Link relationships..."
-PGPASSWORD=123456 psql -h vnmap_postgres -U postgres -d vnmapdb -c "UPDATE administrative_units d SET parent_id = p.id FROM administrative_units p WHERE d.level = 'DISTRICT' AND p.level = 'PROVINCE' AND d.code LIKE p.code || '.%' AND d.parent_id IS NULL;" 2>&1
-PGPASSWORD=123456 psql -h vnmap_postgres -U postgres -d vnmapdb -c "UPDATE administrative_units w SET parent_id = d.id FROM administrative_units d JOIN administrative_units p ON d.parent_id = p.id WHERE w.level = 'WARD' AND d.level = 'DISTRICT' AND p.level = 'PROVINCE' AND w.code LIKE d.code || '.%' AND w.parent_id IS NULL;" 2>&1
+echo "Step 6: Fix ward codes (replace dot with underscore)..."
+PGPASSWORD=123456 psql -h vnmap_postgres -U postgres -d vnmapdb -c "UPDATE administrative_units SET code = REPLACE(code, '.', '_') WHERE level = 'WARD';" 2>&1
 echo ""
-echo "Step 7: Calculate centroids..."
+echo "Step 7: Link district -> province relationships..."
+PGPASSWORD=123456 psql -h vnmap_postgres -U postgres -d vnmapdb -c "
+UPDATE administrative_units d
+SET parent_id = p.id
+FROM administrative_units p
+WHERE d.level = 'DISTRICT'
+  AND p.level = 'PROVINCE'
+  AND d.code LIKE p.code || '\_%' ESCAPE '\'
+  AND d.parent_id IS NULL;
+" 2>&1
+echo ""
+echo "Step 8: Link ward -> district relationships..."
+PGPASSWORD=123456 psql -h vnmap_postgres -U postgres -d vnmapdb -c "
+UPDATE administrative_units w
+SET parent_id = d.id
+FROM administrative_units d
+WHERE w.level = 'WARD'
+  AND d.level = 'DISTRICT'
+  AND w.code LIKE d.code || '\_%' ESCAPE '\'
+  AND w.parent_id IS NULL;
+" 2>&1
+echo ""
+echo "Step 9: Calculate centroids (ST_Centroid runs on PostgreSQL, not SQLite)..."
 PGPASSWORD=123456 psql -h vnmap_postgres -U postgres -d vnmapdb -c "UPDATE administrative_units SET centroid = ST_Centroid(boundary) WHERE centroid IS NULL AND boundary IS NOT NULL;" 2>&1
 echo ""
 echo "============================================="
 echo "Import Summary:"
 echo "============================================="
 PGPASSWORD=123456 psql -h vnmap_postgres -U postgres -d vnmapdb -c "SELECT level, COUNT(*) FROM administrative_units GROUP BY level ORDER BY level;" 2>&1
+PGPASSWORD=123456 psql -h vnmap_postgres -U postgres -d vnmapdb -c "SELECT 'Districts with parent:', COUNT(*) FROM administrative_units WHERE level = 'DISTRICT' AND parent_id IS NOT NULL;" 2>&1
+PGPASSWORD=123456 psql -h vnmap_postgres -U postgres -d vnmapdb -c "SELECT 'Wards with parent:', COUNT(*) FROM administrative_units WHERE level = 'WARD' AND parent_id IS NOT NULL;" 2>&1
+PGPASSWORD=123456 psql -h vnmap_postgres -U postgres -d vnmapdb -c "SELECT 'Units with centroid:', COUNT(*) FROM administrative_units WHERE centroid IS NOT NULL;" 2>&1
 echo ""
 echo "Done!"

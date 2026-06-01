@@ -15,6 +15,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 @Transactional(readOnly = true)
@@ -24,10 +28,12 @@ public class GeoServiceImpl implements GeoService {
 
     private final AdministrativeUnitRepository repository;
     private final GeoMapper geoMapper;
+    private final ObjectMapper objectMapper;
 
-    public GeoServiceImpl(AdministrativeUnitRepository repository, GeoMapper geoMapper) {
+    public GeoServiceImpl(AdministrativeUnitRepository repository, GeoMapper geoMapper, ObjectMapper objectMapper) {
         this.repository = repository;
         this.geoMapper = geoMapper;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -86,18 +92,115 @@ public class GeoServiceImpl implements GeoService {
 
         dto.setChildCount(repository.countByParentId(unit.getId()));
 
+        if (unit.getCentroid() != null) {
+            dto.setCentroidLat(unit.getCentroid().getY());
+            dto.setCentroidLng(unit.getCentroid().getX());
+        } else {
+            repository.findCentroidByCode(code)
+                    .ifPresent(row -> {
+                        Object[] arr = (Object[]) row;
+                        if (arr[1] != null) dto.setCentroidLat(((Number) arr[1]).doubleValue());
+                        if (arr[0] != null) dto.setCentroidLng(((Number) arr[0]).doubleValue());
+                    });
+        }
+
         return dto;
     }
 
     @Override
+    @Cacheable(value = "geo", key = "'boundary:' + #code")
     public GeoJsonFeatureDto getBoundaryByCode(String code) {
-        log.debug("Boundary feature not available - no geometry data");
-        throw new ResourceNotFoundException("Boundary", "code", code);
+        log.debug("Fetching boundary for unit: {}", code);
+
+        AdministrativeUnit unit = repository.findByCode(code)
+                .orElseThrow(() -> new ResourceNotFoundException("AdministrativeUnit", "code", code));
+
+        String geoJson = repository.findBoundaryGeoJsonByCode(code)
+                .orElseThrow(() -> new ResourceNotFoundException("Boundary", "code", code));
+
+        String parentCode = null;
+        if (unit.getParentId() != null) {
+            parentCode = repository.findById(unit.getParentId())
+                    .map(AdministrativeUnit::getCode)
+                    .orElse(null);
+        }
+
+        GeoJsonFeatureDto feature = GeoJsonFeatureDto.builder()
+                .type("Feature")
+                .code(unit.getCode())
+                .name(unit.getName())
+                .level(unit.getLevel())
+                .parentCode(parentCode)
+                .build();
+
+        try {
+            JsonNode root = objectMapper.readTree(geoJson);
+            String type = root.path("type").asText("Polygon");
+            JsonNode coordsNode = root.path("coordinates");
+            if (coordsNode.isMissingNode() || !coordsNode.isArray()) {
+                log.warn("No valid coordinates found in GeoJSON for code: {}", code);
+            }
+            feature.setGeometry(GeoJsonFeatureDto.GeometryDto.builder()
+                    .type(type)
+                    .coordinates(objectMapper.convertValue(coordsNode, Object.class))
+                    .build());
+        } catch (Exception e) {
+            log.error("Failed to parse GeoJSON for code: {}: {}", code, e.getMessage());
+            feature.setGeometry(GeoJsonFeatureDto.GeometryDto.builder()
+                    .type("Polygon")
+                    .coordinates(geoJson)
+                    .build());
+        }
+
+        return feature;
     }
 
     @Override
+    @Cacheable(value = "geo", key = "'reverse:' + #lat + ':' + #lng")
     public AdministrativeUnitDto findUnitByCoordinate(double lat, double lng) {
-        log.debug("Reverse geocoding not available - no geometry data");
-        throw new ResourceNotFoundException("Feature", "coordinates", String.format("(%.4f, %.4f)", lat, lng));
+        log.debug("Reverse geocoding for coordinates: lat={}, lng={}", lat, lng);
+
+        AdministrativeUnit unit = repository.findUnitContainingPoint(lat, lng)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "AdministrativeUnit", "coordinates", String.format("(%.4f, %.4f)", lat, lng)));
+
+        AdministrativeUnitDto dto = geoMapper.toDto(unit);
+
+        if (unit.getParentId() != null) {
+            repository.findById(unit.getParentId())
+                    .ifPresent(parent -> dto.setParentCode(parent.getCode()));
+        }
+
+        if (unit.getCentroid() != null) {
+            dto.setCentroidLat(unit.getCentroid().getY());
+            dto.setCentroidLng(unit.getCentroid().getX());
+        } else {
+            repository.findCentroidByCode(unit.getCode())
+                    .ifPresent(row -> {
+                        Object[] arr = (Object[]) row;
+                        if (arr[1] != null) dto.setCentroidLat(((Number) arr[1]).doubleValue());
+                        if (arr[0] != null) dto.setCentroidLng(((Number) arr[0]).doubleValue());
+                    });
+        }
+
+        dto.setChildCount(repository.countByParentId(unit.getId()));
+
+        return dto;
+    }
+
+    @Transactional
+    public int calculateCentroids() {
+        log.info("Calculating centroids for all units");
+        int count = 0;
+        List<AdministrativeUnit> units = repository.findAll();
+        for (AdministrativeUnit unit : units) {
+            if (unit.getBoundary() != null && unit.getCentroid() == null) {
+                unit.setCentroid(unit.getBoundary().getCentroid());
+                repository.save(unit);
+                count++;
+            }
+        }
+        log.info("Calculated {} centroids", count);
+        return count;
     }
 }
