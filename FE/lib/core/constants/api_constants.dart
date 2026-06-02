@@ -2,6 +2,7 @@ class ApiConstants {
   ApiConstants._();
 
   static const String provinces = '/api/v1/geo/provinces';
+  static const String provincesBoundaries = '/api/v1/geo/provinces-boundaries';
   static const String districts = '/api/v1/geo/districts';
   static const String wards = '/api/v1/geo/wards';
   static String unitByCode(String code) => '/api/v1/geo/units/$code';

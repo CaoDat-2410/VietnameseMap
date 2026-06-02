@@ -1,4 +1,3 @@
-import '../../../../core/errors/failures.dart';
 import '../../../../core/utils/failure_mapper.dart';
 import '../../../../core/utils/result.dart';
 import '../../domain/entities/administrative_unit.dart';
@@ -17,6 +16,12 @@ class GeoRepositoryImpl implements GeoRepository {
       _wrap(() async {
         final models = await _dataSource.getProvinces();
         return models.map((m) => m.toEntity()).toList();
+      });
+
+  @override
+  Future<Result<Map<String, dynamic>>> getAllProvincesBoundaries() =>
+      _wrap(() async {
+        return await _dataSource.getAllProvincesBoundaries();
       });
 
   @override

@@ -139,6 +139,19 @@ public class GeoController {
     }
 
     @Operation(
+            summary = "Get all province boundaries",
+            description = "Retrieves GeoJSON FeatureCollection with boundaries for all provinces in one request"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Boundaries retrieved")
+    })
+    @GetMapping("/provinces-boundaries")
+    public ResponseEntity<ApiResponse<Object>> getAllProvincesBoundaries() {
+        Object boundaries = geoService.getAllProvincesBoundaries();
+        return ResponseEntity.ok(ApiResponse.success(boundaries, "All province boundaries retrieved"));
+    }
+
+    @Operation(
             summary = "Reverse geocode coordinates",
             description = "Finds the administrative unit containing the given GPS coordinates"
     )

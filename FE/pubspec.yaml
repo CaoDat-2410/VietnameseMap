@@ -18,6 +18,7 @@ dependencies:
 
   # Map
   flutter_map: ^7.0.2
+  flutter_map_cancellable_tile_provider: ^3.0.0
   latlong2: ^0.9.1
 
   # Code generation annotations

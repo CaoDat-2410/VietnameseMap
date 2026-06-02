@@ -6,6 +6,9 @@ import '../entities/geo_json_feature.dart';
 abstract interface class GeoRepository {
   Future<Result<List<AdministrativeUnitSummary>>> getProvinces();
 
+  /// Fetches all province boundaries as a GeoJSON FeatureCollection.
+  Future<Result<Map<String, dynamic>>> getAllProvincesBoundaries();
+
   Future<Result<GeoJsonFeature>> getProvinceBoundary(String code);
 
   Future<Result<List<AdministrativeUnitSummary>>> getDistricts(

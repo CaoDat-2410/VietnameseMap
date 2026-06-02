@@ -5,6 +5,10 @@ spring:
       hibernate:
         format_sql: true
 
+cors:
+  # Wildcard covers localhost, Android emulator (10.0.2.2), and any dev port
+  allowed-origins: "*"
+
 logging:
   level:
     root: INFO

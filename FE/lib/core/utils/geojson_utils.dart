@@ -72,14 +72,14 @@ class GeoJsonUtils {
 
   static LatLngBounds? getBoundsFromPolygons(List<Polygon> polygons) {
     if (polygons.isEmpty) return null;
-    
+
     double minLat = double.infinity;
     double maxLat = -double.infinity;
     double minLng = double.infinity;
     double maxLng = -double.infinity;
-    
+
     bool hasPoints = false;
-    
+
     for (final polygon in polygons) {
       for (final point in polygon.points) {
         hasPoints = true;
@@ -89,9 +89,112 @@ class GeoJsonUtils {
         if (point.longitude > maxLng) maxLng = point.longitude;
       }
     }
-    
+
     if (!hasPoints) return null;
-    
+
     return LatLngBounds(LatLng(minLat, minLng), LatLng(maxLat, maxLng));
+  }
+
+  static LatLng? computePolygonCentroid(List<LatLng> points) {
+    if (points.isEmpty) return null;
+    double sumLat = 0;
+    double sumLng = 0;
+    for (final p in points) {
+      sumLat += p.latitude;
+      sumLng += p.longitude;
+    }
+    return LatLng(sumLat / points.length, sumLng / points.length);
+  }
+
+  static bool pointInPolygon(LatLng point, List<LatLng> ring) {
+    if (ring.isEmpty) return false;
+    int intersections = 0;
+    final n = ring.length;
+    for (int i = 0; i < n; i++) {
+      final a = ring[i];
+      final b = ring[(i + 1) % n];
+      if (((a.latitude > point.latitude) != (b.latitude > point.latitude)) &&
+          (point.longitude <
+              (b.longitude - a.longitude) *
+                      (point.latitude - a.latitude) /
+                      (b.latitude - a.latitude) +
+                  a.longitude)) {
+        intersections++;
+      }
+    }
+    return intersections % 2 == 1;
+  }
+
+  static LatLngBounds? computeVietnamBounds(
+      List<Map<String, dynamic>> provinceFeatures) {
+    double minLat = double.infinity;
+    double maxLat = -double.infinity;
+    double minLng = double.infinity;
+    double maxLng = -double.infinity;
+    bool hasPoints = false;
+
+    for (final feature in provinceFeatures) {
+      final geometry = feature['geometry'] as Map<String, dynamic>?;
+      if (geometry == null) continue;
+      final coords = geometry['coordinates'];
+      if (coords == null) continue;
+
+      void extractPoints(dynamic c) {
+        if (c is List && c.isNotEmpty) {
+          if (c.length == 2 && c[0] is num && c[1] is num) {
+            final lng = (c[0] as num).toDouble();
+            final lat = (c[1] as num).toDouble();
+            if (lat < minLat) minLat = lat;
+            if (lat > maxLat) maxLat = lat;
+            if (lng < minLng) minLng = lng;
+            if (lng > maxLng) maxLng = lng;
+            hasPoints = true;
+          } else {
+            for (final item in c) {
+              extractPoints(item);
+            }
+          }
+        }
+      }
+
+      extractPoints(coords);
+    }
+
+    if (!hasPoints) return null;
+
+    const buffer = 0.15;
+    return LatLngBounds(
+      LatLng(minLat - buffer, minLng - buffer),
+      LatLng(maxLat + buffer, maxLng + buffer),
+    );
+  }
+
+  static List<LatLng> extractVietnamOuterRing(
+      List<Map<String, dynamic>> provinceFeatures) {
+    final allPoints = <LatLng>[];
+    for (final feature in provinceFeatures) {
+      final geometry = feature['geometry'] as Map<String, dynamic>?;
+      if (geometry == null) continue;
+      final coords = geometry['coordinates'];
+      if (coords == null) continue;
+
+      void extractRingPoints(dynamic c) {
+        if (c is List && c.isNotEmpty) {
+          if (c.length == 2 && c[0] is num && c[1] is num) {
+            allPoints.add(LatLng(
+              (c[1] as num).toDouble(),
+              (c[0] as num).toDouble(),
+            ));
+          } else {
+            for (final item in c) {
+              extractRingPoints(item);
+            }
+          }
+        }
+      }
+
+      extractRingPoints(coords);
+    }
+    return allPoints;
   }
 }

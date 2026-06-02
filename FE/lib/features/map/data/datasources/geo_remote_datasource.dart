@@ -8,6 +8,8 @@ import '../models/geo_json_feature_model.dart';
 
 abstract interface class GeoRemoteDataSource {
   Future<List<AdministrativeUnitSummaryModel>> getProvinces();
+  /// Fetches all province boundaries as a GeoJSON FeatureCollection in one call.
+  Future<Map<String, dynamic>> getAllProvincesBoundaries();
   Future<GeoJsonFeatureModel> getProvinceBoundary(String code);
   Future<List<AdministrativeUnitSummaryModel>> getDistricts(String provinceCode);
   Future<List<AdministrativeUnitSummaryModel>> getWards(String districtCode);
@@ -30,6 +32,18 @@ class GeoRemoteDataSourceImpl implements GeoRemoteDataSource {
           .map((e) => AdministrativeUnitSummaryModel.fromJson(
               e as Map<String, dynamic>))
           .toList(),
+    );
+    _assertSuccess(api);
+    return api.data!;
+  }
+
+  @override
+  Future<Map<String, dynamic>> getAllProvincesBoundaries() async {
+    final res = await _client.get<Map<String, dynamic>>(
+        ApiConstants.provincesBoundaries);
+    final api = ApiResponse.fromJson(
+      res.data!,
+      (json) => json as Map<String, dynamic>,
     );
     _assertSuccess(api);
     return api.data!;

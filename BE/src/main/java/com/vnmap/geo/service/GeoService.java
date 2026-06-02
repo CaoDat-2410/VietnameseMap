@@ -18,6 +18,10 @@ public interface GeoService {
 
     GeoJsonFeatureDto getBoundaryByCode(String code);
 
+    /// Returns a GeoJSON FeatureCollection containing boundaries for all provinces.
+    /// This is much more efficient than fetching each province boundary individually.
+    Object getAllProvincesBoundaries();
+
     AdministrativeUnitDto findUnitByCoordinate(double lat, double lng);
 
     int calculateCentroids();

@@ -1,12 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../core/errors/failures.dart';
 import '../../../../core/widgets/app_error_widget.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../domain/entities/administrative_unit_summary.dart';
 import '../providers/map_provider.dart';
+
+class Debouncer {
+  Debouncer({required this.milliseconds});
+  final int milliseconds;
+  VoidCallback? _action;
+  bool _isRunning = false;
+
+  void run(VoidCallback action) {
+    _action = action;
+    if (!_isRunning) {
+      _isRunning = true;
+      Future.delayed(Duration(milliseconds: milliseconds), () {
+        _isRunning = false;
+        _action?.call();
+      });
+    }
+  }
+}
+
+final provinceSearchQueryProvider = StateProvider<String>((ref) => '');
 
 class ProvinceListBody extends ConsumerStatefulWidget {
   const ProvinceListBody({super.key, this.scrollController});
@@ -18,12 +38,22 @@ class ProvinceListBody extends ConsumerStatefulWidget {
 }
 
 class _ProvinceListBodyState extends ConsumerState<ProvinceListBody> {
-  String _query = '';
+  final _debouncer = Debouncer(milliseconds: 300);
+  final _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _debouncer._isRunning = false;
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final asyncProvinces = ref.watch(provincesProvider);
     final selectedProvince = ref.watch(selectedProvinceProvider);
+    final searchQuery = ref.watch(provinceSearchQueryProvider);
+    final query = searchQuery.toLowerCase();
 
     return Column(
       children: [
@@ -35,31 +65,45 @@ class _ProvinceListBodyState extends ConsumerState<ProvinceListBody> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
               ],
             ),
-            child: TextField(
-              onChanged: (v) => setState(() => _query = v.toLowerCase()),
-              decoration: InputDecoration(
-                hintText: 'Tìm kiếm tỉnh thành...',
-                hintStyle: TextStyle(color: Colors.grey.shade400),
-                prefixIcon: Icon(Icons.search, color: Colors.blue.shade300),
-                suffixIcon: _query.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.close, color: Colors.grey),
-                        onPressed: () => setState(() => _query = ''),
-                      )
-                    : null,
-                fillColor: Colors.transparent,
-                filled: true,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
+            child: KeyboardListener(
+              focusNode: _focusNode,
+              onKeyEvent: (event) {
+                if (event is KeyDownEvent &&
+                    event.logicalKey == LogicalKeyboardKey.escape) {
+                  ref.read(provinceSearchQueryProvider.notifier).state = '';
+                }
+              },
+              child: TextField(
+                autofocus: false,
+                onChanged: (v) {
+                  ref.read(provinceSearchQueryProvider.notifier).state = v;
+                },
+                decoration: InputDecoration(
+                  hintText: 'Tìm kiếm tỉnh thành...',
+                  hintStyle: TextStyle(color: Colors.grey.shade400),
+                  prefixIcon: Icon(Icons.search, color: Colors.blue.shade300),
+                  suffixIcon: query.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.close, color: Colors.grey),
+                          onPressed: () {
+                            ref.read(provinceSearchQueryProvider.notifier).state = '';
+                          },
+                        )
+                      : null,
+                  fillColor: Colors.transparent,
+                  filled: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 16),
               ),
             ),
           ),
@@ -73,45 +117,71 @@ class _ProvinceListBodyState extends ConsumerState<ProvinceListBody> {
             ),
             data: (result) => result.when(
               ok: (provinces) {
-                final filtered = _query.isEmpty
+                final filtered = query.isEmpty
                     ? provinces
                     : provinces
                         .where((p) =>
-                            p.name.toLowerCase().contains(_query) ||
-                            p.code.toLowerCase().contains(_query))
+                            p.name.toLowerCase().contains(query) ||
+                            p.code.toLowerCase().contains(query))
                         .toList();
 
-                if (filtered.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.search_off, size: 48, color: Colors.grey),
-                        SizedBox(height: 8),
-                        Text('Không tìm thấy tỉnh nào', style: TextStyle(color: Colors.grey)),
-                      ],
-                    ),
-                  );
-                }
+                return Column(
+                  children: [
+                    if (query.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8, left: 16, right: 16),
+                        child: Row(
+                          children: [
+                            Text(
+                              'Tìm thấy ${filtered.length} tỉnh',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    Expanded(
+                      child: filtered.isEmpty
+                          ? const Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.search_off, size: 48, color: Colors.grey),
+                                  SizedBox(height: 8),
+                                  Text('Không tìm thấy tỉnh nào',
+                                      style: TextStyle(color: Colors.grey)),
+                                ],
+                              ),
+                            )
+                          : ListView.separated(
+                              controller: widget.scrollController,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              itemCount: filtered.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 12),
+                              itemBuilder: (context, index) {
+                                final province = filtered[index];
+                                final isSelected =
+                                    selectedProvince?.code == province.code;
 
-                return ListView.separated(
-                  controller: widget.scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  itemCount: filtered.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final province = filtered[index];
-                    final isSelected = selectedProvince?.code == province.code;
-                    
-                    return _ProvinceCard(
-                      province: province,
-                      index: index,
-                      isSelected: isSelected,
-                      onTap: () {
-                        ref.read(selectedProvinceProvider.notifier).state = province;
-                      },
-                    );
-                  },
+                                return _ProvinceCard(
+                                  province: province,
+                                  index: filtered.indexOf(province),
+                                  isSelected: isSelected,
+                                  searchQuery: query,
+                                  onTap: () {
+                                    ref.read(selectedProvinceProvider.notifier).state =
+                                        province;
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                  ],
                 );
               },
               err: (failure) => AppErrorWidget(
@@ -132,12 +202,14 @@ class _ProvinceCard extends StatelessWidget {
     required this.index,
     required this.isSelected,
     required this.onTap,
+    this.searchQuery = '',
   });
 
   final AdministrativeUnitSummary province;
   final int index;
   final bool isSelected;
   final VoidCallback onTap;
+  final String searchQuery;
 
   static const _avatarColors = [
     Color(0xFFDA291C),
@@ -147,6 +219,38 @@ class _ProvinceCard extends StatelessWidget {
     Color(0xFFE65100),
     Color(0xFF00695C),
   ];
+
+  Widget _buildHighlightedText(String text, String query, Color highlightColor, TextStyle baseStyle) {
+    if (query.isEmpty) {
+      return Text(text, style: baseStyle, maxLines: 1, overflow: TextOverflow.ellipsis);
+    }
+    final lowerText = text.toLowerCase();
+    final lowerQuery = query.toLowerCase();
+    final startIndex = lowerText.indexOf(lowerQuery);
+    if (startIndex == -1) {
+      return Text(text, style: baseStyle, maxLines: 1, overflow: TextOverflow.ellipsis);
+    }
+    final endIndex = startIndex + query.length;
+    return RichText(
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      text: TextSpan(
+        style: baseStyle,
+        children: [
+          TextSpan(text: text.substring(0, startIndex)),
+          TextSpan(
+            text: text.substring(startIndex, endIndex),
+            style: baseStyle.copyWith(
+              color: highlightColor,
+              fontWeight: FontWeight.bold,
+              backgroundColor: highlightColor.withValues(alpha: 0.1),
+            ),
+          ),
+          TextSpan(text: text.substring(endIndex)),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -158,15 +262,15 @@ class _ProvinceCard extends StatelessWidget {
       curve: Curves.easeOutCubic,
       margin: EdgeInsets.zero,
       decoration: BoxDecoration(
-        color: isSelected ? color.withOpacity(0.08) : Colors.white,
+        color: isSelected ? color.withValues(alpha: 0.08) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isSelected ? color.withOpacity(0.5) : Colors.transparent,
+          color: isSelected ? color.withValues(alpha: 0.5) : Colors.transparent,
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: isSelected ? color.withOpacity(0.15) : Colors.black.withOpacity(0.03),
+            color: isSelected ? color.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.03),
             blurRadius: isSelected ? 12 : 8,
             offset: const Offset(0, 4),
           ),
@@ -177,65 +281,65 @@ class _ProvinceCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: color.withOpacity(0.12),
-                child: Text(
-                  initial,
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: color.withValues(alpha: 0.12),
+                  child: Text(
+                    initial,
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      province.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        province.code,
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHighlightedText(
+                        province.name,
+                        searchQuery,
+                        color,
+                        const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          province.code,
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Icon(
-                Icons.chevron_right, 
-                color: isSelected ? color : Colors.grey.shade400, 
-                size: 24,
-              ),
-            ],
+                Icon(
+                  Icons.chevron_right,
+                  color: isSelected ? color : Colors.grey.shade400,
+                  size: 24,
+                ),
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }

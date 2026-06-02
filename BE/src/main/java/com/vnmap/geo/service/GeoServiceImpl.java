@@ -203,4 +203,43 @@ public class GeoServiceImpl implements GeoService {
         log.info("Calculated {} centroids", count);
         return count;
     }
+
+    @Override
+    @Cacheable(value = "geo", key = "'allProvincesBoundaries'")
+    public Object getAllProvincesBoundaries() {
+        log.debug("Fetching all province boundaries as FeatureCollection");
+        List<AdministrativeUnit> provinces = repository.findByLevel(UnitLevel.PROVINCE);
+        List<Object> features = new java.util.ArrayList<>();
+
+        for (AdministrativeUnit province : provinces) {
+            String geoJson = repository.findBoundaryGeoJsonByCode(province.getCode()).orElse(null);
+            if (geoJson == null || geoJson.isBlank()) continue;
+
+            Map<String, Object> feature = new HashMap<>();
+            feature.put("type", "Feature");
+            feature.put("code", province.getCode());
+            feature.put("name", province.getName());
+
+            try {
+                JsonNode root = objectMapper.readTree(geoJson);
+                Map<String, Object> geometry = new HashMap<>();
+                geometry.put("type", root.path("type").asText("Polygon"));
+                geometry.put("coordinates", objectMapper.convertValue(root.path("coordinates"), Object.class));
+                feature.put("geometry", geometry);
+            } catch (Exception e) {
+                log.warn("Failed to parse GeoJSON for province {}: {}", province.getCode(), e.getMessage());
+                Map<String, Object> geometry = new HashMap<>();
+                geometry.put("type", "Polygon");
+                geometry.put("coordinates", java.util.Collections.emptyList());
+                feature.put("geometry", geometry);
+            }
+
+            features.add(feature);
+        }
+
+        Map<String, Object> collection = new HashMap<>();
+        collection.put("type", "FeatureCollection");
+        collection.put("features", features);
+        return collection;
+    }
 }
