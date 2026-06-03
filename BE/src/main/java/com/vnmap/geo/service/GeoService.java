@@ -22,6 +22,10 @@ public interface GeoService {
     /// This is much more efficient than fetching each province boundary individually.
     Object getAllProvincesBoundaries();
 
+    /// Returns all ward boundaries for a given district.
+    /// Uses districtId to avoid duplicate ward code issues.
+    List<GeoJsonFeatureDto> getWardsBoundariesByDistrictId(Long districtId);
+
     AdministrativeUnitDto findUnitByCoordinate(double lat, double lng);
 
     int calculateCentroids();

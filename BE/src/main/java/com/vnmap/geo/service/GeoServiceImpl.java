@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Optional;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -96,7 +97,7 @@ public class GeoServiceImpl implements GeoService {
             dto.setCentroidLat(unit.getCentroid().getY());
             dto.setCentroidLng(unit.getCentroid().getX());
         } else {
-            repository.findCentroidByCode(code)
+            repository.findCentroidByCode(code, unit.getLevel().name())
                     .ifPresent(row -> {
                         Object[] arr = (Object[]) row;
                         if (arr[1] != null) dto.setCentroidLat(((Number) arr[1]).doubleValue());
@@ -112,11 +113,18 @@ public class GeoServiceImpl implements GeoService {
     public GeoJsonFeatureDto getBoundaryByCode(String code) {
         log.debug("Fetching boundary for unit: {}", code);
 
-        AdministrativeUnit unit = repository.findByCode(code)
-                .orElseThrow(() -> new ResourceNotFoundException("AdministrativeUnit", "code", code));
+        UnitLevel level = determineLevelFromCode(code);
+        Optional<AdministrativeUnit> unitOpt = repository.findByCodeAndLevel(code, level);
+        if (unitOpt.isEmpty()) {
+            throw new ResourceNotFoundException("AdministrativeUnit", "code", code);
+        }
+        AdministrativeUnit unit = unitOpt.get();
 
-        String geoJson = repository.findBoundaryGeoJsonByCode(code)
-                .orElseThrow(() -> new ResourceNotFoundException("Boundary", "code", code));
+        Optional<String> boundaryOpt = repository.findBoundaryByCodeAndLevel(code, unit.getLevel().name());
+        if (boundaryOpt.isEmpty()) {
+            throw new ResourceNotFoundException("Boundary", "code", code);
+        }
+        String boundaryJson = boundaryOpt.get();
 
         String parentCode = null;
         if (unit.getParentId() != null) {
@@ -134,7 +142,7 @@ public class GeoServiceImpl implements GeoService {
                 .build();
 
         try {
-            JsonNode root = objectMapper.readTree(geoJson);
+            JsonNode root = objectMapper.readTree(boundaryJson);
             String type = root.path("type").asText("Polygon");
             JsonNode coordsNode = root.path("coordinates");
             if (coordsNode.isMissingNode() || !coordsNode.isArray()) {
@@ -148,7 +156,7 @@ public class GeoServiceImpl implements GeoService {
             log.error("Failed to parse GeoJSON for code: {}: {}", code, e.getMessage());
             feature.setGeometry(GeoJsonFeatureDto.GeometryDto.builder()
                     .type("Polygon")
-                    .coordinates(geoJson)
+                    .coordinates(boundaryJson)
                     .build());
         }
 
@@ -175,7 +183,7 @@ public class GeoServiceImpl implements GeoService {
             dto.setCentroidLat(unit.getCentroid().getY());
             dto.setCentroidLng(unit.getCentroid().getX());
         } else {
-            repository.findCentroidByCode(unit.getCode())
+            repository.findCentroidByCode(unit.getCode(), unit.getLevel().name())
                     .ifPresent(row -> {
                         Object[] arr = (Object[]) row;
                         if (arr[1] != null) dto.setCentroidLat(((Number) arr[1]).doubleValue());
@@ -212,7 +220,7 @@ public class GeoServiceImpl implements GeoService {
         List<Object> features = new java.util.ArrayList<>();
 
         for (AdministrativeUnit province : provinces) {
-            String geoJson = repository.findBoundaryGeoJsonByCode(province.getCode()).orElse(null);
+            String geoJson = repository.findBoundaryByCodeAndLevel(province.getCode(), UnitLevel.PROVINCE.name()).orElse(null);
             if (geoJson == null || geoJson.isBlank()) continue;
 
             Map<String, Object> feature = new HashMap<>();
@@ -241,5 +249,49 @@ public class GeoServiceImpl implements GeoService {
         collection.put("type", "FeatureCollection");
         collection.put("features", features);
         return collection;
+    }
+
+    @Override
+    public List<GeoJsonFeatureDto> getWardsBoundariesByDistrictId(Long districtId) {
+        log.debug("Fetching ward boundaries for districtId: {}", districtId);
+        List<Object[]> rows = repository.findWardsWithBoundariesByDistrictId(districtId);
+        List<GeoJsonFeatureDto> features = new java.util.ArrayList<>();
+        for (Object[] row : rows) {
+            try {
+                Long wardId = ((Number) row[0]).longValue();
+                String name = (String) row[1];
+                String code = (String) row[2];
+                String boundaryJson = (String) row[5];
+
+                GeoJsonFeatureDto feature = GeoJsonFeatureDto.builder()
+                        .type("Feature")
+                        .code(code)
+                        .name(name)
+                        .level(UnitLevel.WARD)
+                        .build();
+
+                JsonNode root = objectMapper.readTree(boundaryJson);
+                String type = root.path("type").asText("Polygon");
+                JsonNode coordsNode = root.path("coordinates");
+                feature.setGeometry(GeoJsonFeatureDto.GeometryDto.builder()
+                        .type(type)
+                        .coordinates(objectMapper.convertValue(coordsNode, Object.class))
+                        .build());
+                features.add(feature);
+            } catch (Exception e) {
+                log.warn("Failed to parse ward boundary: {}", e.getMessage());
+            }
+        }
+        return features;
+    }
+
+    /** Infers the unit level from the code format. */
+    private UnitLevel determineLevelFromCode(String code) {
+        int underscoreCount = (int) code.chars().filter(c -> c == '_').count();
+        return switch (underscoreCount) {
+            case 0 -> UnitLevel.PROVINCE;
+            case 2 -> UnitLevel.DISTRICT;
+            default -> UnitLevel.WARD;
+        };
     }
 }

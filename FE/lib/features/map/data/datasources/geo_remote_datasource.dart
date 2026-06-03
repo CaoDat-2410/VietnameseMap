@@ -13,6 +13,7 @@ abstract interface class GeoRemoteDataSource {
   Future<GeoJsonFeatureModel> getProvinceBoundary(String code);
   Future<List<AdministrativeUnitSummaryModel>> getDistricts(String provinceCode);
   Future<List<AdministrativeUnitSummaryModel>> getWards(String districtCode);
+  Future<List<GeoJsonFeatureModel>> getWardsBoundariesByDistrictId(int districtId);
   Future<AdministrativeUnitModel> getUnitByCode(String code);
   Future<GeoJsonFeatureModel> getUnitBoundary(String code);
   Future<AdministrativeUnitModel> reverseGeocode(double lat, double lng);
@@ -92,6 +93,22 @@ class GeoRemoteDataSourceImpl implements GeoRemoteDataSource {
       (json) => (json as List)
           .map((e) => AdministrativeUnitSummaryModel.fromJson(
               e as Map<String, dynamic>))
+          .toList(),
+    );
+    _assertSuccess(api);
+    return api.data!;
+  }
+
+  @override
+  Future<List<GeoJsonFeatureModel>> getWardsBoundariesByDistrictId(
+      int districtId) async {
+    final res = await _client.get<Map<String, dynamic>>(
+        ApiConstants.wardsBoundariesByDistrictId(districtId));
+    final api = ApiResponse.fromJson(
+      res.data!,
+      (json) => (json as List)
+          .map((e) =>
+              GeoJsonFeatureModel.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
     _assertSuccess(api);

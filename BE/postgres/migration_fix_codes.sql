@@ -22,14 +22,18 @@ WHERE level = 'DISTRICT' AND code LIKE 'VNM.%';
 
 -- =============================================
 -- STEP 3: Fix ward codes
--- Pattern: VNM.1.1.1_1 -> 1_1_1
+-- Current ward code = district_code + "_" + suffix (all same for same parent district)
+-- Correct ward code = province_prefix + district_suffix + "_" + ward_suffix
+-- Fix: w.code = d.code + "_" + ward_suffix
+--   where ward_suffix = SUBSTR(w.code, LENGTH(d.code) + 2)
 -- =============================================
-UPDATE administrative_units
-SET code = REGEXP_REPLACE(
-    REGEXP_REPLACE(code, 'VNM\.', '', 'g'),
-    '\.', '_', 'g'
-)
-WHERE level = 'WARD' AND code LIKE 'VNM.%';
+UPDATE administrative_units w
+SET code = d.code || '_' || SUBSTR(w.code, LENGTH(d.code) + 2)
+FROM administrative_units d
+WHERE w.level = 'WARD'
+  AND d.level = 'DISTRICT'
+  AND d.id = w.parent_id
+  AND w.code NOT LIKE d.code || '\_%' ESCAPE '\';
 
 -- =============================================
 -- STEP 4: Clear all parent relationships

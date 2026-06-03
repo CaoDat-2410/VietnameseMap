@@ -59,7 +59,7 @@ class ProvinceDetailPage extends ConsumerWidget {
                         end: Alignment.bottomCenter,
                         colors: [
                           colorScheme.primary,
-                          colorScheme.primary.withOpacity(0.8),
+                          colorScheme.primary.withValues(alpha: 0.8),
                         ],
                       ),
                     ),
@@ -70,7 +70,7 @@ class ProvinceDetailPage extends ConsumerWidget {
                     child: Icon(
                       Icons.location_city,
                       size: 160,
-                      color: Colors.white.withOpacity(0.06),
+                      color: Colors.white.withValues(alpha: 0.06),
                     ),
                   ),
                 ],
@@ -96,7 +96,7 @@ class ProvinceDetailPage extends ConsumerWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _SectionTitle(
+                              const _SectionTitle(
                                   icon: Icons.info_outline,
                                   title: 'Thông tin chung'),
                               const SizedBox(height: 12),
@@ -134,7 +134,7 @@ class ProvinceDetailPage extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _SectionTitle(
+                      const _SectionTitle(
                           icon: Icons.location_on_outlined,
                           title: 'Quận / Huyện'),
                       const SizedBox(height: 12),

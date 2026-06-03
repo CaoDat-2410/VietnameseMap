@@ -217,7 +217,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Color.fromRGBO(33, 150, 243, 0.1),
                     shape: BoxShape.circle,
                   ),
@@ -305,7 +305,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
           }
           final polygons = GeoJsonUtils.parseGeoJsonToPolygons(
             coords,
-            fillColor: Color.fromRGBO(255, 152, 0, 0.15),
+            fillColor: const Color.fromRGBO(255, 152, 0, 0.15),
             borderColor: Colors.transparent,
             borderStrokeWidth: 0.0,
           );
@@ -367,7 +367,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
       borderStrokeWidth = 2.0;
     }
 
-    final baseColor = const Color.fromRGBO(30, 136, 229, 1);
+    const baseColor = Color(0xFF1E88E5);
 
     final allPolygons = <Polygon>[];
     for (final entry in _provinceBoundaryEntries) {
@@ -376,10 +376,9 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
           Polygon(
             points: polygon.points,
             holePointsList: polygon.holePointsList,
-            color: baseColor.withOpacity(fillOpacity),
-            borderColor: baseColor.withOpacity(borderOpacity),
+            color: baseColor.withValues(alpha: fillOpacity),
+            borderColor: baseColor.withValues(alpha: borderOpacity),
             borderStrokeWidth: borderStrokeWidth,
-            isFilled: true,
           ),
         );
       }
@@ -395,10 +394,12 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
         if (GeoJsonUtils.pointInPolygon(point, polygon.points)) {
           final repo = ref.read(geoRepositoryProvider);
           final wardsResult = await repo.getWards(entry.code);
-          wardsResult.when(ok: (wards) {
+          wardsResult.when(ok: (wards) async {
             if (wards.isNotEmpty) {
+              final firstWard = wards.first;
+              final districtId = firstWard.parentId ?? 0;
               ref.read(selectedDistrictProvider.notifier).state =
-                  (code: entry.code, name: entry.name);
+                  (code: entry.code, name: entry.name, id: districtId);
             }
           }, err: (_) {});
 
@@ -423,12 +424,47 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
     }
   }
 
+  void _handleWardTap(
+      LatLng point, List<({String code, String name, List<Polygon> polygons})> entries) {
+    for (final entry in entries) {
+      for (final polygon in entry.polygons) {
+        if (GeoJsonUtils.pointInPolygon(point, polygon.points)) {
+          ref.read(selectedWardProvider.notifier).state =
+              (code: entry.code, name: entry.name);
+
+          final wardBounds = GeoJsonUtils.getBoundsFromPolygons(entry.polygons) ??
+              LatLngBounds(point, point);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted || _pendingCameraMove) return;
+            _pendingCameraMove = true;
+            _mapController.fitCamera(
+              CameraFit.bounds(
+                bounds: wardBounds,
+                padding: const EdgeInsets.all(48.0),
+              ),
+            );
+            Future.delayed(const Duration(milliseconds: 500), () {
+              _pendingCameraMove = false;
+            });
+          });
+          return;
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     ref.listen(selectedProvinceProvider, (previous, next) {
       if (next != null && (previous == null || previous.code != next.code)) {
         _loadBoundary(next.code);
         ref.read(selectedDistrictProvider.notifier).state = null;
+        ref.read(selectedWardProvider.notifier).state = null;
+      }
+    });
+
+    ref.listen(selectedDistrictProvider, (previous, next) {
+      if (next != null && (previous == null || previous.code != next.code)) {
         ref.read(selectedWardProvider.notifier).state = null;
       }
     });
@@ -457,8 +493,9 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
     });
 
     final selectedDistrict = ref.watch(selectedDistrictProvider);
+    final selectedWard = ref.watch(selectedWardProvider);
     final asyncWardBoundaries = selectedDistrict != null
-        ? ref.watch(wardBoundariesProvider(selectedDistrict.code))
+        ? ref.watch(wardBoundariesProvider(selectedDistrict.id))
         : null;
 
     final wardEntries =
@@ -480,7 +517,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
     });
 
     final wardCentroidsAsync = selectedDistrict != null
-        ? ref.watch(wardCentroidsProvider(selectedDistrict.code))
+        ? ref.watch(wardCentroidsProvider(selectedDistrict.id))
         : null;
     final wardCentroids = <String, LatLng>{};
     wardCentroidsAsync?.whenData((m) {
@@ -556,7 +593,6 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
           color: tapped ? const Color(0x4D4CAF50) : const Color(0x1A4CAF50),
           borderColor: tapped ? const Color(0xFF4CAF50) : const Color(0xCC4CAF50),
           borderStrokeWidth: tapped ? 2.5 : 1.8,
-          isFilled: true,
         ));
       }
     }
@@ -564,13 +600,13 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
     final wardPolygons = <Polygon>[];
     for (final entry in wardEntries) {
       for (final polygon in entry.polygons) {
+        final tapped = selectedWard?.code == entry.code;
         wardPolygons.add(Polygon(
           points: polygon.points,
           holePointsList: polygon.holePointsList,
-          color: const Color(0x1A9C27B0),
-          borderColor: const Color(0xCC9C27B0),
-          borderStrokeWidth: 1.5,
-          isFilled: true,
+          color: tapped ? const Color(0x664CAF50) : const Color(0x1A4CAF50),
+          borderColor: tapped ? const Color(0xFF4CAF50) : const Color(0xCC4CAF50),
+          borderStrokeWidth: tapped ? 2.5 : 1.5,
         ));
       }
     }
@@ -593,7 +629,9 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
             },
             onTap: (tapPos, point) {
               _handleMapTap(tapPos, point);
-              if (districtEntries.isNotEmpty) {
+              if (wardEntries.isNotEmpty) {
+                _handleWardTap(point, wardEntries);
+              } else if (districtEntries.isNotEmpty) {
                 _handleDistrictTap(point, districtEntries);
               }
             },
@@ -636,13 +674,16 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
             // Markers
             MarkerLayer(
               markers: [
+                // ignore: prefer_const_constructors, prefer_const_literals_to_create_immutables
                 Marker(
                   point: const LatLng(16.5, 112.0),
                   width: 120,
                   height: 52,
                   alignment: Alignment.center,
+                  // ignore: prefer_const_constructors
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
+                    // ignore: prefer_const_literals_to_create_immutables
                     children: [
                       const Icon(Icons.location_on, color: Colors.red, size: 16),
                       const Text(
@@ -669,16 +710,16 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                     ],
                   ),
                 ),
-                Marker(
-                  point: const LatLng(9.5, 113.5),
+                const Marker(
+                  point: LatLng(9.5, 113.5),
                   width: 120,
                   height: 52,
                   alignment: Alignment.center,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.location_on, color: Colors.red, size: 16),
-                      const Text(
+                      Icon(Icons.location_on, color: Colors.red, size: 16),
+                      Text(
                         'QĐ. Trường Sa',
                         textAlign: TextAlign.center,
                         style: TextStyle(
@@ -686,17 +727,17 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                           fontWeight: FontWeight.w600,
                           fontSize: 10,
                           height: 1.1,
-                          shadows: [Shadow(color: Colors.white, blurRadius: 4)],
+                          shadows: [Shadow(color: Color(0xFFFFFFFF), blurRadius: 4)],
                         ),
                       ),
-                      const Text(
+                      Text(
                         '(Khánh Hòa)',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.black54,
                           fontSize: 8,
                           height: 1.1,
-                          shadows: [Shadow(color: Colors.white, blurRadius: 4)],
+                          shadows: [Shadow(color: Color(0xFFFFFFFF), blurRadius: 4)],
                         ),
                       ),
                     ],
@@ -725,7 +766,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
         // Boundary loading overlay
         if (_isLoadingBoundary)
           Container(
-            color: Color.fromRGBO(255, 255, 255, 0.5),
+            color: const Color(0x80FFFFFF),
             child: const Center(child: CircularProgressIndicator()),
           ),
 

@@ -107,6 +107,21 @@ public class GeoController {
     }
 
     @Operation(
+            summary = "Get ward boundaries by district",
+            description = "Retrieves all ward boundaries for a given district using district ID to avoid duplicate ward code issues"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Ward boundaries retrieved")
+    })
+    @GetMapping("/districts/{districtId}/wards-boundaries")
+    public ResponseEntity<ApiResponse<List<GeoJsonFeatureDto>>> getWardsBoundaries(
+            @Parameter(description = "District ID")
+            @PathVariable Long districtId) {
+        List<GeoJsonFeatureDto> boundaries = geoService.getWardsBoundariesByDistrictId(districtId);
+        return ResponseEntity.ok(ApiResponse.success(boundaries, "Ward boundaries retrieved"));
+    }
+
+    @Operation(
             summary = "Get administrative unit by code",
             description = "Retrieves detailed information for a specific administrative unit"
     )

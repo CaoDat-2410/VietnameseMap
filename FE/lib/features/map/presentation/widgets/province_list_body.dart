@@ -28,6 +28,9 @@ class Debouncer {
 
 final provinceSearchQueryProvider = StateProvider<String>((ref) => '');
 
+/// Tracks the current drill-down level in the list body.
+enum DrillLevel { province, district, ward }
+
 class ProvinceListBody extends ConsumerStatefulWidget {
   const ProvinceListBody({super.key, this.scrollController});
 
@@ -50,166 +53,526 @@ class _ProvinceListBodyState extends ConsumerState<ProvinceListBody> {
 
   @override
   Widget build(BuildContext context) {
-    final asyncProvinces = ref.watch(provincesProvider);
     final selectedProvince = ref.watch(selectedProvinceProvider);
-    final searchQuery = ref.watch(provinceSearchQueryProvider);
-    final query = searchQuery.toLowerCase();
+    final selectedDistrict = ref.watch(selectedDistrictProvider);
+    final selectedWard = ref.watch(selectedWardProvider);
+
+    final DrillLevel level;
+    final String? provinceCode;
+    final String? districtCode;
+
+    if (selectedWard != null) {
+      level = DrillLevel.ward;
+      provinceCode = selectedProvince?.code;
+      districtCode = selectedDistrict?.code;
+    } else if (selectedDistrict != null) {
+      level = DrillLevel.district;
+      provinceCode = selectedProvince?.code;
+      districtCode = selectedDistrict.code;
+    } else {
+      level = DrillLevel.province;
+      provinceCode = null;
+      districtCode = null;
+    }
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: KeyboardListener(
-              focusNode: _focusNode,
-              onKeyEvent: (event) {
-                if (event is KeyDownEvent &&
-                    event.logicalKey == LogicalKeyboardKey.escape) {
-                  ref.read(provinceSearchQueryProvider.notifier).state = '';
-                }
-              },
-              child: TextField(
-                autofocus: false,
-                onChanged: (v) {
-                  ref.read(provinceSearchQueryProvider.notifier).state = v;
-                },
-                decoration: InputDecoration(
-                  hintText: 'Tìm kiếm tỉnh thành...',
-                  hintStyle: TextStyle(color: Colors.grey.shade400),
-                  prefixIcon: Icon(Icons.search, color: Colors.blue.shade300),
-                  suffixIcon: query.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.close, color: Colors.grey),
-                          onPressed: () {
-                            ref.read(provinceSearchQueryProvider.notifier).state = '';
-                          },
-                        )
-                      : null,
-                  fillColor: Colors.transparent,
-                  filled: true,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-              ),
-            ),
-          ),
+        _DrillDownHeader(
+          level: level,
+          selectedProvince: selectedProvince,
+          selectedDistrict: selectedDistrict,
+          onBackToProvinces: () {
+            ref.read(selectedDistrictProvider.notifier).state = null;
+            ref.read(selectedWardProvider.notifier).state = null;
+          },
+          onBackToDistricts: () {
+            ref.read(selectedWardProvider.notifier).state = null;
+          },
         ),
+        if (level == DrillLevel.province) _buildSearchBar(),
         Expanded(
-          child: asyncProvinces.when(
-            loading: () => const LoadingWidget(message: 'Đang tải danh sách tỉnh...'),
-            error: (e, _) => AppErrorWidget(
-              failure: UnknownFailure(e.toString()),
-              onRetry: () => ref.invalidate(provincesProvider),
-            ),
-            data: (result) => result.when(
-              ok: (provinces) {
-                final filtered = query.isEmpty
-                    ? provinces
-                    : provinces
-                        .where((p) =>
-                            p.name.toLowerCase().contains(query) ||
-                            p.code.toLowerCase().contains(query))
-                        .toList();
-
-                return Column(
-                  children: [
-                    if (query.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8, left: 16, right: 16),
-                        child: Row(
-                          children: [
-                            Text(
-                              'Tìm thấy ${filtered.length} tỉnh',
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    Expanded(
-                      child: filtered.isEmpty
-                          ? const Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.search_off, size: 48, color: Colors.grey),
-                                  SizedBox(height: 8),
-                                  Text('Không tìm thấy tỉnh nào',
-                                      style: TextStyle(color: Colors.grey)),
-                                ],
-                              ),
-                            )
-                          : ListView.separated(
-                              controller: widget.scrollController,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                              itemCount: filtered.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(height: 12),
-                              itemBuilder: (context, index) {
-                                final province = filtered[index];
-                                final isSelected =
-                                    selectedProvince?.code == province.code;
-
-                                return _ProvinceCard(
-                                  province: province,
-                                  index: filtered.indexOf(province),
-                                  isSelected: isSelected,
-                                  searchQuery: query,
-                                  onTap: () {
-                                    ref.read(selectedProvinceProvider.notifier).state =
-                                        province;
-                                  },
-                                );
-                              },
-                            ),
-                    ),
-                  ],
-                );
-              },
-              err: (failure) => AppErrorWidget(
-                failure: failure,
-                onRetry: () => ref.invalidate(provincesProvider),
-              ),
-            ),
+          child: _DrillDownList(
+            level: level,
+            provinceCode: provinceCode,
+            districtCode: districtCode,
+            scrollController: widget.scrollController,
           ),
         ),
       ],
     );
   }
+
+  Widget _buildSearchBar() {
+    final searchQuery = ref.watch(provinceSearchQueryProvider);
+    final query = searchQuery.toLowerCase();
+
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: KeyboardListener(
+          focusNode: _focusNode,
+          onKeyEvent: (event) {
+            if (event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.escape) {
+              ref.read(provinceSearchQueryProvider.notifier).state = '';
+            }
+          },
+          child: TextField(
+            autofocus: false,
+            onChanged: (v) {
+              ref.read(provinceSearchQueryProvider.notifier).state = v;
+            },
+            decoration: InputDecoration(
+              hintText: 'Tìm kiếm tỉnh thành...',
+              hintStyle: TextStyle(color: Colors.grey.shade400),
+              prefixIcon: Icon(Icons.search, color: Colors.blue.shade300),
+              suffixIcon: query.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.close, color: Colors.grey),
+                      onPressed: () {
+                        ref.read(provinceSearchQueryProvider.notifier).state = '';
+                      },
+                    )
+                  : null,
+              fillColor: Colors.transparent,
+              filled: true,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 16),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _ProvinceCard extends StatelessWidget {
-  const _ProvinceCard({
-    required this.province,
-    required this.index,
-    required this.isSelected,
-    required this.onTap,
-    this.searchQuery = '',
+// ---------------------------------------------------------------------------
+// Breadcrumb header
+// ---------------------------------------------------------------------------
+
+class _DrillDownHeader extends StatelessWidget {
+  const _DrillDownHeader({
+    required this.level,
+    required this.selectedProvince,
+    required this.selectedDistrict,
+    required this.onBackToProvinces,
+    required this.onBackToDistricts,
   });
 
-  final AdministrativeUnitSummary province;
+  final DrillLevel level;
+  final AdministrativeUnitSummary? selectedProvince;
+  final ({String code, int id, String name})? selectedDistrict;
+  final VoidCallback onBackToProvinces;
+  final VoidCallback onBackToDistricts;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          if (level != DrillLevel.province) ...[
+            _BreadcrumbChip(
+              icon: Icons.map,
+              label: selectedProvince?.name ?? 'Tỉnh',
+              color: const Color(0xFF1565C0),
+              onTap: onBackToProvinces,
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
+            ),
+          ],
+          if (level == DrillLevel.ward) ...[
+            _BreadcrumbChip(
+              icon: Icons.location_city,
+              label: selectedDistrict?.name ?? 'Huyện',
+              color: const Color(0xFF00695C),
+              onTap: onBackToDistricts,
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
+            ),
+          ],
+          Expanded(
+            child: Text(
+              _levelTitle,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.primary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String get _levelTitle {
+    switch (level) {
+      case DrillLevel.province:
+        return 'Tỉnh / Thành phố';
+      case DrillLevel.district:
+        return 'Quận / Huyện';
+      case DrillLevel.ward:
+        return 'Phường / Xã';
+    }
+  }
+}
+
+class _BreadcrumbChip extends StatelessWidget {
+  const _BreadcrumbChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 4),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 80),
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Drill-down list content
+// ---------------------------------------------------------------------------
+
+class _DrillDownList extends ConsumerWidget {
+  const _DrillDownList({
+    required this.level,
+    required this.provinceCode,
+    required this.districtCode,
+    this.scrollController,
+  });
+
+  final DrillLevel level;
+  final String? provinceCode;
+  final String? districtCode;
+  final ScrollController? scrollController;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    switch (level) {
+      case DrillLevel.province:
+        return _ProvinceListView(scrollController: scrollController);
+      case DrillLevel.district:
+        return _DistrictListView(
+          provinceCode: provinceCode!,
+          scrollController: scrollController,
+        );
+      case DrillLevel.ward:
+        return _WardListView(
+          districtCode: districtCode!,
+          scrollController: scrollController,
+        );
+    }
+  }
+}
+
+class _ProvinceListView extends ConsumerWidget {
+  const _ProvinceListView({this.scrollController});
+
+  final ScrollController? scrollController;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final asyncProvinces = ref.watch(provincesProvider);
+    final selectedProvince = ref.watch(selectedProvinceProvider);
+    final searchQuery = ref.watch(provinceSearchQueryProvider);
+    final query = searchQuery.toLowerCase();
+
+    return asyncProvinces.when(
+      loading: () => const LoadingWidget(message: 'Đang tải danh sách tỉnh...'),
+      error: (e, _) => AppErrorWidget(
+        failure: UnknownFailure(e.toString()),
+        onRetry: () => ref.invalidate(provincesProvider),
+      ),
+      data: (result) => result.when(
+        ok: (provinces) {
+          final filtered = query.isEmpty
+              ? provinces
+              : provinces
+                  .where((p) =>
+                      p.name.toLowerCase().contains(query) ||
+                      p.code.toLowerCase().contains(query))
+                  .toList();
+
+          if (filtered.isEmpty) {
+            return const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.search_off, size: 48, color: Colors.grey),
+                  SizedBox(height: 8),
+                  Text('Không tìm thấy tỉnh nào',
+                      style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            );
+          }
+
+          return Column(
+            children: [
+              if (query.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8, left: 16, right: 16),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Tìm thấy ${filtered.length} tỉnh',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              Expanded(
+                child: ListView.separated(
+                  controller: scrollController,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  itemCount: filtered.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final province = filtered[index];
+                    final isSelected =
+                        selectedProvince?.code == province.code;
+
+                    return _UnitCard(
+                      unit: province,
+                      index: filtered.indexOf(province),
+                      isSelected: isSelected,
+                      onTap: () {
+                        ref.read(selectedProvinceProvider.notifier).state =
+                            province;
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        },
+        err: (failure) => AppErrorWidget(
+          failure: failure,
+          onRetry: () => ref.invalidate(provincesProvider),
+        ),
+      ),
+    );
+  }
+}
+
+class _DistrictListView extends ConsumerWidget {
+  const _DistrictListView({required this.provinceCode, this.scrollController});
+
+  final String provinceCode;
+  final ScrollController? scrollController;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final asyncDistricts = ref.watch(districtsProvider(provinceCode));
+    final selectedDistrict = ref.watch(selectedDistrictProvider);
+
+    return asyncDistricts.when(
+      loading: () => const LoadingWidget(message: 'Đang tải quận/huyện...'),
+      error: (e, _) => AppErrorWidget(
+        failure: UnknownFailure(e.toString()),
+        onRetry: () => ref.invalidate(districtsProvider(provinceCode)),
+      ),
+      data: (result) => result.when(
+        ok: (districts) {
+          if (districts.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.location_off, size: 48, color: Colors.grey.shade400),
+                  const SizedBox(height: 8),
+                  Text('Không có dữ liệu quận/huyện',
+                      style: TextStyle(color: Colors.grey.shade500)),
+                ],
+              ),
+            );
+          }
+
+          return ListView.separated(
+            controller: scrollController,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            itemCount: districts.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final district = districts[index];
+              final isSelected = selectedDistrict?.code == district.code;
+
+              return _UnitCard(
+                unit: district,
+                index: index,
+                isSelected: isSelected,
+                color: const Color(0xFF00695C),
+                onTap: () {
+                  ref.read(selectedDistrictProvider.notifier).state =
+                      (code: district.code, name: district.name, id: district.id ?? 0);
+                },
+              );
+            },
+          );
+        },
+        err: (failure) => AppErrorWidget(
+          failure: failure,
+          onRetry: () => ref.invalidate(districtsProvider(provinceCode)),
+        ),
+      ),
+    );
+  }
+}
+
+class _WardListView extends ConsumerWidget {
+  const _WardListView({required this.districtCode, this.scrollController});
+
+  final String districtCode;
+  final ScrollController? scrollController;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final asyncWards = ref.watch(wardsProvider(districtCode));
+    final selectedWard = ref.watch(selectedWardProvider);
+
+    return asyncWards.when(
+      loading: () => const LoadingWidget(message: 'Đang tải phường/xã...'),
+      error: (e, _) => AppErrorWidget(
+        failure: UnknownFailure(e.toString()),
+        onRetry: () => ref.invalidate(wardsProvider(districtCode)),
+      ),
+      data: (result) => result.when(
+        ok: (wards) {
+          if (wards.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.location_off, size: 48, color: Colors.grey.shade400),
+                  const SizedBox(height: 8),
+                  Text('Không có dữ liệu phường/xã',
+                      style: TextStyle(color: Colors.grey.shade500)),
+                ],
+              ),
+            );
+          }
+
+          return ListView.separated(
+            controller: scrollController,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            itemCount: wards.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final ward = wards[index];
+              final isSelected = selectedWard?.code == ward.code;
+
+              return _UnitCard(
+                unit: ward,
+                index: index,
+                isSelected: isSelected,
+                color: const Color(0xFF6A1B9A),
+                onTap: () {
+                  ref.read(selectedWardProvider.notifier).state =
+                      (code: ward.code, name: ward.name);
+                },
+              );
+            },
+          );
+        },
+        err: (failure) => AppErrorWidget(
+          failure: failure,
+          onRetry: () => ref.invalidate(wardsProvider(districtCode)),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Shared card widget for all three levels
+// ---------------------------------------------------------------------------
+
+class _UnitCard extends StatelessWidget {
+  const _UnitCard({
+    required this.unit,
+    required this.index,
+    required this.isSelected,
+    this.color,
+    required this.onTap,
+  });
+
+  final AdministrativeUnitSummary unit;
   final int index;
   final bool isSelected;
+  final Color? color;
   final VoidCallback onTap;
-  final String searchQuery;
 
   static const _avatarColors = [
     Color(0xFFDA291C),
@@ -219,6 +582,8 @@ class _ProvinceCard extends StatelessWidget {
     Color(0xFFE65100),
     Color(0xFF00695C),
   ];
+
+  Color get _color => color ?? _avatarColors[index % _avatarColors.length];
 
   Widget _buildHighlightedText(String text, String query, Color highlightColor, TextStyle baseStyle) {
     if (query.isEmpty) {
@@ -254,23 +619,22 @@ class _ProvinceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = _avatarColors[index % _avatarColors.length];
-    final initial = province.name.isNotEmpty ? province.name[0] : '?';
+    final initial = unit.name.isNotEmpty ? unit.name[0] : '?';
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOutCubic,
       margin: EdgeInsets.zero,
       decoration: BoxDecoration(
-        color: isSelected ? color.withValues(alpha: 0.08) : Colors.white,
+        color: isSelected ? _color.withValues(alpha: 0.08) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isSelected ? color.withValues(alpha: 0.5) : Colors.transparent,
+          color: isSelected ? _color.withValues(alpha: 0.5) : Colors.transparent,
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: isSelected ? color.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.03),
+            color: isSelected ? _color.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.03),
             blurRadius: isSelected ? 12 : 8,
             offset: const Offset(0, 4),
           ),
@@ -287,11 +651,11 @@ class _ProvinceCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 22,
-                  backgroundColor: color.withValues(alpha: 0.12),
+                  backgroundColor: _color.withValues(alpha: 0.12),
                   child: Text(
                     initial,
                     style: TextStyle(
-                      color: color,
+                      color: _color,
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
                     ),
@@ -304,9 +668,9 @@ class _ProvinceCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildHighlightedText(
-                        province.name,
-                        searchQuery,
-                        color,
+                        unit.name,
+                        '',
+                        _color,
                         const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
@@ -320,7 +684,7 @@ class _ProvinceCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          province.code,
+                          unit.code,
                           style: TextStyle(
                             color: Colors.grey.shade600,
                             fontSize: 11,
@@ -333,7 +697,7 @@ class _ProvinceCard extends StatelessWidget {
                 ),
                 Icon(
                   Icons.chevron_right,
-                  color: isSelected ? color : Colors.grey.shade400,
+                  color: isSelected ? _color : Colors.grey.shade400,
                   size: 24,
                 ),
               ],

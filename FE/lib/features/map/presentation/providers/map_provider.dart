@@ -13,6 +13,7 @@ import '../../domain/repositories/geo_repository.dart';
 import '../../domain/usecases/get_districts.dart';
 import '../../domain/usecases/get_provinces.dart';
 import '../../domain/usecases/get_wards.dart';
+import '../../domain/usecases/get_wards_boundaries_by_district_id.dart';
 import '../../data/datasources/geo_local_datasource.dart'
     show ProvincePolygonEntry, extractRings, computeCentroid;
 
@@ -38,6 +39,10 @@ final getWardsProvider = Provider(
   (ref) => GetWards(ref.watch(geoRepositoryProvider)),
 );
 
+final getWardsBoundariesByDistrictIdProvider = Provider(
+  (ref) => GetWardsBoundariesByDistrictId(ref.watch(geoRepositoryProvider)),
+);
+
 final provincesProvider =
     FutureProvider<Result<List<AdministrativeUnitSummary>>>((ref) {
   return ref.watch(getProvincesProvider).call();
@@ -49,8 +54,14 @@ final districtsProvider =
   return ref.watch(getDistrictsProvider).call(provinceCode);
 });
 
+final wardsProvider =
+    FutureProvider.family<Result<List<AdministrativeUnitSummary>>, String>(
+        (ref, districtCode) {
+  return ref.watch(getWardsProvider).call(districtCode);
+});
+
 final selectedProvinceProvider = StateProvider<AdministrativeUnitSummary?>((ref) => null);
-final selectedDistrictProvider = StateProvider<({String code, String name})?>((ref) => null);
+final selectedDistrictProvider = StateProvider<({String code, String name, int id})?>((ref) => null);
 final selectedWardProvider = StateProvider<({String code, String name})?>((ref) => null);
 
 // ---------------------------------------------------------------------------
@@ -144,38 +155,33 @@ final districtBoundariesProvider = FutureProvider.family<
 );
 
 /// Loads and renders individual ward boundaries for a given district.
-/// Returns a list of (ward code, ward name, polygons) for all wards.
+/// Uses the bulk endpoint that fetches all ward boundaries at once using districtId
+/// to avoid duplicate ward code issues.
 final wardBoundariesProvider = FutureProvider.family<
-    List<({String code, String name, List<Polygon> polygons})>, String>(
-  (ref, districtCode) async {
-    final repo = ref.watch(geoRepositoryProvider);
-    final wardsResult = await repo.getWards(districtCode);
+    List<({String code, String name, List<Polygon> polygons})>, int>(
+  (ref, districtId) async {
+    final getWardsBoundaries = ref.watch(getWardsBoundariesByDistrictIdProvider);
+    final result = await getWardsBoundaries.call(districtId);
 
-    return wardsResult.when(
-      ok: (wards) async {
+    return result.when(
+      ok: (features) {
         final entries = <({String code, String name, List<Polygon> polygons})>[];
 
-        for (final ward in wards) {
-          final boundaryResult = await repo.getUnitBoundary(ward.code);
-          boundaryResult.when(
-            ok: (feature) {
-              try {
-                final coords = feature.geometry.coordinates;
-                if (coords.isNotEmpty) {
-                  final polygons = GeoJsonUtils.parseGeoJsonToPolygons(
-                    coords,
-                    fillColor: const Color(0x1A9C27B0),
-                    borderColor: const Color(0xFF9C27B0),
-                    borderStrokeWidth: 1.5,
-                  );
-                  if (polygons.isNotEmpty) {
-                    entries.add((code: ward.code, name: ward.name, polygons: polygons));
-                  }
-                }
-              } catch (_) {}
-            },
-            err: (_) {},
-          );
+        for (final feature in features) {
+          try {
+            final coords = feature.geometry.coordinates;
+            if (coords.isNotEmpty) {
+              final polygons = GeoJsonUtils.parseGeoJsonToPolygons(
+                coords,
+                fillColor: const Color(0x1A9C27B0),
+                borderColor: const Color(0xFF9C27B0),
+                borderStrokeWidth: 1.5,
+              );
+              if (polygons.isNotEmpty) {
+                entries.add((code: feature.code, name: feature.name, polygons: polygons));
+              }
+            }
+          } catch (_) {}
         }
 
         return entries;
@@ -223,8 +229,8 @@ final districtCentroidsProvider =
 /// Fetches centroid coordinates for all wards of a given district.
 /// Returns a map of ward code -> LatLng centroid.
 final wardCentroidsProvider =
-    FutureProvider.family<Map<String, LatLng>, String>((ref, districtCode) async {
-  final wardsResult = await ref.watch(wardBoundariesProvider(districtCode).future);
+    FutureProvider.family<Map<String, LatLng>, int>((ref, districtId) async {
+  final wardsResult = await ref.watch(wardBoundariesProvider(districtId).future);
   final centroids = <String, LatLng>{};
 
   for (final entry in wardsResult) {

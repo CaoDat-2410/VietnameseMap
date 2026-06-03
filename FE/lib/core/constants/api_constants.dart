@@ -5,6 +5,7 @@ class ApiConstants {
   static const String provincesBoundaries = '/api/v1/geo/provinces-boundaries';
   static const String districts = '/api/v1/geo/districts';
   static const String wards = '/api/v1/geo/wards';
+  static String wardsBoundariesByDistrictId(int districtId) => '/api/v1/geo/districts/$districtId/wards-boundaries';
   static String unitByCode(String code) => '/api/v1/geo/units/$code';
   static String unitBoundary(String code) => '/api/v1/geo/units/$code/boundary';
   static const String reverseGeocode = '/api/v1/geo/reverse';

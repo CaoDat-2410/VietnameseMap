@@ -48,6 +48,14 @@ class GeoRepositoryImpl implements GeoRepository {
       });
 
   @override
+  Future<Result<List<GeoJsonFeature>>> getWardsBoundariesByDistrictId(
+          int districtId) =>
+      _wrap(() async {
+        final models = await _dataSource.getWardsBoundariesByDistrictId(districtId);
+        return models.map((m) => m.toEntity()).toList();
+      });
+
+  @override
   Future<Result<AdministrativeUnit>> getUnitByCode(String code) =>
       _wrap(() async {
         final model = await _dataSource.getUnitByCode(code);

@@ -43,7 +43,7 @@ class _MainWeatherCard extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1565C0).withOpacity(0.4),
+            color: const Color(0xFF1565C0).withValues(alpha: 0.4),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -165,7 +165,7 @@ class _TempBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
+        color: Colors.white.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
@@ -253,7 +253,7 @@ class _DetailCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -263,7 +263,7 @@ class _DetailCard extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 15,
-            backgroundColor: detail.color.withOpacity(0.12),
+            backgroundColor: detail.color.withValues(alpha: 0.12),
             child: Icon(detail.icon, size: 15, color: detail.color),
           ),
           const SizedBox(width: 8),

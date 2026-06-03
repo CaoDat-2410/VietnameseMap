@@ -16,6 +16,8 @@ abstract interface class GeoRepository {
 
   Future<Result<List<AdministrativeUnitSummary>>> getWards(String districtCode);
 
+  Future<Result<List<GeoJsonFeature>>> getWardsBoundariesByDistrictId(int districtId);
+
   Future<Result<AdministrativeUnit>> getUnitByCode(String code);
 
   Future<Result<GeoJsonFeature>> getUnitBoundary(String code);
