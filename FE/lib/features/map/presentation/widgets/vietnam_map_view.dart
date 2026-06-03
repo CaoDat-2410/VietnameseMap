@@ -4,12 +4,22 @@ import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_ti
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:go_router/go_router.dart';
 
 import '../providers/map_provider.dart';
 import '../../../../core/utils/geojson_utils.dart';
 import '../../data/datasources/geo_local_datasource.dart';
 import '../../domain/entities/unit_level.dart';
 import '../../domain/entities/administrative_unit.dart';
+import '../../../weather/presentation/providers/weather_provider.dart'
+    show
+        SelectedWeatherLocation,
+        WeatherLocationSourceType,
+        activeWeatherLocationProvider,
+        buildWeatherDisplayName,
+        selectedWeatherLocationProvider,
+        selectedWeatherProvider;
+import '../../../weather/presentation/widgets/weather_summary_row.dart';
 import 'boundary_label_widget.dart';
 
 class VietnamMapView extends ConsumerStatefulWidget {
@@ -85,6 +95,15 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
         _currentLocation = LatLng(position.latitude, position.longitude);
         _mapController.move(_currentLocation!, 12);
       });
+      ref.read(selectedWeatherLocationProvider.notifier).state =
+          SelectedWeatherLocation(
+        displayName: 'Vị trí hiện tại',
+        lat: position.latitude,
+        lng: position.longitude,
+        sourceType: WeatherLocationSourceType.currentLocation,
+        selectedAt: DateTime.now(),
+      );
+      ref.invalidate(selectedWeatherProvider);
     } catch (e) {
       debugPrint('Error getting current location: $e');
     }
@@ -149,6 +168,10 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
         String? provinceName;
         String? districtName;
         String? wardName;
+        int? wardId;
+        String? districtCode;
+        int? districtId;
+        String? selectedCode = unit.code;
 
         AdministrativeUnit? currentUnit = unit;
 
@@ -156,11 +179,13 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
           final cu = currentUnit;
           if (cu.level == UnitLevel.ward) {
             wardName = cu.name;
+            wardId = cu.id;
           } else if (cu.level == UnitLevel.district) {
             districtName = cu.name;
+            districtCode = cu.code;
+            districtId = cu.id;
           } else if (cu.level == UnitLevel.province) {
             provinceName = cu.name;
-
             final provincesResult = ref.read(provincesProvider).valueOrNull;
             if (provincesResult != null && provincesResult.isOk) {
               final match = provincesResult.valueOrThrow
@@ -183,6 +208,34 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
             currentUnit = null;
           }
         }
+
+        if (districtCode != null && districtName != null && districtId != null) {
+          ref.read(selectedDistrictProvider.notifier).state =
+              (code: districtCode, name: districtName, id: districtId);
+        }
+        if (wardName != null) {
+          ref.read(selectedWardProvider.notifier).state =
+              (code: unit.code, id: wardId ?? unit.id, name: wardName);
+        }
+
+        ref.read(selectedWeatherLocationProvider.notifier).state =
+            SelectedWeatherLocation(
+          displayName: buildWeatherDisplayName(
+            provinceName: provinceName,
+            districtName: districtName,
+            wardName: wardName,
+            fallback: 'Vị trí đã chọn',
+          ),
+          provinceName: provinceName,
+          districtName: districtName,
+          wardName: wardName,
+          lat: point.latitude,
+          lng: point.longitude,
+          sourceType: WeatherLocationSourceType.mapTap,
+          code: selectedCode,
+          selectedAt: DateTime.now(),
+        );
+        ref.invalidate(selectedWeatherProvider);
 
         if (mounted) {
           _showLocationDetails(provinceName, districtName, wardName);
@@ -209,10 +262,11 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Row(
               children: [
                 Container(
@@ -236,6 +290,43 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
             if (province != null) _buildInfoRow('Tỉnh/Thành phố', province),
             if (district != null) _buildInfoRow('Quận/Huyện', district),
             if (ward != null) _buildInfoRow('Phường/Xã', ward),
+            const Divider(height: 24),
+            Consumer(
+              builder: (context, ref, _) {
+                final weatherAsync = ref.watch(selectedWeatherProvider);
+                return weatherAsync.when(
+                  loading: () => Row(
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('Đang tải thời tiết...'),
+                    ],
+                  ),
+                  error: (_, __) => const Text('Không tải được thời tiết'),
+                  data: (result) => result.when(
+                    ok: (snapshot) =>
+                        WeatherSummaryRow(weather: snapshot.weather),
+                    err: (_) => const Text('Không tải được thời tiết'),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                context.go('/weather');
+              },
+              icon: const Icon(Icons.cloud_outlined),
+              label: const Text('Xem chi tiết thời tiết'),
+            ),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
@@ -252,7 +343,8 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                 child: const Text('Đóng', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -425,12 +517,12 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
   }
 
   void _handleWardTap(
-      LatLng point, List<({String code, String name, List<Polygon> polygons})> entries) {
+      LatLng point, List<({String code, int? id, String name, List<Polygon> polygons})> entries) {
     for (final entry in entries) {
       for (final polygon in entry.polygons) {
         if (GeoJsonUtils.pointInPolygon(point, polygon.points)) {
           ref.read(selectedWardProvider.notifier).state =
-              (code: entry.code, name: entry.name);
+              (code: entry.code, id: entry.id, name: entry.name);
 
           final wardBounds = GeoJsonUtils.getBoundsFromPolygons(entry.polygons) ??
               LatLngBounds(point, point);
@@ -499,7 +591,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
         : null;
 
     final wardEntries =
-        <({String code, String name, List<Polygon> polygons})>[];
+        <({String code, int? id, String name, List<Polygon> polygons})>[];
     asyncWardBoundaries?.whenData((entries) {
       for (final entry in entries) {
         wardEntries.add(entry);
@@ -566,7 +658,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
     final wardLabels = <BoundaryLabel>[];
     if (_currentZoom >= 12) {
       for (final entry in wardEntries) {
-        final centroid = wardCentroids[entry.code] ??
+        final centroid = wardCentroids[wardKey(entry.id, entry.code, entry.name)] ??
             (entry.polygons.isNotEmpty
                 ? GeoJsonUtils.computePolygonCentroid(entry.polygons.first.points)
                 : null);
@@ -600,7 +692,9 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
     final wardPolygons = <Polygon>[];
     for (final entry in wardEntries) {
       for (final polygon in entry.polygons) {
-        final tapped = selectedWard?.code == entry.code;
+        final tapped = selectedWard != null &&
+            wardKey(selectedWard.id, selectedWard.code, selectedWard.name) ==
+                wardKey(entry.id, entry.code, entry.name);
         wardPolygons.add(Polygon(
           points: polygon.points,
           holePointsList: polygon.holePointsList,
@@ -881,6 +975,9 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                   ref.read(selectedProvinceProvider.notifier).state = null;
                   ref.read(selectedDistrictProvider.notifier).state = null;
                   ref.read(selectedWardProvider.notifier).state = null;
+                  ref.read(selectedWeatherLocationProvider.notifier).state = null;
+                  ref.invalidate(selectedWeatherProvider);
+                  ref.invalidate(activeWeatherLocationProvider);
                 },
                 child: const Icon(Icons.refresh),
               ),

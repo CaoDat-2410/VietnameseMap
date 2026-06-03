@@ -20,26 +20,37 @@ class WeatherRemoteDataSourceImpl implements WeatherRemoteDataSource {
       ApiConstants.weather,
       queryParameters: {'lat': lat, 'lng': lng},
     );
-    final api = ApiResponse.fromJson(
-      res.data!,
-      (json) =>
-          CurrentWeatherModel.fromJson(json as Map<String, dynamic>),
-    );
-    _assertSuccess(api);
-    return api.data!;
+    return _parseWeatherResponse(res.data);
   }
 
   @override
   Future<CurrentWeatherModel> getWeatherByUnit(String unitCode) async {
     final res = await _client
         .get<Map<String, dynamic>>(ApiConstants.weatherByUnit(unitCode));
-    final api = ApiResponse.fromJson(
-      res.data!,
-      (json) =>
-          CurrentWeatherModel.fromJson(json as Map<String, dynamic>),
-    );
-    _assertSuccess(api);
-    return api.data!;
+    return _parseWeatherResponse(res.data);
+  }
+
+  CurrentWeatherModel _parseWeatherResponse(Map<String, dynamic>? body) {
+    if (body == null) {
+      throw const ApiException(message: 'Weather response is empty.');
+    }
+
+    if (body.containsKey('success') || body.containsKey('data')) {
+      final api = ApiResponse.fromJson(
+        body,
+        (json) => json == null
+            ? null
+            : CurrentWeatherModel.fromJson(json as Map<String, dynamic>),
+      );
+      _assertSuccess(api);
+      final data = api.data;
+      if (data == null) {
+        throw const ApiException(message: 'Weather data is empty.');
+      }
+      return data;
+    }
+
+    return CurrentWeatherModel.fromJson(body);
   }
 
   void _assertSuccess(ApiResponse api) {

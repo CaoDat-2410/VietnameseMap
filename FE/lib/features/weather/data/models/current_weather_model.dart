@@ -35,21 +35,52 @@ class CurrentWeatherModel {
 
   factory CurrentWeatherModel.fromJson(Map<String, dynamic> json) {
     return CurrentWeatherModel(
-      temperature: (json['temperature'] as num).toDouble(),
-      feelsLike: (json['feelsLike'] as num).toDouble(),
-      humidity: json['humidity'] as int,
-      windSpeed: (json['windSpeed'] as num).toDouble(),
-      description: json['description'] as String,
-      iconCode: json['iconCode'] as String,
-      locationName: json['locationName'] as String,
-      pressure: json['pressure'] as int?,
-      visibility: json['visibility'] as int?,
-      tempMin: (json['tempMin'] as num?)?.toDouble(),
-      tempMax: (json['tempMax'] as num?)?.toDouble(),
+      temperature: _readDouble(json['temperature']),
+      feelsLike: _readDouble(json['feelsLike'] ?? json['temperature']),
+      humidity: _readInt(json['humidity']),
+      windSpeed: _readDouble(json['windSpeed']),
+      description: _readString(json['description'], fallback: 'Không có mô tả'),
+      iconCode: _readString(json['iconCode'], fallback: '02d'),
+      locationName: _readString(json['locationName'], fallback: ''),
+      pressure: _readNullableInt(json['pressure']),
+      visibility: _readNullableInt(json['visibility']),
+      tempMin: _readNullableDouble(json['tempMin']),
+      tempMax: _readNullableDouble(json['tempMax']),
       timestamp: _parseTimestamp(json['timestamp']),
       source: json['source'] as String?,
       cached: json['cached'] as bool? ?? false,
     );
+  }
+
+  static double _readDouble(dynamic value, {double fallback = 0}) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? fallback;
+    return fallback;
+  }
+
+  static double? _readNullableDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
+  static int _readInt(dynamic value, {int fallback = 0}) {
+    if (value is num) return value.round();
+    if (value is String) return int.tryParse(value) ?? fallback;
+    return fallback;
+  }
+
+  static int? _readNullableInt(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.round();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
+  static String _readString(dynamic value, {required String fallback}) {
+    if (value is String && value.trim().isNotEmpty) return value;
+    return fallback;
   }
 
   static DateTime _parseTimestamp(dynamic value) {
@@ -60,7 +91,10 @@ class CurrentWeatherModel {
         isUtc: true,
       );
     }
-    return DateTime.parse(value as String).toUtc();
+    if (value is String) {
+      return DateTime.tryParse(value)?.toUtc() ?? DateTime.now();
+    }
+    return DateTime.now();
   }
 
   CurrentWeather toEntity() => CurrentWeather(

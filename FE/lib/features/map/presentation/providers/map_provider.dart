@@ -62,7 +62,7 @@ final wardsProvider =
 
 final selectedProvinceProvider = StateProvider<AdministrativeUnitSummary?>((ref) => null);
 final selectedDistrictProvider = StateProvider<({String code, String name, int id})?>((ref) => null);
-final selectedWardProvider = StateProvider<({String code, String name})?>((ref) => null);
+final selectedWardProvider = StateProvider<({String code, int? id, String name})?>((ref) => null);
 
 // ---------------------------------------------------------------------------
 // Province boundary providers (from backend API)
@@ -158,14 +158,14 @@ final districtBoundariesProvider = FutureProvider.family<
 /// Uses the bulk endpoint that fetches all ward boundaries at once using districtId
 /// to avoid duplicate ward code issues.
 final wardBoundariesProvider = FutureProvider.family<
-    List<({String code, String name, List<Polygon> polygons})>, int>(
+    List<({String code, int? id, String name, List<Polygon> polygons})>, int>(
   (ref, districtId) async {
     final getWardsBoundaries = ref.watch(getWardsBoundariesByDistrictIdProvider);
     final result = await getWardsBoundaries.call(districtId);
 
     return result.when(
       ok: (features) {
-        final entries = <({String code, String name, List<Polygon> polygons})>[];
+        final entries = <({String code, int? id, String name, List<Polygon> polygons})>[];
 
         for (final feature in features) {
           try {
@@ -178,7 +178,7 @@ final wardBoundariesProvider = FutureProvider.family<
                 borderStrokeWidth: 1.5,
               );
               if (polygons.isNotEmpty) {
-                entries.add((code: feature.code, name: feature.name, polygons: polygons));
+                entries.add((code: feature.code, id: feature.id, name: feature.name, polygons: polygons));
               }
             }
           } catch (_) {}
@@ -237,7 +237,7 @@ final wardCentroidsProvider =
     for (final polygon in entry.polygons) {
       final centroid = GeoJsonUtils.computePolygonCentroid(polygon.points);
       if (centroid != null) {
-        centroids[entry.code] = centroid;
+        centroids[_wardEntryKey(entry.id, entry.code, entry.name)] = centroid;
         break;
       }
     }
@@ -245,3 +245,9 @@ final wardCentroidsProvider =
 
   return centroids;
 });
+
+String wardKey(int? id, String code, String name) =>
+    id != null ? 'id:$id' : 'code:$code:$name';
+
+String _wardEntryKey(int? id, String code, String name) =>
+    wardKey(id, code, name);

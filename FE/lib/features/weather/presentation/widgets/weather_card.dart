@@ -3,9 +3,14 @@ import 'package:flutter/material.dart';
 import '../../domain/entities/current_weather.dart';
 
 class WeatherCard extends StatelessWidget {
-  const WeatherCard({super.key, required this.weather});
+  const WeatherCard({
+    super.key,
+    required this.weather,
+    this.displayName,
+  });
 
   final CurrentWeather weather;
+  final String? displayName;
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +19,7 @@ class WeatherCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _MainWeatherCard(weather: weather),
+          _MainWeatherCard(weather: weather, displayName: displayName),
           const SizedBox(height: 16),
           _DetailsGrid(weather: weather),
           if (weather.cached) ...[
@@ -28,8 +33,9 @@ class WeatherCard extends StatelessWidget {
 }
 
 class _MainWeatherCard extends StatelessWidget {
-  const _MainWeatherCard({required this.weather});
+  const _MainWeatherCard({required this.weather, this.displayName});
   final CurrentWeather weather;
+  final String? displayName;
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +74,9 @@ class _MainWeatherCard extends StatelessWidget {
                         const SizedBox(width: 4),
                         Flexible(
                           child: Text(
-                            weather.locationName,
+                            displayName?.trim().isNotEmpty == true
+                                ? displayName!
+                                : weather.locationName,
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 18,

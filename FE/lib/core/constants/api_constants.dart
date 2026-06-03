@@ -10,6 +10,6 @@ class ApiConstants {
   static String unitBoundary(String code) => '/api/v1/geo/units/$code/boundary';
   static const String reverseGeocode = '/api/v1/geo/reverse';
 
-  static const String weather = '/api/v1/weather';
+  static const String weather = '/api/v1/weather/current';
   static String weatherByUnit(String unitCode) => '/api/v1/weather/unit/$unitCode';
 }

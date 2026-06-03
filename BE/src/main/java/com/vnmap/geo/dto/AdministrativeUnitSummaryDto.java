@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AdministrativeUnitSummaryDto {
 
+    private Long id;
     private String code;
     private String name;
     private UnitLevel level;

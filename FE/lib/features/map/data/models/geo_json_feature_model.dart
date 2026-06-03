@@ -3,6 +3,7 @@ import '../../domain/entities/unit_level.dart';
 
 class GeoJsonFeatureModel {
   const GeoJsonFeatureModel({
+    this.id,
     required this.type,
     required this.code,
     required this.name,
@@ -11,6 +12,7 @@ class GeoJsonFeatureModel {
     required this.geometry,
   });
 
+  final int? id;
   final String type;
   final String code;
   final String name;
@@ -20,6 +22,7 @@ class GeoJsonFeatureModel {
 
   factory GeoJsonFeatureModel.fromJson(Map<String, dynamic> json) {
     return GeoJsonFeatureModel(
+      id: json['id'] as int?,
       type: json['type'] as String? ?? 'Feature',
       code: json['code'] as String,
       name: json['name'] as String,
@@ -31,6 +34,7 @@ class GeoJsonFeatureModel {
   }
 
   GeoJsonFeature toEntity() => GeoJsonFeature(
+        id: id,
         type: type,
         code: code,
         name: name,

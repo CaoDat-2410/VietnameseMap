@@ -4,9 +4,15 @@ class AppConfig {
   AppConfig._();
 
   static String get baseUrl {
-    const fromDefine = String.fromEnvironment('BASE_URL');
-    if (fromDefine.isNotEmpty) return fromDefine;
-    return dotenv.env['BASE_URL'] ?? 'http://localhost:8080';
+    const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
+    if (apiBaseUrl.isNotEmpty) return apiBaseUrl;
+
+    const legacyBaseUrl = String.fromEnvironment('BASE_URL');
+    if (legacyBaseUrl.isNotEmpty) return legacyBaseUrl;
+
+    return dotenv.env['API_BASE_URL'] ??
+        dotenv.env['BASE_URL'] ??
+        'http://localhost:8080';
   }
 
   static const Duration connectTimeout = Duration(seconds: 10);

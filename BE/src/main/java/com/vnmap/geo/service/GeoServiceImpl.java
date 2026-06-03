@@ -134,6 +134,7 @@ public class GeoServiceImpl implements GeoService {
         }
 
         GeoJsonFeatureDto feature = GeoJsonFeatureDto.builder()
+                .id(unit.getId())
                 .type("Feature")
                 .code(unit.getCode())
                 .name(unit.getName())
@@ -225,6 +226,7 @@ public class GeoServiceImpl implements GeoService {
 
             Map<String, Object> feature = new HashMap<>();
             feature.put("type", "Feature");
+            feature.put("id", province.getId());
             feature.put("code", province.getCode());
             feature.put("name", province.getName());
 
@@ -264,6 +266,7 @@ public class GeoServiceImpl implements GeoService {
                 String boundaryJson = (String) row[5];
 
                 GeoJsonFeatureDto feature = GeoJsonFeatureDto.builder()
+                        .id(wardId)
                         .type("Feature")
                         .code(code)
                         .name(name)

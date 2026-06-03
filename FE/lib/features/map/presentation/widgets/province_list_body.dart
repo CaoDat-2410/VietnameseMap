@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:latlong2/latlong.dart' as latlng;
 
 import '../../../../core/errors/failures.dart';
 import '../../../../core/widgets/app_error_widget.dart';
 import '../../../../core/widgets/loading_widget.dart';
 import '../../domain/entities/administrative_unit_summary.dart';
 import '../providers/map_provider.dart';
+import '../../../weather/presentation/providers/weather_provider.dart';
+import '../../../weather/presentation/widgets/weather_summary_row.dart';
 
 class Debouncer {
   Debouncer({required this.milliseconds});
@@ -342,7 +345,7 @@ class _ProvinceListView extends ConsumerWidget {
     final asyncProvinces = ref.watch(provincesProvider);
     final selectedProvince = ref.watch(selectedProvinceProvider);
     final searchQuery = ref.watch(provinceSearchQueryProvider);
-    final query = searchQuery.toLowerCase();
+    final query = _normalizeVietnamese(searchQuery);
 
     return asyncProvinces.when(
       loading: () => const LoadingWidget(message: 'Đang tải danh sách tỉnh...'),
@@ -356,7 +359,7 @@ class _ProvinceListView extends ConsumerWidget {
               ? provinces
               : provinces
                   .where((p) =>
-                      p.name.toLowerCase().contains(query) ||
+                      _normalizeVietnamese(p.name).contains(query) ||
                       p.code.toLowerCase().contains(query))
                   .toList();
 
@@ -410,6 +413,12 @@ class _ProvinceListView extends ConsumerWidget {
                       onTap: () {
                         ref.read(selectedProvinceProvider.notifier).state =
                             province;
+                        _selectWeatherForUnit(
+                          ref,
+                          unit: province,
+                          sourceType: WeatherLocationSourceType.province,
+                          provinceName: province.name,
+                        );
                       },
                     );
                   },
@@ -437,6 +446,7 @@ class _DistrictListView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncDistricts = ref.watch(districtsProvider(provinceCode));
     final selectedDistrict = ref.watch(selectedDistrictProvider);
+    final selectedProvince = ref.watch(selectedProvinceProvider);
 
     return asyncDistricts.when(
       loading: () => const LoadingWidget(message: 'Đang tải quận/huyện...'),
@@ -474,9 +484,16 @@ class _DistrictListView extends ConsumerWidget {
                 index: index,
                 isSelected: isSelected,
                 color: const Color(0xFF00695C),
-                onTap: () {
+                onTap: () async {
                   ref.read(selectedDistrictProvider.notifier).state =
                       (code: district.code, name: district.name, id: district.id ?? 0);
+                  await _selectWeatherForUnit(
+                    ref,
+                    unit: district,
+                    sourceType: WeatherLocationSourceType.district,
+                    provinceName: selectedProvince?.name,
+                    districtName: district.name,
+                  );
                 },
               );
             },
@@ -501,6 +518,8 @@ class _WardListView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final asyncWards = ref.watch(wardsProvider(districtCode));
     final selectedWard = ref.watch(selectedWardProvider);
+    final selectedProvince = ref.watch(selectedProvinceProvider);
+    final selectedDistrict = ref.watch(selectedDistrictProvider);
 
     return asyncWards.when(
       loading: () => const LoadingWidget(message: 'Đang tải phường/xã...'),
@@ -531,16 +550,32 @@ class _WardListView extends ConsumerWidget {
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final ward = wards[index];
-              final isSelected = selectedWard?.code == ward.code;
+              final isSelected = selectedWard != null &&
+                  wardKey(selectedWard.id, selectedWard.code, selectedWard.name) ==
+                      wardKey(ward.id, ward.code, ward.name);
 
               return _UnitCard(
                 unit: ward,
                 index: index,
                 isSelected: isSelected,
                 color: const Color(0xFF6A1B9A),
-                onTap: () {
+                onTap: () async {
                   ref.read(selectedWardProvider.notifier).state =
-                      (code: ward.code, name: ward.name);
+                      (code: ward.code, id: ward.id, name: ward.name);
+                  final centroid = await _wardCentroidFor(
+                    ref,
+                    selectedDistrict,
+                    ward,
+                  );
+                  _selectWeatherForUnit(
+                    ref,
+                    unit: ward,
+                    sourceType: WeatherLocationSourceType.ward,
+                    provinceName: selectedProvince?.name,
+                    districtName: selectedDistrict?.name,
+                    wardName: ward.name,
+                    centroid: centroid,
+                  );
                 },
               );
             },
@@ -559,7 +594,106 @@ class _WardListView extends ConsumerWidget {
 // Shared card widget for all three levels
 // ---------------------------------------------------------------------------
 
-class _UnitCard extends StatelessWidget {
+Future<void> _selectWeatherForUnit(
+  WidgetRef ref, {
+  required AdministrativeUnitSummary unit,
+  required WeatherLocationSourceType sourceType,
+  String? provinceName,
+  String? districtName,
+  String? wardName,
+  latlng.LatLng? centroid,
+}) async {
+  if (centroid != null) {
+    ref.read(selectedWeatherLocationProvider.notifier).state =
+        SelectedWeatherLocation(
+      displayName: buildWeatherDisplayName(
+        provinceName: provinceName,
+        districtName: districtName,
+        wardName: wardName,
+        fallback: unit.name,
+      ),
+      provinceName: provinceName,
+      districtName: districtName,
+      wardName: wardName,
+      lat: centroid.latitude,
+      lng: centroid.longitude,
+      sourceType: sourceType,
+      code: unit.id?.toString() ?? unit.code,
+      selectedAt: DateTime.now(),
+    );
+    ref.invalidate(selectedWeatherProvider);
+    return;
+  }
+
+  final unitResult = await ref.read(geoRepositoryProvider).getUnitByCode(unit.code);
+  unitResult.when(
+    ok: (detail) {
+      final lat = detail.centroidLat;
+      final lng = detail.centroidLng;
+      if (lat == null || lng == null) return;
+
+      ref.read(selectedWeatherLocationProvider.notifier).state =
+          SelectedWeatherLocation(
+        displayName: buildWeatherDisplayName(
+          provinceName: provinceName,
+          districtName: districtName,
+          wardName: wardName,
+          fallback: unit.name,
+        ),
+        provinceName: provinceName,
+        districtName: districtName,
+        wardName: wardName,
+        lat: lat,
+        lng: lng,
+        sourceType: sourceType,
+        code: unit.code,
+        selectedAt: DateTime.now(),
+      );
+      ref.invalidate(selectedWeatherProvider);
+    },
+    err: (_) {},
+  );
+}
+
+Future<latlng.LatLng?> _wardCentroidFor(
+  WidgetRef ref,
+  ({String code, int id, String name})? selectedDistrict,
+  AdministrativeUnitSummary ward,
+) async {
+  if (ward.id == null || selectedDistrict == null) return null;
+  final loadedCentroids =
+      ref.read(wardCentroidsProvider(selectedDistrict.id)).valueOrNull;
+  final key = wardKey(ward.id, ward.code, ward.name);
+  if (loadedCentroids != null && loadedCentroids.containsKey(key)) {
+    return loadedCentroids[key];
+  }
+
+  final centroids =
+      await ref.read(wardCentroidsProvider(selectedDistrict.id).future);
+  return centroids[key];
+}
+
+String _normalizeVietnamese(String value) {
+  var normalized = value.toLowerCase();
+  const groups = {
+    'a': 'áàảãạăắằẳẵặâấầẩẫậ',
+    'e': 'éèẻẽẹêếềểễệ',
+    'i': 'íìỉĩị',
+    'o': 'óòỏõọôốồổỗộơớờởỡợ',
+    'u': 'úùủũụưứừửữự',
+    'y': 'ýỳỷỹỵ',
+    'd': 'đ',
+  };
+  for (final entry in groups.entries) {
+    for (final rune in entry.value.runes) {
+      final char = String.fromCharCode(rune);
+      normalized = normalized.replaceAll(char, entry.key);
+    }
+  }
+  return normalized.trim();
+}
+
+class _UnitCard extends ConsumerWidget {
   const _UnitCard({
     required this.unit,
     required this.index,
@@ -618,8 +752,9 @@ class _UnitCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final initial = unit.name.isNotEmpty ? unit.name[0] : '?';
+    final weatherAsync = isSelected ? ref.watch(selectedWeatherProvider) : null;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
@@ -692,6 +827,53 @@ class _UnitCard extends StatelessWidget {
                           ),
                         ),
                       ),
+                      if (weatherAsync != null) ...[
+                        const SizedBox(height: 8),
+                        weatherAsync.when(
+                          loading: () => Text(
+                            'Đang tải thời tiết...',
+                            style: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 12,
+                            ),
+                          ),
+                          error: (_, __) => Text(
+                            'Không tải được thời tiết',
+                            style: TextStyle(
+                              color: Colors.red.shade600,
+                              fontSize: 12,
+                            ),
+                          ),
+                          data: (result) => result.when(
+                            ok: (snapshot) {
+                              final locationCode = snapshot.location.code;
+                              final matchesUnit = locationCode == unit.code ||
+                                  (unit.id != null &&
+                                      locationCode == unit.id.toString());
+                              if (!matchesUnit) {
+                                return Text(
+                                  'Chọn để xem thời tiết',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade500,
+                                    fontSize: 12,
+                                  ),
+                                );
+                              }
+                              return WeatherSummaryRow(
+                                weather: snapshot.weather,
+                                compact: true,
+                              );
+                            },
+                            err: (_) => Text(
+                              'Không tải được thời tiết',
+                              style: TextStyle(
+                                color: Colors.red.shade600,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
