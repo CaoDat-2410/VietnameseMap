@@ -16,8 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.Optional;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -26,6 +26,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class GeoServiceImpl implements GeoService {
 
     private static final Logger log = LoggerFactory.getLogger(GeoServiceImpl.class);
+    private static final String FEATURE_TYPE = "Feature";
+    private static final String POLYGON_TYPE = "Polygon";
+    private static final String COORDINATES_KEY = "coordinates";
 
     private final AdministrativeUnitRepository repository;
     private final GeoMapper geoMapper;
@@ -99,6 +102,7 @@ public class GeoServiceImpl implements GeoService {
         } else {
             repository.findCentroidByCode(code, unit.getLevel().name())
                     .ifPresent(row -> {
+                        @SuppressWarnings("unchecked")
                         Object[] arr = (Object[]) row;
                         if (arr[1] != null) dto.setCentroidLat(((Number) arr[1]).doubleValue());
                         if (arr[0] != null) dto.setCentroidLng(((Number) arr[0]).doubleValue());
@@ -135,7 +139,7 @@ public class GeoServiceImpl implements GeoService {
 
         GeoJsonFeatureDto feature = GeoJsonFeatureDto.builder()
                 .id(unit.getId())
-                .type("Feature")
+                .type(FEATURE_TYPE)
                 .code(unit.getCode())
                 .name(unit.getName())
                 .level(unit.getLevel())
@@ -144,8 +148,8 @@ public class GeoServiceImpl implements GeoService {
 
         try {
             JsonNode root = objectMapper.readTree(boundaryJson);
-            String type = root.path("type").asText("Polygon");
-            JsonNode coordsNode = root.path("coordinates");
+            String type = root.path("type").asText(POLYGON_TYPE);
+            JsonNode coordsNode = root.path(COORDINATES_KEY);
             if (coordsNode.isMissingNode() || !coordsNode.isArray()) {
                 log.warn("No valid coordinates found in GeoJSON for code: {}", code);
             }
@@ -156,7 +160,7 @@ public class GeoServiceImpl implements GeoService {
         } catch (Exception e) {
             log.error("Failed to parse GeoJSON for code: {}: {}", code, e.getMessage());
             feature.setGeometry(GeoJsonFeatureDto.GeometryDto.builder()
-                    .type("Polygon")
+                    .type(POLYGON_TYPE)
                     .coordinates(boundaryJson)
                     .build());
         }
@@ -171,7 +175,7 @@ public class GeoServiceImpl implements GeoService {
 
         AdministrativeUnit unit = repository.findUnitContainingPoint(lat, lng)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "AdministrativeUnit", "coordinates", String.format("(%.4f, %.4f)", lat, lng)));
+                        "AdministrativeUnit", COORDINATES_KEY, String.format("(%.4f, %.4f)", lat, lng)));
 
         AdministrativeUnitDto dto = geoMapper.toDto(unit);
 
@@ -186,6 +190,7 @@ public class GeoServiceImpl implements GeoService {
         } else {
             repository.findCentroidByCode(unit.getCode(), unit.getLevel().name())
                     .ifPresent(row -> {
+                        @SuppressWarnings("unchecked")
                         Object[] arr = (Object[]) row;
                         if (arr[1] != null) dto.setCentroidLat(((Number) arr[1]).doubleValue());
                         if (arr[0] != null) dto.setCentroidLng(((Number) arr[0]).doubleValue());
@@ -224,30 +229,30 @@ public class GeoServiceImpl implements GeoService {
             String geoJson = repository.findBoundaryByCodeAndLevel(province.getCode(), UnitLevel.PROVINCE.name()).orElse(null);
             if (geoJson == null || geoJson.isBlank()) continue;
 
-            Map<String, Object> feature = new HashMap<>();
-            feature.put("type", "Feature");
+            Map<String, Object> feature = new java.util.LinkedHashMap<>();
+            feature.put("type", FEATURE_TYPE);
             feature.put("id", province.getId());
             feature.put("code", province.getCode());
             feature.put("name", province.getName());
 
             try {
                 JsonNode root = objectMapper.readTree(geoJson);
-                Map<String, Object> geometry = new HashMap<>();
-                geometry.put("type", root.path("type").asText("Polygon"));
-                geometry.put("coordinates", objectMapper.convertValue(root.path("coordinates"), Object.class));
+                Map<String, Object> geometry = new java.util.LinkedHashMap<>();
+                geometry.put("type", root.path("type").asText(POLYGON_TYPE));
+                geometry.put(COORDINATES_KEY, objectMapper.convertValue(root.path(COORDINATES_KEY), Object.class));
                 feature.put("geometry", geometry);
             } catch (Exception e) {
                 log.warn("Failed to parse GeoJSON for province {}: {}", province.getCode(), e.getMessage());
-                Map<String, Object> geometry = new HashMap<>();
-                geometry.put("type", "Polygon");
-                geometry.put("coordinates", java.util.Collections.emptyList());
+                Map<String, Object> geometry = new java.util.LinkedHashMap<>();
+                geometry.put("type", POLYGON_TYPE);
+                geometry.put(COORDINATES_KEY, java.util.Collections.emptyList());
                 feature.put("geometry", geometry);
             }
 
             features.add(feature);
         }
 
-        Map<String, Object> collection = new HashMap<>();
+        Map<String, Object> collection = new java.util.LinkedHashMap<>();
         collection.put("type", "FeatureCollection");
         collection.put("features", features);
         return collection;
@@ -267,15 +272,15 @@ public class GeoServiceImpl implements GeoService {
 
                 GeoJsonFeatureDto feature = GeoJsonFeatureDto.builder()
                         .id(wardId)
-                        .type("Feature")
+                        .type(FEATURE_TYPE)
                         .code(code)
                         .name(name)
                         .level(UnitLevel.WARD)
                         .build();
 
                 JsonNode root = objectMapper.readTree(boundaryJson);
-                String type = root.path("type").asText("Polygon");
-                JsonNode coordsNode = root.path("coordinates");
+                String type = root.path("type").asText(POLYGON_TYPE);
+                JsonNode coordsNode = root.path(COORDINATES_KEY);
                 feature.setGeometry(GeoJsonFeatureDto.GeometryDto.builder()
                         .type(type)
                         .coordinates(objectMapper.convertValue(coordsNode, Object.class))

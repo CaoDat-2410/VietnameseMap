@@ -16,7 +16,7 @@ void main() {
   });
 
   testWidgets('Weather tab renders selected location detail',
-      (WidgetTester tester) async {
+      (tester) async {
     final snapshot = SelectedWeatherSnapshot(
       location: SelectedWeatherLocation(
         displayName: 'Hà Nội',

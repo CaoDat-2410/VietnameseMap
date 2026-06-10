@@ -13,7 +13,7 @@ class GeoJsonUtils {
 
     if (coordinates is! List) return polygons;
 
-    int depth = _getListDepth(coordinates);
+    final int depth = _getListDepth(coordinates);
     
     if (depth == 3) {
       // Polygon

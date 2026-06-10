@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -168,5 +169,144 @@ class GeoControllerTest {
                 .code(code)
                 .level(level)
                 .build();
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/geo/provinces/{code}/boundary")
+    class GetProvinceBoundary {
+
+        @Test
+        @DisplayName("should return province boundary")
+        void shouldReturnProvinceBoundary() throws Exception {
+            GeoJsonFeatureDto feature = GeoJsonFeatureDto.builder()
+                    .code("01")
+                    .name("Hà Nội")
+                    .level(UnitLevel.PROVINCE)
+                    .type("Feature")
+                    .geometry(GeoJsonFeatureDto.GeometryDto.builder()
+                            .type("Polygon")
+                            .coordinates("[[[105,21],[105.5,21]]]")
+                            .build())
+                    .build();
+            when(geoService.getBoundaryByCode("01")).thenReturn(feature);
+
+            mockMvc.perform(get("/api/v1/geo/provinces/01/boundary")
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success", is(true)))
+                    .andExpect(jsonPath("$.data.code", is("01")));
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/geo/wards")
+    class GetWards {
+
+        @Test
+        @DisplayName("should return wards for valid district")
+        void shouldReturnWards() throws Exception {
+            List<AdministrativeUnitSummaryDto> wards = List.of(
+                    createSummaryDto("001_01_001", "Phường 1", UnitLevel.WARD));
+            when(geoService.getWardsByDistrict("001")).thenReturn(wards);
+
+            mockMvc.perform(get("/api/v1/geo/wards")
+                            .param("districtCode", "001")
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success", is(true)))
+                    .andExpect(jsonPath("$.data", hasSize(1)));
+        }
+
+        @Test
+        @DisplayName("should return 400 when districtCode is missing")
+        void shouldReturn400WhenDistrictCodeMissing() throws Exception {
+            mockMvc.perform(get("/api/v1/geo/wards")
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/geo/units/{code}/boundary")
+    class GetUnitBoundary {
+
+        @Test
+        @DisplayName("should return unit boundary")
+        void shouldReturnUnitBoundary() throws Exception {
+            GeoJsonFeatureDto feature = GeoJsonFeatureDto.builder()
+                    .code("01")
+                    .name("Hà Nội")
+                    .level(UnitLevel.PROVINCE)
+                    .type("Feature")
+                    .build();
+            when(geoService.getBoundaryByCode("01")).thenReturn(feature);
+
+            mockMvc.perform(get("/api/v1/geo/units/01/boundary")
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success", is(true)));
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/geo/provinces-boundaries")
+    class GetAllProvincesBoundaries {
+
+        @Test
+        @DisplayName("should return all province boundaries")
+        void shouldReturnAllBoundaries() throws Exception {
+            when(geoService.getAllProvincesBoundaries()).thenReturn(
+                    java.util.Map.of("type", "FeatureCollection", "features", java.util.List.of()));
+
+            mockMvc.perform(get("/api/v1/geo/provinces-boundaries")
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success", is(true)));
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/v1/geo/admin/calculate-centroids")
+    class CalculateCentroids {
+
+        @Test
+        @DisplayName("should calculate and return count")
+        void shouldCalculateAndReturnCount() throws Exception {
+            when(geoService.calculateCentroids()).thenReturn(10);
+
+            mockMvc.perform(post("/api/v1/geo/admin/calculate-centroids")
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success", is(true)))
+                    .andExpect(jsonPath("$.data", is(10)));
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/geo/districts/{districtId}/wards-boundaries")
+    class GetWardsBoundaries {
+
+        @Test
+        @DisplayName("should return ward boundaries")
+        void shouldReturnWardBoundaries() throws Exception {
+            List<GeoJsonFeatureDto> features = List.of(
+                    GeoJsonFeatureDto.builder()
+                            .code("001_01_001")
+                            .name("Ward 1")
+                            .level(UnitLevel.WARD)
+                            .type("Feature")
+                            .geometry(GeoJsonFeatureDto.GeometryDto.builder()
+                                    .type("Polygon")
+                                    .coordinates("[[[105,21]]]")
+                                    .build())
+                            .build());
+            when(geoService.getWardsBoundariesByDistrictId(2L)).thenReturn(features);
+
+            mockMvc.perform(get("/api/v1/geo/districts/2/wards-boundaries")
+                            .contentType(MediaType.APPLICATION_JSON))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.success", is(true)))
+                    .andExpect(jsonPath("$.data", hasSize(1)));
+        }
     }
 }

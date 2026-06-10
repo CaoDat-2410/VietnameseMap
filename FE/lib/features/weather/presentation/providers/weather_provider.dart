@@ -188,7 +188,7 @@ Future<AdministrativeNames> resolveAdministrativeNames(
   String? provinceName;
   String? districtName;
   String? wardName;
-  String? code = unit.code;
+    final String code = unit.code;
 
   while (currentUnit != null) {
     final cu = currentUnit;

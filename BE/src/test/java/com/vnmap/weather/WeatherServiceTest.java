@@ -64,7 +64,7 @@ class WeatherServiceTest {
 
             assertThat(result.getTemperature()).isEqualTo(25.0);
             assertThat(result.isCached()).isTrue();
-            verify(weatherClient).fetchCurrentWeather(anyDouble(), anyDouble());
+            verify(weatherClient, org.mockito.Mockito.never()).fetchCurrentWeather(anyDouble(), anyDouble());
         }
 
         @Test

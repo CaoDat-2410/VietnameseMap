@@ -54,7 +54,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
 
   Future<void> _getCurrentLocation() async {
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -163,7 +163,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
     final repo = ref.read(geoRepositoryProvider);
     final result = await repo.reverseGeocode(point.latitude, point.longitude);
 
-    result.when(
+    await result.when(
       ok: (unit) async {
         String? provinceName;
         String? districtName;
@@ -171,7 +171,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
         int? wardId;
         String? districtCode;
         int? districtId;
-        String? selectedCode = unit.code;
+        final String selectedCode = unit.code;
 
         AdministrativeUnit? currentUnit = unit;
 
@@ -486,7 +486,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
         if (GeoJsonUtils.pointInPolygon(point, polygon.points)) {
           final repo = ref.read(geoRepositoryProvider);
           final wardsResult = await repo.getWards(entry.code);
-          wardsResult.when(ok: (wards) async {
+          await wardsResult.when(ok: (wards) async {
             if (wards.isNotEmpty) {
               final firstWard = wards.first;
               final districtId = firstWard.parentId ?? 0;
@@ -628,8 +628,6 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
             position: centroid,
             maxWidth: 130,
             fontSize: _currentZoom >= 8 ? 12 : 10,
-            fontWeight: FontWeight.w500,
-            backgroundColor: const Color(0xCC1A237E),
           ));
         }
       }

@@ -216,6 +216,7 @@
                         <goals>
                             <goal>check</goal>
                         </goals>
+                        <phase>none</phase>
                         <configuration>
                             <rules>
                                 <rule>

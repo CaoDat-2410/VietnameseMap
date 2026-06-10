@@ -1,0 +1,6 @@
+projectKey=vnm-backend
+serverUrl=http://host.docker.internal:9000
+serverVersion=26.6.0.123539
+dashboardUrl=http://host.docker.internal:9000/dashboard?id=vnm-backend
+ceTaskId=eafbcc6c-5cdf-46f7-b6fd-bfc7d1533db1
+ceTaskUrl=http://host.docker.internal:9000/api/ce/task?id=eafbcc6c-5cdf-46f7-b6fd-bfc7d1533db1

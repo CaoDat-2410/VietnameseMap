@@ -46,12 +46,33 @@ class ProvinceListBody extends ConsumerStatefulWidget {
 class _ProvinceListBodyState extends ConsumerState<ProvinceListBody> {
   final _debouncer = Debouncer(milliseconds: 300);
   final _focusNode = FocusNode();
+  DrillLevel _previousLevel = DrillLevel.province;
 
   @override
   void dispose() {
     _debouncer._isRunning = false;
     _focusNode.dispose();
     super.dispose();
+  }
+
+  void _onLevelChanged(DrillLevel newLevel) {
+    if (_previousLevel != newLevel) {
+      _previousLevel = newLevel;
+      // Clear search when leaving province level
+      if (_previousLevel != DrillLevel.province) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref.read(provinceSearchQueryProvider.notifier).state = '';
+        });
+      }
+      // Auto-scroll to top on level change
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.scrollController?.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      });
+    }
   }
 
   @override
@@ -77,6 +98,8 @@ class _ProvinceListBodyState extends ConsumerState<ProvinceListBody> {
       provinceCode = null;
       districtCode = null;
     }
+
+    _onLevelChanged(level);
 
     return Column(
       children: [
@@ -132,7 +155,6 @@ class _ProvinceListBodyState extends ConsumerState<ProvinceListBody> {
             }
           },
           child: TextField(
-            autofocus: false,
             onChanged: (v) {
               ref.read(provinceSearchQueryProvider.notifier).state = v;
             },
@@ -559,6 +581,7 @@ class _WardListView extends ConsumerWidget {
                 index: index,
                 isSelected: isSelected,
                 color: const Color(0xFF6A1B9A),
+                showChevron: false,
                 onTap: () async {
                   ref.read(selectedWardProvider.notifier).state =
                       (code: ward.code, id: ward.id, name: ward.name);
@@ -567,7 +590,7 @@ class _WardListView extends ConsumerWidget {
                     selectedDistrict,
                     ward,
                   );
-                  _selectWeatherForUnit(
+                  await _selectWeatherForUnit(
                     ref,
                     unit: ward,
                     sourceType: WeatherLocationSourceType.ward,
@@ -699,6 +722,7 @@ class _UnitCard extends ConsumerWidget {
     required this.index,
     required this.isSelected,
     this.color,
+    this.showChevron = true,
     required this.onTap,
   });
 
@@ -706,6 +730,7 @@ class _UnitCard extends ConsumerWidget {
   final int index;
   final bool isSelected;
   final Color? color;
+  final bool showChevron;
   final VoidCallback onTap;
 
   static const _avatarColors = [
@@ -877,6 +902,7 @@ class _UnitCard extends ConsumerWidget {
                     ],
                   ),
                 ),
+              if (showChevron)
                 Icon(
                   Icons.chevron_right,
                   color: isSelected ? _color : Colors.grey.shade400,

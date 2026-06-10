@@ -71,6 +71,7 @@ jobs:
   sonarcloud:
     needs: build-and-test
     runs-on: ubuntu-latest
+    # Skip for forked PRs (they don't have access to SONAR_TOKEN secret)
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
 
     steps:
@@ -93,8 +94,34 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-maven-
 
+      - name: Build project (for class files)
+        run: mvn clean compile -DskipTests -B
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: vnmapdb
+          DB_USERNAME: vnmap
+          DB_PASSWORD: test123
+
+      - name: Run tests (generates JaCoCo report)
+        run: mvn test jacoco:report -B
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: vnmapdb
+          DB_USERNAME: vnmap
+          DB_PASSWORD: test123
+          OWM_API_KEY: ${{ secrets.OWM_API_KEY }}
+
       - name: SonarQube Scan
         uses: sonarsource/sonarcloud-github-action@v2
+        with:
+          args: >
+            -Dsonar.projectKey=vn-map-backend
+            -Dsonar.projectName="VN Map Backend"
+            -Dsonar.sourceEncoding=UTF-8
+            -Dsonar.scm.disabled=true
+            -Dsonar.qualitygate.wait=true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

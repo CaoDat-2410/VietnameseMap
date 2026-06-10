@@ -20,9 +20,7 @@ class GeoRepositoryImpl implements GeoRepository {
 
   @override
   Future<Result<Map<String, dynamic>>> getAllProvincesBoundaries() =>
-      _wrap(() async {
-        return await _dataSource.getAllProvincesBoundaries();
-      });
+      _wrap(() async => _dataSource.getAllProvincesBoundaries());
 
   @override
   Future<Result<GeoJsonFeature>> getProvinceBoundary(String code) =>
