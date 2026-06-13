@@ -6,3 +6,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
+
+COPY docker-init.sql /docker-entrypoint-initdb.d/01-docker-init.sql
+COPY campaign-module.sql /docker-entrypoint-initdb.d/campaign-module.sql

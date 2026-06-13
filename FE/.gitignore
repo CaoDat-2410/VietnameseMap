@@ -20,3 +20,8 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Large generated/local GeoJSON files. Boundaries are served by the backend API
+# after Docker import downloads them from HuggingFace.
+assets/geo/*.geojson
+assets/geo/*.json

@@ -52,9 +52,24 @@ ogr2ogr -f PostgreSQL "PG:host=vnmap_postgres port=5432 dbname=vnmapdb user=post
     -nln administrative_units -append 2>&1
 echo ""
 echo "Step 4: Import wards..."
-# GID_2 = VNM.14_1, GID_3 = VNM.14_1_1 -> province=14, district=1, ward=1 -> code="14_1_1"
+# GID_2 = VNM.14.1_1, GID_3 = VNM.14.1_1.1 -> district code = "14_1" -> suffix after _ = "1"
+# District code stored in DB: province_suffix + "_" + district_suffix (e.g. "1_1")
+# Ward code = district_code before last "_" + "_" + district_suffix + "_" + ward_suffix
+# Using regex: district code part = REGEXP_REPLACE(code, '_[^_]+$', '')
 ogr2ogr -f PostgreSQL "PG:host=vnmap_postgres port=5432 dbname=vnmapdb user=postgres password=123456" "$GADM_FILE" \
-    -sql "SELECT NAME_3 as name, SUBSTR(GID_2, INSTR(GID_2, '.')+1, INSTR(GID_2, '_')-INSTR(GID_2, '.')-1) || '_' || SUBSTR(GID_2, INSTR(GID_2, '_')+1) || '_' || SUBSTR(GID_3, INSTR(GID_3, '_')+1) as code, 'WARD' as level, geom as boundary FROM ADM_ADM_3" \
+    -sql "SELECT NAME_3 as name,
+  SUBSTR(GID_2, INSTR(GID_2, '.')+1, INSTR(GID_2, '_')-INSTR(GID_2, '.')-1) || '_' ||
+  SUBSTR(GID_2, INSTR(GID_2, '_')+1,
+    CASE WHEN INSTR(SUBSTR(GID_2, INSTR(GID_2, '_')+1), '.') > 0
+         THEN INSTR(SUBSTR(GID_2, INSTR(GID_2, '_')+1), '.') - 1
+         ELSE LENGTH(SUBSTR(GID_2, INSTR(GID_2, '_')+1))
+    END) || '_' ||
+  SUBSTR(GID_3, INSTR(GID_3, '.')+1,
+    CASE WHEN INSTR(SUBSTR(GID_3, INSTR(GID_3, '.')+1), '.') > 0
+         THEN INSTR(SUBSTR(GID_3, INSTR(GID_3, '.')+1), '.') - 1
+         ELSE LENGTH(SUBSTR(GID_3, INSTR(GID_3, '.')+1))
+    END) as code,
+  'WARD' as level, geom as boundary FROM ADM_ADM_3" \
     -nln administrative_units -append 2>&1
 echo ""
 echo "Step 5: Fix district codes (replace dot with underscore)..."

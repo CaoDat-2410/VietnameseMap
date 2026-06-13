@@ -18,6 +18,7 @@ dependencies:
 
   # Map
   flutter_map: ^7.0.2
+  flutter_map_cancellable_tile_provider: ^3.0.0
   latlong2: ^0.9.1
 
   # Code generation annotations
@@ -29,6 +30,8 @@ dependencies:
 
   # Env config
   flutter_dotenv: ^5.1.0
+  geolocator: ^14.0.2
+  shared_preferences: ^2.2.3
 
 dev_dependencies:
   flutter_test:

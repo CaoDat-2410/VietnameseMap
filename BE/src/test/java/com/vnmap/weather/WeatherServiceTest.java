@@ -2,7 +2,6 @@ package com.vnmap.weather;
 
 import com.vnmap.common.exception.ExternalApiException;
 import com.vnmap.geo.dto.AdministrativeUnitDto;
-import com.vnmap.geo.enums.UnitLevel;
 import com.vnmap.geo.service.GeoService;
 import com.vnmap.weather.cache.WeatherCacheService;
 import com.vnmap.weather.client.OpenWeatherMapClient;
@@ -64,7 +63,7 @@ class WeatherServiceTest {
 
             assertThat(result.getTemperature()).isEqualTo(25.0);
             assertThat(result.isCached()).isTrue();
-            verify(weatherClient).fetchCurrentWeather(anyDouble(), anyDouble());
+            verify(weatherClient, org.mockito.Mockito.never()).fetchCurrentWeather(anyDouble(), anyDouble());
         }
 
         @Test

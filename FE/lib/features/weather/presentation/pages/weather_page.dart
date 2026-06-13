@@ -4,8 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/widgets/app_error_widget.dart';
 import '../../../../core/widgets/loading_widget.dart';
-import '../../../location/domain/entities/location.dart';
-import '../../../location/presentation/providers/location_provider.dart';
 import '../providers/weather_provider.dart';
 import '../widgets/weather_card.dart';
 
@@ -14,8 +12,13 @@ class WeatherPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final locationAsync = ref.watch(currentLocationProvider);
+    final weatherAsync = ref.watch(selectedWeatherProvider);
     final colorScheme = Theme.of(context).colorScheme;
+
+    void refreshWeather() {
+      ref.invalidate(selectedWeatherProvider);
+      ref.invalidate(activeWeatherLocationProvider);
+    }
 
     return Scaffold(
       body: CustomScrollView(
@@ -28,27 +31,30 @@ class WeatherPage extends ConsumerWidget {
               IconButton(
                 icon: const Icon(Icons.refresh, color: Colors.white),
                 tooltip: 'Làm mới',
-                onPressed: () => ref.invalidate(currentLocationProvider),
+                onPressed: refreshWeather,
               ),
               const SizedBox(width: 4),
             ],
           ),
-          locationAsync.when(
+          weatherAsync.when(
             loading: () => const SliverFillRemaining(
-              child: LoadingWidget(message: 'Đang lấy vị trí...'),
+              child: LoadingWidget(message: 'Đang tải thời tiết...'),
             ),
             error: (e, _) => SliverFillRemaining(
               child: AppErrorWidget(
                 failure: UnknownFailure(e.toString()),
-                onRetry: () => ref.invalidate(currentLocationProvider),
+                onRetry: refreshWeather,
               ),
             ),
             data: (result) => result.when(
-              ok: (location) => _WeatherSliver(location: location),
+              ok: (snapshot) => _WeatherSliver(
+                snapshot: snapshot,
+                onRefresh: refreshWeather,
+              ),
               err: (failure) => SliverFillRemaining(
                 child: AppErrorWidget(
                   failure: failure,
-                  onRetry: () => ref.invalidate(currentLocationProvider),
+                  onRetry: refreshWeather,
                 ),
               ),
             ),
@@ -59,54 +65,49 @@ class WeatherPage extends ConsumerWidget {
   }
 }
 
-class _WeatherSliver extends ConsumerWidget {
-  const _WeatherSliver({required this.location});
+class _WeatherSliver extends StatelessWidget {
+  const _WeatherSliver({
+    required this.snapshot,
+    required this.onRefresh,
+  });
 
-  final Location location;
+  final SelectedWeatherSnapshot snapshot;
+  final VoidCallback onRefresh;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final coords = (lat: location.latitude, lng: location.longitude);
-    final weatherAsync = ref.watch(weatherByCoordinatesProvider(coords));
+  Widget build(BuildContext context) {
+    final weather = snapshot.weather;
+    final location = snapshot.location;
 
-    return weatherAsync.when(
-      loading: () => const SliverFillRemaining(
-        child: LoadingWidget(message: 'Đang tải thời tiết...'),
-      ),
-      error: (e, _) => SliverFillRemaining(
-        child: AppErrorWidget(
-          failure: UnknownFailure(e.toString()),
-          onRetry: () => ref.invalidate(weatherByCoordinatesProvider(coords)),
-        ),
-      ),
-      data: (weatherResult) => weatherResult.when(
-        ok: (weather) => SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                WeatherCard(weather: weather),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
-                  child: Text(
-                    'Cập nhật lúc: ${_formatTime(weather.timestamp)}',
-                    style: TextStyle(
-                      color: Colors.grey.shade500,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            WeatherCard(
+              weather: weather,
+              displayName: location.displayName,
             ),
-          ),
-        ),
-        err: (failure) => SliverFillRemaining(
-          child: AppErrorWidget(
-            failure: failure,
-            onRetry: () =>
-                ref.invalidate(weatherByCoordinatesProvider(coords)),
-          ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+              child: Text(
+                'Cập nhật lúc: ${_formatTime(weather.timestamp)}',
+                style: TextStyle(
+                  color: Colors.grey.shade500,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: OutlinedButton.icon(
+                onPressed: onRefresh,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Làm mới'),
+              ),
+            ),
+          ],
         ),
       ),
     );

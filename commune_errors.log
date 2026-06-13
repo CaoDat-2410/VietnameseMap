@@ -1,0 +1,52 @@
+[
+  {
+    "code": "00004",
+    "name": "Phường Ba Đình",
+    "error": "duplicate key value violates unique constraint \"administrative_units_code_key\""
+  },
+  {
+    "code": "00292",
+    "name": "Phường Bạch Mai",
+    "error": "current transaction is aborted, commands ignored until end of transaction block"
+  },
+  {
+    "code": "00118",
+    "name": "Phường Bồ Đề",
+    "error": "current transaction is aborted, commands ignored until end of transaction block"
+  },
+  {
+    "code": "00166",
+    "name": "Phường Cầu Giấy",
+    "error": "current transaction is aborted, commands ignored until end of transaction block"
+  },
+  {
+    "code": "10015",
+    "name": "Phường Chương Mỹ",
+    "error": "current transaction is aborted, commands ignored until end of transaction block"
+  },
+  {
+    "code": "00082",
+    "name": "Phường Cửa Nam",
+    "error": "current transaction is aborted, commands ignored until end of transaction block"
+  },
+  {
+    "code": "00637",
+    "name": "Phường Đại Mỗ",
+    "error": "current transaction is aborted, commands ignored until end of transaction block"
+  },
+  {
+    "code": "00316",
+    "name": "Phường Định Công",
+    "error": "current transaction is aborted, commands ignored until end of transaction block"
+  },
+  {
+    "code": "00235",
+    "name": "Phường Đống Đa",
+    "error": "current transaction is aborted, commands ignored until end of transaction block"
+  },
+  {
+    "code": "00602",
+    "name": "Phường Đông Ngạc",
+    "error": "current transaction is aborted, commands ignored until end of transaction block"
+  }
+]

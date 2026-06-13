@@ -1,0 +1,12 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+RUN pip install --no-cache-dir datasets psycopg2-binary shapely openpyxl
+
+COPY import_huggingface.py /app/import_huggingface.py
+COPY import_schools_campaign.py /app/import_schools_campaign.py
+COPY postgres/campaign-module.sql /app/postgres/campaign-module.sql
+COPY import_data/Truong_THPT_2026_import_ready.xlsx /app/import_data/Truong_THPT_2026_import_ready.xlsx
+
+ENTRYPOINT ["python3", "import_huggingface.py"]

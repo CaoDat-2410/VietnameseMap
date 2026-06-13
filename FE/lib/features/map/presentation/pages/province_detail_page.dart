@@ -19,7 +19,7 @@ class ProvinceDetailPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unitAsync = ref.watch(_unitByCodeFamily(code));
-    final asyncDistricts = ref.watch(districtsProvider(code));
+    final asyncCommunes = ref.watch(communesProvider(code));
     final colorScheme = Theme.of(context).colorScheme;
 
     final provinceName = unitAsync.when(
@@ -59,7 +59,7 @@ class ProvinceDetailPage extends ConsumerWidget {
                         end: Alignment.bottomCenter,
                         colors: [
                           colorScheme.primary,
-                          colorScheme.primary.withOpacity(0.8),
+                          colorScheme.primary.withValues(alpha: 0.8),
                         ],
                       ),
                     ),
@@ -70,7 +70,7 @@ class ProvinceDetailPage extends ConsumerWidget {
                     child: Icon(
                       Icons.location_city,
                       size: 160,
-                      color: Colors.white.withOpacity(0.06),
+                      color: Colors.white.withValues(alpha: 0.06),
                     ),
                   ),
                 ],
@@ -78,7 +78,7 @@ class ProvinceDetailPage extends ConsumerWidget {
             ),
           ),
 
-          // Info card
+          // Info card with new fields
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -96,7 +96,7 @@ class ProvinceDetailPage extends ConsumerWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _SectionTitle(
+                              const _SectionTitle(
                                   icon: Icons.info_outline,
                                   title: 'Thông tin chung'),
                               const SizedBox(height: 12),
@@ -112,9 +112,30 @@ class ProvinceDetailPage extends ConsumerWidget {
                                       '${unit.centroidLat!.toStringAsFixed(4)}°N, '
                                       '${unit.centroidLng!.toStringAsFixed(4)}°E',
                                 ),
+                              // New fields from HuggingFace dataset
+                              if (unit.macroRegion != null)
+                                _InfoRow(
+                                    label: 'Vùng',
+                                    value: unit.macroRegion!),
+                              if (unit.population != null)
+                                _InfoRow(
+                                    label: 'Dân số',
+                                    value: _formatPopulation(unit.population!)),
+                              if (unit.areaKm2 != null)
+                                _InfoRow(
+                                    label: 'Diện tích',
+                                    value: '${unit.areaKm2!.toStringAsFixed(2)} km²'),
+                              if (unit.capital != null)
+                                _InfoRow(
+                                    label: 'Thủ phủ',
+                                    value: unit.capital!),
+                              if (unit.decree != null)
+                                _InfoRow(
+                                    label: 'Nghị định',
+                                    value: unit.decree!),
                               if (unit.childCount != null)
                                 _InfoRow(
-                                    label: 'Số huyện',
+                                    label: 'Số xã',
                                     value: '${unit.childCount}'),
                             ],
                           ),
@@ -124,7 +145,7 @@ class ProvinceDetailPage extends ConsumerWidget {
             ),
           ),
 
-          // Districts card
+          // Communes card (was Districts)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -134,20 +155,20 @@ class ProvinceDetailPage extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _SectionTitle(
+                      const _SectionTitle(
                           icon: Icons.location_on_outlined,
-                          title: 'Quận / Huyện'),
+                          title: 'Xã / Phường'),
                       const SizedBox(height: 12),
-                      asyncDistricts.when(
+                      asyncCommunes.when(
                         loading: () => const LoadingWidget(),
                         error: (_, __) =>
-                            _hint('Không thể tải dữ liệu quận/huyện'),
+                            _hint('Không thể tải dữ liệu xã/phường'),
                         data: (result) => result.when(
-                          ok: (districts) => districts.isEmpty
+                          ok: (communes) => communes.isEmpty
                               ? _hint('Không có dữ liệu')
                               : Column(
-                                  children: districts
-                                      .map((d) => ListTile(
+                                  children: communes
+                                      .map((c) => ListTile(
                                             contentPadding: EdgeInsets.zero,
                                             dense: true,
                                             leading: CircleAvatar(
@@ -159,10 +180,10 @@ class ProvinceDetailPage extends ConsumerWidget {
                                                   color:
                                                       Colors.blue.shade700),
                                             ),
-                                            title: Text(d.name,
+                                            title: Text(c.name,
                                                 style: const TextStyle(
                                                     fontSize: 13)),
-                                            trailing: Text(d.code,
+                                            trailing: Text(c.code,
                                                 style: TextStyle(
                                                     fontSize: 11,
                                                     color: Colors
@@ -171,7 +192,7 @@ class ProvinceDetailPage extends ConsumerWidget {
                                       .toList(),
                                 ),
                           err: (_) =>
-                              _hint('Cần mã số tỉnh để tải quận/huyện'),
+                              _hint('Cần mã số tỉnh để tải xã/phường'),
                         ),
                       ),
                     ],
@@ -183,6 +204,15 @@ class ProvinceDetailPage extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  String _formatPopulation(int population) {
+    if (population >= 1000000) {
+      return '${(population / 1000000).toStringAsFixed(1)} triệu';
+    } else if (population >= 1000) {
+      return '${(population / 1000).toStringAsFixed(0)} nghìn';
+    }
+    return population.toString();
   }
 
   Widget _hint(String msg) => Padding(

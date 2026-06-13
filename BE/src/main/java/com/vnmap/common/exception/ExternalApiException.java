@@ -29,11 +29,6 @@ public class ExternalApiException extends RuntimeException {
         this.statusCode = 0;
     }
 
-    public String getApiName() {
-        return apiName;
-    }
-
-    public int getStatusCode() {
-        return statusCode;
-    }
+    public String getApiName() { return apiName; }
+    public int getStatusCode() { return statusCode; }
 }

@@ -2,6 +2,7 @@ import 'unit_level.dart';
 
 class GeoJsonFeature {
   const GeoJsonFeature({
+    this.id,
     required this.type,
     required this.code,
     required this.name,
@@ -10,6 +11,7 @@ class GeoJsonFeature {
     required this.geometry,
   });
 
+  final int? id;
   final String type;
   final String code;
   final String name;

@@ -5,6 +5,11 @@ spring:
       hibernate:
         format_sql: true
 
+cors:
+  # Specific dev origins to avoid security hotspot in SonarQube
+  # Covers Flutter web (localhost), Android emulator (10.0.2.2:8080), iOS simulator
+  allowed-origins: http://localhost:3000,http://localhost:8080,http://localhost:5000,http://127.0.0.1:3000,http://127.0.0.1:8080,http://127.0.0.1:5000,http://10.0.2.2:8080
+
 logging:
   level:
     root: INFO

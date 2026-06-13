@@ -59,7 +59,9 @@ class ErrorInterceptor extends Interceptor {
 
       case DioExceptionType.badResponse:
         final statusCode = err.response?.statusCode;
-        final serverMessage = _extractServerMessage(err.response);
+        final serverMessage = statusCode == 502 || statusCode == 503
+            ? null
+            : _extractServerMessage(err.response);
         return ApiException(
           message: serverMessage ?? _defaultMessageFor(statusCode),
           statusCode: statusCode,

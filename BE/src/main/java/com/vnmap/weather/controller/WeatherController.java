@@ -54,7 +54,7 @@ public class WeatherController {
                     description = "Weather service unavailable"
             )
     })
-    @GetMapping
+    @GetMapping({"", "/current"})
     public ResponseEntity<ApiResponse<CurrentWeatherDto>> getWeatherByCoordinates(
             @Parameter(description = "Latitude (-90 to 90)")
             @RequestParam @DecimalMin("-90.0") @DecimalMax("90.0") double lat,

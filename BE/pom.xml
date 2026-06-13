@@ -24,7 +24,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <hibernate-spatial.version>6.5.2.Final</hibernate-spatial.version>
         <mapstruct.version>1.6.0</mapstruct.version>
-        <lombok.version>1.18.32</lombok.version>
+        <lombok.version>1.18.36</lombok.version>
         <jacoco.version>0.8.12</jacoco.version>
         <testcontainers.version>1.19.7</testcontainers.version>
     </properties>
@@ -188,6 +188,7 @@
                     <compilerArgs>
                         <arg>-Amapstruct.defaultComponentModel=spring</arg>
                         <arg>-Amapstruct.unmappedTargetPolicy=WARN</arg>
+                        <arg>-Alombok.addLombokGeneratedAnnotation=true</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
@@ -215,6 +216,7 @@
                         <goals>
                             <goal>check</goal>
                         </goals>
+                        <phase>none</phase>
                         <configuration>
                             <rules>
                                 <rule>

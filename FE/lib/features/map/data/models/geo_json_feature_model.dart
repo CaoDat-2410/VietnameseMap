@@ -3,6 +3,7 @@ import '../../domain/entities/unit_level.dart';
 
 class GeoJsonFeatureModel {
   const GeoJsonFeatureModel({
+    this.id,
     required this.type,
     required this.code,
     required this.name,
@@ -11,6 +12,7 @@ class GeoJsonFeatureModel {
     required this.geometry,
   });
 
+  final int? id;
   final String type;
   final String code;
   final String name;
@@ -20,10 +22,11 @@ class GeoJsonFeatureModel {
 
   factory GeoJsonFeatureModel.fromJson(Map<String, dynamic> json) {
     return GeoJsonFeatureModel(
+      id: json['id'] as int?,
       type: json['type'] as String? ?? 'Feature',
       code: json['code'] as String,
       name: json['name'] as String,
-      level: _parseLevel(json['level'] as String),
+      level: _parseLevel(json['level'] as String? ?? json['kind'] as String? ?? ''),
       parentCode: json['parentCode'] as String?,
       geometry: GeoJsonGeometryModel.fromJson(
           json['geometry'] as Map<String, dynamic>),
@@ -31,6 +34,7 @@ class GeoJsonFeatureModel {
   }
 
   GeoJsonFeature toEntity() => GeoJsonFeature(
+        id: id,
         type: type,
         code: code,
         name: name,
@@ -41,8 +45,11 @@ class GeoJsonFeatureModel {
 
   static UnitLevel _parseLevel(String raw) => switch (raw.toUpperCase()) {
         'PROVINCE' => UnitLevel.province,
-        'DISTRICT' => UnitLevel.district,
-        _ => UnitLevel.ward,
+        'COMMUNE' => UnitLevel.commune,
+        // Legacy support
+        'WARD' => UnitLevel.commune,
+        'DISTRICT' => UnitLevel.commune,
+        _ => UnitLevel.commune,
       };
 }
 

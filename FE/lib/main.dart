@@ -6,7 +6,7 @@ import 'app/router.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: '.env');
+  await dotenv.load();
   runApp(const ProviderScope(child: VietnameseMapApp()));
 }
 
@@ -19,23 +19,16 @@ class VietnameseMapApp extends StatelessWidget {
       title: 'Vietnamese Map',
       theme: _buildTheme(),
       routerConfig: router,
-      debugShowCheckedModeBanner: false,
     );
   }
 
   ThemeData _buildTheme() {
-    const primary = Color(0xFFDA291C);
-    const secondary = Color(0xFFFFC107);
-    const surface = Color(0xFFFAFAFA);
+  const primary = Color(0xFFDA291C);
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
         seedColor: primary,
-        primary: primary,
-        secondary: secondary,
-        surface: surface,
-        brightness: Brightness.light,
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: primary,
@@ -51,7 +44,7 @@ class VietnameseMapApp extends StatelessWidget {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Colors.white,
-        indicatorColor: primary.withOpacity(0.12),
+        indicatorColor: primary.withValues(alpha: 0.12),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return const TextStyle(

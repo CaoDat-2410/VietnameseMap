@@ -1,1 +1,1 @@
-enum UnitLevel { province, district, ward }
+enum UnitLevel { province, commune }

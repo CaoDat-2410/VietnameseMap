@@ -4,9 +4,10 @@ import com.vnmap.common.exception.ResourceNotFoundException;
 import com.vnmap.geo.dto.AdministrativeUnitDto;
 import com.vnmap.geo.dto.AdministrativeUnitSummaryDto;
 import com.vnmap.geo.entity.AdministrativeUnit;
-import com.vnmap.geo.enums.UnitLevel;
+import com.vnmap.geo.entity.CommitteeLocation;
 import com.vnmap.geo.mapper.GeoMapper;
 import com.vnmap.geo.repository.AdministrativeUnitRepository;
+import com.vnmap.geo.repository.CommitteeLocationRepository;
 import com.vnmap.geo.service.GeoService;
 import com.vnmap.geo.service.GeoServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.cache.CacheManager;
 
 import java.util.Arrays;
 import java.util.List;
@@ -25,25 +27,33 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("GeoService Tests")
+@DisplayName("GeoService Tests (2025 Reform)")
 class GeoServiceTest {
 
     @Mock
     private AdministrativeUnitRepository repository;
 
     @Mock
+    private CommitteeLocationRepository committeeRepository;
+
+    @Mock
     private GeoMapper geoMapper;
+
+    @Mock
+    private CacheManager cacheManager;
 
     private GeoService geoService;
 
+    private static final String KIND_PROVINCE = "province";
+    private static final String KIND_COMMUNE = "commune";
+
     @BeforeEach
     void setUp() {
-        geoService = new GeoServiceImpl(repository, geoMapper, new ObjectMapper());
+        geoService = new GeoServiceImpl(repository, committeeRepository, geoMapper, new ObjectMapper(), cacheManager);
     }
 
     @Nested
@@ -53,13 +63,13 @@ class GeoServiceTest {
         @Test
         @DisplayName("should return list of province summaries")
         void shouldReturnProvinceSummaries() {
-            AdministrativeUnit hanoi = createUnit(1L, "Hà Nội", "01", UnitLevel.PROVINCE, null);
-            AdministrativeUnit hcm = createUnit(2L, "Hồ Chí Minh", "79", UnitLevel.PROVINCE, null);
+            AdministrativeUnit hanoi = createUnit(1L, "Hà Nội", "01", KIND_PROVINCE, null);
+            AdministrativeUnit hcm = createUnit(2L, "Hồ Chí Minh", "79", KIND_PROVINCE, null);
 
-            AdministrativeUnitSummaryDto hanoiDto = createSummaryDto("01", "Hà Nội", UnitLevel.PROVINCE);
-            AdministrativeUnitSummaryDto hcmDto = createSummaryDto("79", "Hồ Chí Minh", UnitLevel.PROVINCE);
+            AdministrativeUnitSummaryDto hanoiDto = createSummaryDto("01", "Hà Nội", KIND_PROVINCE);
+            AdministrativeUnitSummaryDto hcmDto = createSummaryDto("79", "Hồ Chí Minh", KIND_PROVINCE);
 
-            when(repository.findByLevel(UnitLevel.PROVINCE)).thenReturn(Arrays.asList(hanoi, hcm));
+            when(repository.findByKind(KIND_PROVINCE)).thenReturn(Arrays.asList(hanoi, hcm));
             when(geoMapper.toSummaryDtoList(any())).thenReturn(Arrays.asList(hanoiDto, hcmDto));
 
             List<AdministrativeUnitSummaryDto> result = geoService.getAllProvinces();
@@ -67,13 +77,13 @@ class GeoServiceTest {
             assertThat(result).hasSize(2);
             assertThat(result.get(0).getCode()).isEqualTo("01");
             assertThat(result.get(1).getCode()).isEqualTo("79");
-            verify(repository).findByLevel(UnitLevel.PROVINCE);
+            verify(repository).findByKind(KIND_PROVINCE);
         }
 
         @Test
         @DisplayName("should return empty list when no provinces exist")
         void shouldReturnEmptyListWhenNoProvinces() {
-            when(repository.findByLevel(UnitLevel.PROVINCE)).thenReturn(List.of());
+            when(repository.findByKind(KIND_PROVINCE)).thenReturn(List.of());
             when(geoMapper.toSummaryDtoList(any())).thenReturn(List.of());
 
             List<AdministrativeUnitSummaryDto> result = geoService.getAllProvinces();
@@ -83,25 +93,24 @@ class GeoServiceTest {
     }
 
     @Nested
-    @DisplayName("getDistrictsByProvince")
-    class GetDistrictsByProvince {
+    @DisplayName("getCommunesByProvince")
+    class GetCommunesByProvince {
 
         @Test
-        @DisplayName("should return districts for valid province code")
-        void shouldReturnDistrictsForValidProvince() {
-            AdministrativeUnit province = createUnit(1L, "Hà Nội", "01", UnitLevel.PROVINCE, null);
-            AdministrativeUnit district1 = createUnit(2L, "Ba Đình", "001", UnitLevel.DISTRICT, 1L);
-            AdministrativeUnit district2 = createUnit(3L, "Hoàn Kiếm", "002", UnitLevel.DISTRICT, 1L);
+        @DisplayName("should return communes for valid province code")
+        void shouldReturnCommunesForValidProvince() {
+            AdministrativeUnit province = createUnit(1L, "Hà Nội", "01", KIND_PROVINCE, null);
+            AdministrativeUnit commune1 = createUnit(2L, "Ba Đình", "001", KIND_COMMUNE, "01");
+            AdministrativeUnit commune2 = createUnit(3L, "Hoàn Kiếm", "002", KIND_COMMUNE, "01");
 
             when(repository.findByCode("01")).thenReturn(Optional.of(province));
-            when(repository.findByParentIdAndLevel(1L, UnitLevel.DISTRICT))
-                    .thenReturn(Arrays.asList(district1, district2));
+            when(repository.findByParentCode("01")).thenReturn(Arrays.asList(commune1, commune2));
             when(geoMapper.toSummaryDtoList(any())).thenReturn(List.of(
-                    createSummaryDto("001", "Ba Đình", UnitLevel.DISTRICT),
-                    createSummaryDto("002", "Hoàn Kiếm", UnitLevel.DISTRICT)
+                    createSummaryDto("001", "Ba Đình", KIND_COMMUNE),
+                    createSummaryDto("002", "Hoàn Kiếm", KIND_COMMUNE)
             ));
 
-            List<AdministrativeUnitSummaryDto> result = geoService.getDistrictsByProvince("01");
+            List<AdministrativeUnitSummaryDto> result = geoService.getCommunesByProvince("01");
 
             assertThat(result).hasSize(2);
             assertThat(result.get(0).getCode()).isEqualTo("001");
@@ -112,7 +121,7 @@ class GeoServiceTest {
         void shouldThrowForInvalidProvinceCode() {
             when(repository.findByCode("999")).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> geoService.getDistrictsByProvince("999"))
+            assertThatThrownBy(() -> geoService.getCommunesByProvince("999"))
                     .isInstanceOf(ResourceNotFoundException.class)
                     .hasMessageContaining("Province")
                     .hasMessageContaining("999");
@@ -121,10 +130,10 @@ class GeoServiceTest {
         @Test
         @DisplayName("should throw exception when code is not a province")
         void shouldThrowWhenCodeIsNotProvince() {
-            AdministrativeUnit district = createUnit(2L, "Ba Đình", "001", UnitLevel.DISTRICT, 1L);
-            when(repository.findByCode("001")).thenReturn(Optional.of(district));
+            AdministrativeUnit commune = createUnit(2L, "Ba Đình", "001", KIND_COMMUNE, "01");
+            when(repository.findByCode("001")).thenReturn(Optional.of(commune));
 
-            assertThatThrownBy(() -> geoService.getDistrictsByProvince("001"))
+            assertThatThrownBy(() -> geoService.getCommunesByProvince("001"))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("not a province");
         }
@@ -137,12 +146,12 @@ class GeoServiceTest {
         @Test
         @DisplayName("should return unit details for valid code")
         void shouldReturnUnitForValidCode() {
-            AdministrativeUnit unit = createUnit(1L, "Hà Nội", "01", UnitLevel.PROVINCE, null);
-            AdministrativeUnitDto dto = createDto(1L, "Hà Nội", "01", UnitLevel.PROVINCE);
+            AdministrativeUnit unit = createUnit(1L, "Hà Nội", "01", KIND_PROVINCE, null);
+            AdministrativeUnitDto dto = createDto(1L, "Hà Nội", "01", KIND_PROVINCE);
 
             when(repository.findByCode("01")).thenReturn(Optional.of(unit));
             when(geoMapper.toDto(unit)).thenReturn(dto);
-            when(repository.countByParentId(1L)).thenReturn(30);
+            when(repository.countByParentCode("01")).thenReturn(30);
 
             AdministrativeUnitDto result = geoService.getByCode("01");
 
@@ -162,30 +171,89 @@ class GeoServiceTest {
         }
     }
 
-    private AdministrativeUnit createUnit(Long id, String name, String code, UnitLevel level, Long parentId) {
+    @Nested
+    @DisplayName("getAllCommittees")
+    class GetAllCommittees {
+
+        @Test
+        @DisplayName("should return all committees")
+        void shouldReturnAllCommittees() {
+            CommitteeLocation committee = createCommittee(1L, "UBND Ba Đình", "001", "01");
+            when(committeeRepository.findAll()).thenReturn(List.of(committee));
+            when(geoMapper.toCommitteeDtoList(any())).thenReturn(List.of(
+                    com.vnmap.geo.dto.CommitteeLocationDto.builder()
+                            .id(1L)
+                            .code("001")
+                            .name("UBND Ba Đình")
+                            .parentCode("01")
+                            .build()
+            ));
+
+            var result = geoService.getAllCommittees();
+
+            assertThat(result).hasSize(1);
+            verify(committeeRepository).findAll();
+        }
+    }
+
+    @Nested
+    @DisplayName("getCommitteesByProvince")
+    class GetCommitteesByProvince {
+
+        @Test
+        @DisplayName("should return committees for province")
+        void shouldReturnCommitteesForProvince() {
+            CommitteeLocation committee = createCommittee(1L, "UBND Ba Đình", "001", "01");
+            when(committeeRepository.findByParentCode("01")).thenReturn(List.of(committee));
+            when(geoMapper.toCommitteeDtoList(any())).thenReturn(List.of(
+                    com.vnmap.geo.dto.CommitteeLocationDto.builder()
+                            .id(1L)
+                            .code("001")
+                            .name("UBND Ba Đình")
+                            .parentCode("01")
+                            .build()
+            ));
+
+            var result = geoService.getCommitteesByProvince("01");
+
+            assertThat(result).hasSize(1);
+            verify(committeeRepository).findByParentCode("01");
+        }
+    }
+
+    private AdministrativeUnit createUnit(Long id, String name, String code, String kind, String parentCode) {
         return AdministrativeUnit.builder()
                 .id(id)
                 .name(name)
                 .code(code)
-                .level(level)
-                .parentId(parentId)
+                .kind(kind)
+                .parentCode(parentCode)
                 .build();
     }
 
-    private AdministrativeUnitSummaryDto createSummaryDto(String code, String name, UnitLevel level) {
+    private AdministrativeUnitSummaryDto createSummaryDto(String code, String name, String kind) {
         return AdministrativeUnitSummaryDto.builder()
                 .code(code)
                 .name(name)
-                .level(level)
+                .kind(kind)
                 .build();
     }
 
-    private AdministrativeUnitDto createDto(Long id, String name, String code, UnitLevel level) {
+    private AdministrativeUnitDto createDto(Long id, String name, String code, String kind) {
         return AdministrativeUnitDto.builder()
                 .id(id)
                 .name(name)
                 .code(code)
-                .level(level)
+                .kind(kind)
+                .build();
+    }
+
+    private CommitteeLocation createCommittee(Long id, String name, String code, String parentCode) {
+        return CommitteeLocation.builder()
+                .id(id)
+                .name(name)
+                .code(code)
+                .parentCode(parentCode)
                 .build();
     }
 }

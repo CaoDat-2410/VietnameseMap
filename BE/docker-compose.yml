@@ -8,8 +8,6 @@ services:
       POSTGRES_DB: vnmapdb
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: "123456"
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -24,8 +22,6 @@ services:
     image: redis:7-alpine
     container_name: vnmap_redis
     command: redis-server --requirepass redis123 --appendonly yes
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -38,17 +34,37 @@ services:
 
   import:
     build:
-      context: ./postgres
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Dockerfile.import
     container_name: vnmap_import
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./gadm41_VNM.gpkg:/data/gadm41_VNM.gpkg:ro
-      - ./postgres/import.sh:/import.sh:ro
-    entrypoint: ["/bin/sh", "/import.sh"]
-    restart: "no"
+    environment:
+      PYTHONUNBUFFERED: "1"
+    networks:
+      - vnmap_network
+
+  campaign-import:
+    build:
+      context: .
+      dockerfile: Dockerfile.import
+    container_name: vnmap_campaign_import
+    depends_on:
+      postgres:
+        condition: service_healthy
+      import:
+        condition: service_completed_successfully
+    environment:
+      PYTHONUNBUFFERED: "1"
+    entrypoint: ["python3", "import_schools_campaign.py"]
+    command:
+      [
+        "--host",
+        "vnmap_postgres",
+        "--excel",
+        "/app/import_data/Truong_THPT_2026_import_ready.xlsx"
+      ]
     networks:
       - vnmap_network
 
@@ -56,6 +72,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: vnmap-be:latest
     container_name: vnmap_backend
     environment:
       DB_HOST: vnmap_postgres
@@ -69,11 +86,18 @@ services:
       OWM_BASE_URL: ${OWM_BASE_URL:-https://api.openweathermap.org}
       OWM_API_KEY: ${OWM_API_KEY}
       SPRING_PROFILES_ACTIVE: dev
+      CORS_ALLOWED_ORIGINS: "*"
     ports:
       - "8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      import:
+        condition: service_completed_successfully
+      campaign-import:
+        condition: service_completed_successfully
     networks:
       - vnmap_network
     restart: unless-stopped
@@ -84,9 +108,61 @@ services:
       retries: 3
       start_period: 60s
 
+  test:
+    profiles: ["test"]
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: vnmap_test
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: vnmap_postgres
+      DB_PORT: "5432"
+      DB_NAME: vnmapdb
+      DB_USERNAME: postgres
+      DB_PASSWORD: "123456"
+      SPRING_PROFILES_ACTIVE: test
+    networks:
+      - vnmap_network
+
+  sonarqube:
+    profiles: ["sonar"]
+    image: sonarqube:community
+    container_name: vnmap_sonarqube
+    ports:
+      - "9000:9000"
+    environment:
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+      SONAR_JDBC_URL: jdbc:postgresql://vnmap_postgres:5432/sonar
+      SONAR_JDBC_USERNAME: postgres
+      SONAR_JDBC_PASSWORD: "123456"
+    volumes:
+      - sonar_data:/opt/sonarqube/data
+      - sonar_logs:/opt/sonarqube/logs
+      - sonar_extensions:/opt/sonarqube/extensions
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - vnmap_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--spider", "-q", "http://localhost:9000/api/system/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 15
+      start_period: 120s
+
 volumes:
   postgres_data:
+    name: be_postgres_data
   redis_data:
+    name: be_redis_data
+  sonar_data:
+  sonar_logs:
+  sonar_extensions:
 
 networks:
   vnmap_network:

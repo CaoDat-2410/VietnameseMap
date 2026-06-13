@@ -1,65 +1,305 @@
-# Vietnam Map + Weather API
+# Vietnam Map + Campaign API
 
-**Base URL:** `http://localhost:8080/api/v1`
-**Swagger UI:** `http://localhost:8080/swagger-ui.html`
+**Base URL:** `http://localhost:8080/api/v1`  
+**Health:** `http://localhost:8080/actuator/health`  
+**Swagger UI:** `http://localhost:8080/swagger-ui.html`  
 **API Docs:** `http://localhost:8080/api-docs`
 
----
+All application APIs return the shared wrapper:
 
-## 1. Geo APIs
-
-### 1.1 Get All Provinces
-
-**Endpoint:** `GET /api/v1/geo/provinces`
-
-**Method:** `GET`
-**Status:** `200 OK`
-
-**Response:**
 ```json
 {
   "success": true,
-  "message": "Provinces retrieved successfully",
-  "data": [
+  "message": "OK",
+  "data": {}
+}
+```
+
+JSON fields use `camelCase`.
+
+---
+
+## 1. Docker Runtime
+
+Start the full backend stack:
+
+```bash
+cd BE
+docker compose up -d --build
+```
+
+Default services:
+
+| Service | Description |
+| --- | --- |
+| `postgres` | PostGIS database |
+| `redis` | Redis cache |
+| `import` | One-shot HuggingFace geo import |
+| `campaign-import` | One-shot school Excel import + dev seed |
+| `backend` | Spring Boot API |
+
+The `import` service downloads `geo/provinces.geojson` and
+`geo/communes.geojson` from HuggingFace at runtime and writes boundaries into
+PostGIS. No local GeoJSON file is required in the Docker context.
+
+Optional services:
+
+```bash
+docker compose --profile test up test
+docker compose --profile sonar up -d sonarqube
+```
+
+Expected import counts:
+
+| Dataset | Count |
+| --- | ---: |
+| Provinces | 34 |
+| Communes | 3321 |
+| Committee locations | 3357 |
+| Schools | 4922 |
+| Seed campaign interactions | 3 `INTERESTED` |
+
+---
+
+## 2. Geo APIs
+
+### Get Provinces
+
+`GET /api/v1/geo/provinces`
+
+Returns all 34 post-2025 provinces.
+
+### Get All Province Boundaries
+
+`GET /api/v1/geo/provinces-boundaries`
+
+Returns a GeoJSON `FeatureCollection` with 34 province features.
+
+### Get Province Boundary
+
+`GET /api/v1/geo/provinces/{code}/boundary`
+
+Example:
+
+```txt
+GET /api/v1/geo/provinces/79/boundary
+```
+
+### Get Communes By Province
+
+`GET /api/v1/geo/provinces/{code}/communes`
+
+Example:
+
+```txt
+GET /api/v1/geo/provinces/79/communes
+```
+
+### Get Commune Boundaries By Province
+
+`GET /api/v1/geo/provinces/{code}/communes-boundaries`
+
+### Get Paginated Communes
+
+`GET /api/v1/geo/provinces/{code}/communes-paginated?page=0&size=50`
+
+### Get Administrative Unit
+
+`GET /api/v1/geo/units/{code}`
+
+### Get Administrative Unit Boundary
+
+`GET /api/v1/geo/units/{code}/boundary`
+
+### Reverse Geocode
+
+`GET /api/v1/geo/reverse?lat={lat}&lng={lng}`
+
+### Get Committee Locations
+
+`GET /api/v1/geo/committees`
+
+### Get Committee Locations By Province
+
+`GET /api/v1/geo/committees/{provinceCode}`
+
+---
+
+## 3. Weather APIs
+
+### Get Current Weather
+
+`GET /api/v1/weather/current?lat={lat}&lng={lng}`
+
+Returns weather data when `OWM_API_KEY` is valid. If OpenWeather fails, the API returns a structured error response instead of a blank payload.
+
+### Get Weather By Unit
+
+`GET /api/v1/weather/unit/{unitCode}`
+
+Uses the administrative unit centroid.
+
+---
+
+## 4. School APIs
+
+### Pagination Wrapper
+
+School list endpoints return `ApiResponse<PagedResponse<SchoolDto>>`:
+
+```json
+{
+  "success": true,
+  "message": "Schools retrieved successfully",
+  "data": {
+    "items": [],
+    "page": 0,
+    "limit": 50,
+    "totalItems": 4922,
+    "totalPages": 99
+  }
+}
+```
+
+### Search Schools
+
+`GET /api/v1/schools?page=0&limit=50&provinceCode=&communeCode=&area=&q=`
+
+Query params:
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| `page` | int | No | Default `0` |
+| `limit` | int | No | Default `50`, max `200` |
+| `provinceCode` | string | No | Province code |
+| `communeCode` | string | No | Commune code |
+| `area` | string | No | `KV1`, `KV2`, `KV2_NT`, `KV3` |
+| `q` | string | No | Search school name/address |
+
+`SchoolDto`:
+
+```json
+{
+  "schoolUid": "01-066",
+  "provinceCode": "01",
+  "provinceName": "Hà Nội",
+  "communeCode": "00004",
+  "communeName": "Phường Ba Đình",
+  "schoolCode": "066",
+  "schoolName": "THPT Phan Đình Phùng",
+  "address": "Số 30, phố Phan Đình Phùng, Phường Ba Đình, TP Hà Nội",
+  "areaType": "KV3"
+}
+```
+
+### Get School Detail
+
+`GET /api/v1/schools/{schoolUid}`
+
+Returns:
+
+```json
+{
+  "school": {},
+  "students": [],
+  "persons": [],
+  "relatives": []
+}
+```
+
+Seed check:
+
+```txt
+GET /api/v1/schools/01-001
+```
+
+Expected seed detail includes 2 students, 1 teacher/person, and 2 relatives.
+
+---
+
+## 5. Campaign APIs
+
+### Campaign DTO
+
+```json
+{
+  "id": 1,
+  "name": "Tư vấn tuyển sinh 2026",
+  "status": "ACTIVE",
+  "objective": "Thu thập nhu cầu tuyển sinh",
+  "startDate": "2026-06-01",
+  "endDate": "2026-07-31",
+  "ownerEmployeeId": 2
+}
+```
+
+### Create/Update Campaign Request
+
+Writable fields are exactly:
+
+```json
+{
+  "name": "Tư vấn tuyển sinh 2026",
+  "status": "DRAFT",
+  "objective": "Thu thập nhu cầu tuyển sinh",
+  "startDate": "2026-06-01",
+  "endDate": "2026-07-31",
+  "ownerEmployeeId": 2
+}
+```
+
+### List Campaigns
+
+`GET /api/v1/campaigns`
+
+### Create Campaign
+
+`POST /api/v1/campaigns`
+
+### Get Campaign
+
+`GET /api/v1/campaigns/{id}`
+
+### Update Campaign
+
+`PUT /api/v1/campaigns/{id}`
+
+### Get Campaign Dashboard
+
+`GET /api/v1/campaigns/{id}/dashboard`
+
+Seed check:
+
+```txt
+GET /api/v1/campaigns/1/dashboard
+```
+
+Expected fixture:
+
+```json
+{
+  "campaignId": 1,
+  "totalEvents": 2,
+  "totalTargetSchools": 5,
+  "totalAssignedEmployees": 3,
+  "totalInteractions": 3,
+  "interactionsByOutcome": {
+    "INTERESTED": 3,
+    "NOT_INTERESTED": 0,
+    "FOLLOW_UP": 0
+  },
+  "interactionsByProvince": [
     {
-      "code": "1_1",
-      "name": "An Giang",
-      "level": "PROVINCE",
-      "parentId": null,
-      "parentCode": null
+      "provinceCode": "01",
+      "provinceName": "Hà Nội",
+      "totalInteractions": 3
     }
   ],
-  "timestamp": "2026-05-31T11:02:30.889"
-}
-```
-
----
-
-### 1.2 Get Districts by Province
-
-**Endpoint:** `GET /api/v1/geo/districts`
-
-**Method:** `GET`
-**Status:** `200 OK`
-
-| Parameter | Type | Location | Required | Description |
-|-----------|------|---------|----------|-------------|
-| provinceCode | string | query | Yes | Province code (e.g., `1_1`) |
-
-**Example:** `GET /api/v1/geo/districts?provinceCode=1_1`
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Districts retrieved successfully",
-  "data": [
+  "topSchools": [
     {
-      "code": "1_1_1_2_1",
-      "name": "Chợ Mới",
-      "level": "DISTRICT",
-      "parentId": 1,
-      "parentCode": null
+      "schoolUid": "01-001",
+      "schoolName": "THPT Ba Vì",
+      "totalInteractions": 2
     }
   ]
 }
@@ -67,352 +307,138 @@
 
 ---
 
-### 1.3 Get Wards by District
+## 6. Event APIs
 
-**Endpoint:** `GET /api/v1/geo/wards`
+### Event DTO
 
-**Method:** `GET`
-**Status:** `200 OK`
-
-| Parameter | Type | Location | Required | Description |
-|-----------|------|---------|----------|-------------|
-| districtCode | string | query | Yes | District code (e.g., `1_1_1_1_1`) |
-
-**Example:** `GET /api/v1/geo/wards?districtCode=1_1_1_1_1`
-
-**Response:**
 ```json
 {
-  "success": true,
-  "message": "Wards retrieved successfully",
-  "data": [
-    {
-      "code": "1_1_6_1",
-      "name": "Nhơn Hội",
-      "level": "WARD",
-      "parentId": 79,
-      "parentCode": null
-    }
-  ]
+  "id": 10,
+  "campaignId": 1,
+  "name": "Tư vấn tại trường",
+  "eventType": "SCHOOL_VISIT",
+  "status": "PLANNED",
+  "startsAt": "2026-06-20T08:00:00",
+  "endsAt": "2026-06-20T11:00:00",
+  "note": "Gặp BGH và học sinh khối 12"
 }
 ```
 
----
+### Create/Update Event Request
 
-### 1.4 Get Administrative Unit by Code
-
-**Endpoint:** `GET /api/v1/geo/units/{code}`
-
-**Method:** `GET`
-**Status:** `200 OK`
-
-| Parameter | Type | Location | Required | Description |
-|-----------|------|---------|----------|-------------|
-| code | string | path | Yes | Province, district, or ward code |
-
-**Example:** `GET /api/v1/geo/units/1_1`
-
-**Response:**
 ```json
 {
-  "success": true,
-  "message": "Unit retrieved successfully",
-  "data": {
-    "id": 1,
-    "name": "An Giang",
-    "code": "1_1",
-    "level": "PROVINCE",
-    "parentId": null,
-    "parentCode": null,
-    "centroidLat": 10.51132120487664,
-    "centroidLng": 105.18275473791417,
-    "childCount": 11
-  }
+  "name": "Tư vấn tại trường",
+  "eventType": "SCHOOL_VISIT",
+  "status": "PLANNED",
+  "startsAt": "2026-06-20T08:00:00",
+  "endsAt": "2026-06-20T11:00:00",
+  "note": "Gặp BGH và học sinh khối 12"
 }
 ```
 
+### List Campaign Events
+
+`GET /api/v1/campaigns/{id}/events`
+
+### Create Campaign Event
+
+`POST /api/v1/campaigns/{id}/events`
+
+### Get Event
+
+`GET /api/v1/events/{eventId}`
+
+### Update Event
+
+`PUT /api/v1/events/{eventId}`
+
 ---
 
-### 1.5 Get Province Boundary
+## 7. Assignment APIs
 
-**Endpoint:** `GET /api/v1/geo/provinces/{code}/boundary`
+### Assign School To Event
 
-**Method:** `GET`
-**Status:** `200 OK`
+`POST /api/v1/events/{eventId}/schools`
 
-| Parameter | Type | Location | Required | Description |
-|-----------|------|---------|----------|-------------|
-| code | string | path | Yes | Province code |
-
-**Example:** `GET /api/v1/geo/provinces/1_1/boundary`
-
-**Response:**
 ```json
 {
-  "success": true,
-  "message": "Province boundary retrieved",
-  "data": {
-    "type": "Feature",
-    "code": "1_1",
-    "name": "An Giang",
-    "level": "PROVINCE",
-    "parentCode": null,
-    "geometry": {
-      "type": "MultiPolygon",
-      "coordinates": [[[[105.54862213, 10.429475785], ...]]]
-    }
-  }
+  "schoolUid": "01-001"
 }
 ```
 
----
+### Remove School From Event
 
-### 1.6 Get Unit Boundary
+`DELETE /api/v1/events/{eventId}/schools/{schoolUid}`
 
-**Endpoint:** `GET /api/v1/geo/units/{code}/boundary`
+### Assign Employee To Event
 
-**Method:** `GET`
-**Status:** `200 OK`
+`POST /api/v1/events/{eventId}/assignments`
 
-| Parameter | Type | Location | Required | Description |
-|-----------|------|---------|----------|-------------|
-| code | string | path | Yes | Unit code (province, district, or ward) |
-
-**Example:** `GET /api/v1/geo/units/1_1/boundary`
-
-Returns GeoJSON Feature with boundary polygon for any administrative unit.
-
----
-
-### 1.7 Reverse Geocode
-
-**Endpoint:** `GET /api/v1/geo/reverse`
-
-**Method:** `GET`
-**Status:** `200 OK`
-
-| Parameter | Type | Location | Required | Description |
-|-----------|------|---------|----------|-------------|
-| lat | double | query | Yes | Latitude (-90 to 90) |
-| lng | double | query | Yes | Longitude (-180 to 180) |
-
-**Example:** `GET /api/v1/geo/reverse?lat=21.0285&lng=105.8542`
-
-**Response:**
 ```json
 {
-  "success": true,
-  "message": "Reverse geocoding successful",
-  "data": {
-    "id": 234,
-    "name": "Lý Thái Tổ",
-    "code": "27_14_14_1",
-    "level": "WARD",
-    "parentId": 437,
-    "parentCode": "27_1_27_14_1",
-    "centroidLat": 21.03054474906241,
-    "centroidLng": 105.85525776427964,
-    "childCount": 0
-  }
+  "employeeId": 1
 }
 ```
 
+### Remove Employee From Event
+
+`DELETE /api/v1/events/{eventId}/assignments/{employeeId}`
+
+Phase 1 dev identity:
+
+```txt
+employeeId = 1
+```
+
 ---
 
-### 1.8 Calculate Centroids (Admin)
+## 8. Interaction APIs
 
-**Endpoint:** `POST /api/v1/geo/admin/calculate-centroids`
+### Interaction DTO
 
-**Method:** `POST`
-**Status:** `200 OK`
-
-Recalculates centroid coordinates from boundary geometries for all units with NULL centroids.
-
-**Response:**
 ```json
 {
-  "success": true,
-  "message": "Calculated 0 centroids",
-  "data": 0
+  "id": 100,
+  "campaignId": 1,
+  "eventId": 10,
+  "employeeId": 1,
+  "schoolUid": "01-001",
+  "participantType": "STUDENT",
+  "participantId": 1,
+  "channel": "MEETING",
+  "outcome": "INTERESTED",
+  "note": "Quan tâm ngành CNTT",
+  "nextFollowUpAt": "2026-06-25T09:00:00",
+  "createdAt": "2026-06-20T08:45:00"
 }
 ```
 
----
+### List Event Interactions
 
-## 2. Weather APIs
+`GET /api/v1/events/{eventId}/interactions`
 
-### 2.1 Get Weather by Coordinates
+Seed check:
 
-**Endpoint:** `GET /api/v1/weather`
+```txt
+GET /api/v1/events/1/interactions
+```
 
-**Method:** `GET`
-**Status:** `200 OK`
+Expected: 3 seed `INTERESTED` interactions.
 
-| Parameter | Type | Location | Required | Description |
-|-----------|------|---------|----------|-------------|
-| lat | double | query | Yes | Latitude (-90 to 90) |
-| lng | double | query | Yes | Longitude (-180 to 180) |
+### Create Interaction
 
-**Example:** `GET /api/v1/weather?lat=21&lng=105`
+`POST /api/v1/events/{eventId}/interactions`
 
-**Response:**
 ```json
 {
-  "success": true,
-  "message": "Weather data (fresh)",
-  "data": {
-    "temperature": 28.25,
-    "feelsLike": 32.4,
-    "humidity": 78,
-    "windSpeed": 0.81,
-    "description": "mây cụm",
-    "iconCode": "04d",
-    "locationName": "Huyện Thanh Sơn",
-    "pressure": 1006,
-    "visibility": 10000,
-    "tempMin": 28.25,
-    "tempMax": 28.25,
-    "timestamp": "2026-05-31T11:02:44Z",
-    "source": "OpenWeatherMap",
-    "cached": false
-  }
+  "employeeId": 1,
+  "schoolUid": "01-001",
+  "participantType": "STUDENT",
+  "participantId": 1,
+  "channel": "MEETING",
+  "outcome": "INTERESTED",
+  "note": "Quan tâm ngành CNTT",
+  "nextFollowUpAt": "2026-06-25T09:00:00"
 }
 ```
-
----
-
-### 2.2 Get Weather by Administrative Unit
-
-**Endpoint:** `GET /api/v1/weather/unit/{unitCode}`
-
-**Method:** `GET`
-**Status:** `200 OK`
-
-| Parameter | Type | Location | Required | Description |
-|-----------|------|---------|----------|-------------|
-| unitCode | string | path | Yes | Administrative unit code |
-
-**Example:** `GET /api/v1/weather/unit/1_1`
-
-Uses centroid coordinates of the unit to fetch weather from OpenWeatherMap.
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Weather data (fresh)",
-  "data": {
-    "temperature": 26.62,
-    "feelsLike": 26.62,
-    "humidity": 86,
-    "windSpeed": 4.18,
-    "description": "mưa nhẹ",
-    "iconCode": "10d",
-    "locationName": "An Giang",
-    "pressure": 1008,
-    "visibility": 10000,
-    "tempMin": 26.62,
-    "tempMax": 26.62,
-    "timestamp": "2026-05-31T10:55:23Z",
-    "source": "OpenWeatherMap",
-    "cached": false
-  }
-}
-```
-
----
-
-### 2.3 Check Cache Status
-
-**Endpoint:** `GET /api/v1/weather/cache`
-
-**Method:** `GET`
-**Status:** `200 OK`
-
-| Parameter | Type | Location | Required | Description |
-|-----------|------|---------|----------|-------------|
-| lat | double | query | Yes | Latitude |
-| lng | double | query | Yes | Longitude |
-
-**Example:** `GET /api/v1/weather/cache?lat=21&lng=105`
-
-**Response (cached):**
-```json
-{
-  "success": true,
-  "message": "Weather data found in cache",
-  "data": { ... }
-}
-```
-
-**Response (not cached):**
-```json
-{
-  "success": true,
-  "message": "No cached data available",
-  "data": null
-}
-```
-
----
-
-## 3. System APIs
-
-### 3.1 Health Check
-
-**Endpoint:** `GET /actuator/health`
-
-**Method:** `GET`
-**Status:** `200 OK`
-
-**Response:**
-```json
-{"status": "UP"}
-```
-
----
-
-### 3.2 API Documentation
-
-**Endpoint:** `GET /api-docs`
-**Swagger UI:** `GET /swagger-ui.html`
-
----
-
-## Code Format Reference
-
-Administrative unit codes follow this format:
-
-| Level | Format | Example |
-|-------|--------|---------|
-| Province | `{GID1}_{suffix}` | `1_1` |
-| District | `{GID1}_{GID2}_{suffix}` | `1_1_1_1_1` |
-| Ward | `{GID1}_{GID2}_{GID3}_{suffix}` | `1_1_6_1` |
-
----
-
-## Database Record Counts
-
-```
-  level   | count
-----------+-------
- DISTRICT |   710
- PROVINCE |    63
- WARD     | 11163
-```
-
-**Districts with parent:** 710
-**Wards with parent:** 11,146 / 11,163
-**Units with centroid:** 11,936
-
----
-
-## CORS Configuration
-
-Allowed origins:
-- `http://localhost:3000`
-- `http://localhost:5173`
-- `http://127.0.0.1:3000`
-- `http://127.0.0.1:5173`
-
-Supported methods: GET, POST, PUT, DELETE, OPTIONS, PATCH
