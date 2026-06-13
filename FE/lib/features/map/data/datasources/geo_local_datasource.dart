@@ -2,17 +2,24 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Loads bundled GeoJSON assets (provinces.geojson) sourced from
 /// https://huggingface.co/datasets/tmquan/sapnhap-bando-vn
+/// 
+/// Cache versioning: uses 'geo_cache_v2' key to distinguish from old v1 cache
+/// during migration. Old cache keys are automatically cleared on first launch.
 class GeoLocalDataSource {
   static const _provincesAssetPath = 'assets/geo/provinces.geojson';
+  static const _cacheVersionKey = 'geo_cache_version';
+  static const _currentCacheVersion = 'v2';
 
   List<ProvincePolygonEntry>? _cachedEntries;
 
   /// Returns cached ProvincePolygonEntry list. All parsing + centroid computation
   /// runs in a background isolate (via compute()) so the main thread is never blocked.
   Future<List<ProvincePolygonEntry>> getPolygonEntries() async {
+    await _checkAndClearOldCache();
     if (_cachedEntries != null) return _cachedEntries!;
 
     try {
@@ -22,6 +29,49 @@ class GeoLocalDataSource {
     } catch (e) {
       debugPrint('Failed to load provinces GeoJSON from assets: $e');
       rethrow;
+    }
+  }
+
+  /// Clears old cache version if detected. Should be called on app startup.
+  Future<void> _checkAndClearOldCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedVersion = prefs.getString(_cacheVersionKey);
+      
+      if (cachedVersion != _currentCacheVersion) {
+        debugPrint('Cache version mismatch. Old: $cachedVersion, Current: $_currentCacheVersion');
+        debugPrint('Clearing old geo cache...');
+        
+        // Clear any old cache keys
+        final keys = prefs.getKeys();
+        for (final key in keys) {
+          if (key.startsWith('geo_cache')) {
+            await prefs.remove(key);
+          }
+        }
+        
+        // Mark new cache version
+        await prefs.setString(_cacheVersionKey, _currentCacheVersion);
+        debugPrint('Geo cache cleared and marked as $_currentCacheVersion');
+      }
+    } catch (e) {
+      debugPrint('Failed to check/clear old cache: $e');
+    }
+  }
+
+  /// Force clear cache (useful for testing or manual reset)
+  Future<void> clearCache() async {
+    _cachedEntries = null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final keys = prefs.getKeys();
+      for (final key in keys) {
+        if (key.startsWith('geo_cache')) {
+          await prefs.remove(key);
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed to clear cache: $e');
     }
   }
 }

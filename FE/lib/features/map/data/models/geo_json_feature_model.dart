@@ -26,7 +26,7 @@ class GeoJsonFeatureModel {
       type: json['type'] as String? ?? 'Feature',
       code: json['code'] as String,
       name: json['name'] as String,
-      level: _parseLevel(json['level'] as String),
+      level: _parseLevel(json['level'] as String? ?? json['kind'] as String? ?? ''),
       parentCode: json['parentCode'] as String?,
       geometry: GeoJsonGeometryModel.fromJson(
           json['geometry'] as Map<String, dynamic>),
@@ -45,8 +45,11 @@ class GeoJsonFeatureModel {
 
   static UnitLevel _parseLevel(String raw) => switch (raw.toUpperCase()) {
         'PROVINCE' => UnitLevel.province,
-        'DISTRICT' => UnitLevel.district,
-        _ => UnitLevel.ward,
+        'COMMUNE' => UnitLevel.commune,
+        // Legacy support
+        'WARD' => UnitLevel.commune,
+        'DISTRICT' => UnitLevel.commune,
+        _ => UnitLevel.commune,
       };
 }
 

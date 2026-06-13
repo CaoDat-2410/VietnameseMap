@@ -1,20 +1,27 @@
 # Vietnam Map Backend API
 
-A Spring Boot 3.x backend service for Vietnam administrative boundaries and weather data.
+A Spring Boot 3.x backend service for Vietnam administrative boundaries, weather,
+and campaign/school outreach data.
 
 ## Quick Start
 
 ```bash
 cd BE
 
-# Start all services (GADM data auto-imports on first run)
-docker-compose up -d
+# Build and start the full backend stack.
+# This runs geo import, campaign school import, then starts the API.
+docker compose up -d --build
 
-# Wait for import to complete (~1-2 minutes)
+# Watch import progress if needed.
 docker logs -f vnmap_import
+docker logs -f vnmap_campaign_import
 ```
 
-On first startup, the GADM Vietnam data is automatically imported from the local file (`gadm41_VNM.gpkg`).
+On startup, the HuggingFace Vietnam administrative dataset is imported first.
+The import container downloads province/commune GeoJSON boundaries directly
+from HuggingFace, so large GeoJSON files do not need to be committed locally.
+Then `import_data/Truong_THPT_2026_import_ready.xlsx` is imported into the
+campaign school tables and dev seed data is created.
 
 ## Services
 
@@ -23,6 +30,8 @@ On first startup, the GADM Vietnam data is automatically imported from the local
 | API | 8080 | Spring Boot backend |
 | PostgreSQL | 5432 | Database with PostGIS |
 | Redis | 6379 | Caching |
+| Import | - | One-shot geo import |
+| Campaign Import | - | One-shot school/campaign seed import |
 
 ## API Endpoints
 
@@ -44,39 +53,48 @@ On first startup, the GADM Vietnam data is automatically imported from the local
 ## Docker Commands
 
 ```bash
-# Start all services
-docker-compose up -d
+# Start backend stack
+docker compose up -d --build
 
 # Stop all services
-docker-compose down
+docker compose down
 
 # Stop and remove volumes (clean slate)
-docker-compose down -v
+docker compose down -v
 
 # View import logs
 docker logs -f vnmap_import
+docker logs -f vnmap_campaign_import
 
 # View backend logs
 docker logs -f vnmap_backend
+
+# Optional test service
+docker compose --profile test up test
+
+# Optional SonarQube
+docker compose --profile sonar up -d sonarqube
 ```
 
 ## Manual Re-import
 
-If you need to re-import the data:
+If you need to re-import data without removing volumes:
 
 ```bash
-docker exec vnmap_postgres psql -U postgres -d vnmapdb -c "DROP TABLE administrative_units;"
-docker-compose restart import
+docker compose run --rm import
+docker compose run --rm campaign-import
 ```
 
-## GADM Data
+## Data Sources
 
-The GADM (Global Administrative Areas) database provides:
-- **Provinces** (63 units)
-- **Districts** (~710 units)
-- **Wards** (~11,000 units)
+- `tmquan/sapnhap-bando-vn` from HuggingFace provides 34 provinces,
+  3321 communes, committee locations, and boundaries.
+- `import_data/Truong_THPT_2026_import_ready.xlsx` provides 4922 schools
+  for campaign workflows.
 
-Place the `gadm41_VNM.gpkg` file in the `BE` folder for auto-import.
+The frontend no longer bundles `assets/geo/*.geojson`; it renders boundaries
+from backend endpoints such as `/api/v1/geo/provinces-boundaries` and
+`/api/v1/geo/units/{code}/boundary`.
 
 ## Documentation
 

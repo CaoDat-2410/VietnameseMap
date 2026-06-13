@@ -2,7 +2,6 @@ package com.vnmap.weather;
 
 import com.vnmap.common.exception.ExternalApiException;
 import com.vnmap.geo.dto.AdministrativeUnitDto;
-import com.vnmap.geo.enums.UnitLevel;
 import com.vnmap.geo.service.GeoService;
 import com.vnmap.weather.cache.WeatherCacheService;
 import com.vnmap.weather.client.OpenWeatherMapClient;

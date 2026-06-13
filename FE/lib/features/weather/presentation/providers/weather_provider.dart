@@ -36,8 +36,7 @@ final weatherByCoordinatesProvider =
 enum WeatherLocationSourceType {
   currentLocation,
   province,
-  district,
-  ward,
+  commune,
   mapTap,
 }
 
@@ -45,8 +44,7 @@ class SelectedWeatherLocation {
   const SelectedWeatherLocation({
     required this.displayName,
     this.provinceName,
-    this.districtName,
-    this.wardName,
+    this.communeName,
     required this.lat,
     required this.lng,
     required this.sourceType,
@@ -56,8 +54,7 @@ class SelectedWeatherLocation {
 
   final String displayName;
   final String? provinceName;
-  final String? districtName;
-  final String? wardName;
+  final String? communeName;
   final double lat;
   final double lng;
   final WeatherLocationSourceType sourceType;
@@ -96,8 +93,7 @@ final activeWeatherLocationProvider =
 
       String displayName = 'Vị trí hiện tại';
       String? provinceName;
-      String? districtName;
-      String? wardName;
+      String? communeName;
       String? code;
 
       if (reverseResult.isOk) {
@@ -106,13 +102,11 @@ final activeWeatherLocationProvider =
           reverseResult.valueOrThrow,
         );
         provinceName = names.provinceName;
-        districtName = names.districtName;
-        wardName = names.wardName;
+        communeName = names.communeName;
         code = names.code;
         displayName = buildWeatherDisplayName(
           provinceName: provinceName,
-          districtName: districtName,
-          wardName: wardName,
+          communeName: communeName,
           fallback: 'Vị trí hiện tại',
         );
       }
@@ -121,8 +115,7 @@ final activeWeatherLocationProvider =
         SelectedWeatherLocation(
           displayName: displayName,
           provinceName: provinceName,
-          districtName: districtName,
-          wardName: wardName,
+          communeName: communeName,
           lat: location.latitude,
           lng: location.longitude,
           sourceType: WeatherLocationSourceType.currentLocation,
@@ -174,8 +167,7 @@ bool _isValidCoordinate(double lat, double lng) {
 
 typedef AdministrativeNames = ({
   String? provinceName,
-  String? districtName,
-  String? wardName,
+  String? communeName,
   String? code,
 });
 
@@ -184,51 +176,44 @@ Future<AdministrativeNames> resolveAdministrativeNames(
   AdministrativeUnit unit,
 ) async {
   final repo = ref.read(geoRepositoryProvider);
-  AdministrativeUnit? currentUnit = unit;
   String? provinceName;
-  String? districtName;
-  String? wardName;
-    final String code = unit.code;
+  String? communeName;
+  final String code = unit.code;
 
-  while (currentUnit != null) {
-    final cu = currentUnit;
-    switch (cu.level) {
-      case UnitLevel.province:
-        provinceName = cu.name;
-        break;
-      case UnitLevel.district:
-        districtName = cu.name;
-        break;
-      case UnitLevel.ward:
-        wardName = cu.name;
-        break;
+  // Direct commune
+  if (unit.level == UnitLevel.commune) {
+    communeName = unit.name;
+    if (unit.parentCode != null) {
+      final parentResult = await repo.getUnitByCode(unit.parentCode!);
+      parentResult.when(
+        ok: (parent) {
+          if (parent.level == UnitLevel.province) {
+            provinceName = parent.name;
+          }
+        },
+        err: (_) {},
+      );
     }
-
-    if (cu.parentCode == null) break;
-    final parentResult = await repo.getUnitByCode(cu.parentCode!);
-    currentUnit = parentResult.when<AdministrativeUnit?>(
-      ok: (parent) => parent,
-      err: (_) => null,
-    );
+  }
+  // Direct province
+  else if (unit.level == UnitLevel.province) {
+    provinceName = unit.name;
   }
 
   return (
     provinceName: provinceName,
-    districtName: districtName,
-    wardName: wardName,
+    communeName: communeName,
     code: code,
   );
 }
 
 String buildWeatherDisplayName({
   String? provinceName,
-  String? districtName,
-  String? wardName,
+  String? communeName,
   required String fallback,
 }) {
   final parts = <String>[
-    if (wardName != null && wardName.trim().isNotEmpty) wardName,
-    if (districtName != null && districtName.trim().isNotEmpty) districtName,
+    if (communeName != null && communeName.trim().isNotEmpty) communeName,
     if (provinceName != null && provinceName.trim().isNotEmpty) provinceName,
   ];
   if (parts.isEmpty) return fallback;

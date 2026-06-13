@@ -4,19 +4,21 @@ import '../../../../core/network/api_response.dart';
 import '../../../../core/network/dio_client.dart';
 import '../models/administrative_unit_model.dart';
 import '../models/administrative_unit_summary_model.dart';
+import '../models/committee_model.dart';
 import '../models/geo_json_feature_model.dart';
 
 abstract interface class GeoRemoteDataSource {
   Future<List<AdministrativeUnitSummaryModel>> getProvinces();
-  /// Fetches all province boundaries as a GeoJSON FeatureCollection in one call.
   Future<Map<String, dynamic>> getAllProvincesBoundaries();
   Future<GeoJsonFeatureModel> getProvinceBoundary(String code);
-  Future<List<AdministrativeUnitSummaryModel>> getDistricts(String provinceCode);
-  Future<List<AdministrativeUnitSummaryModel>> getWards(String districtCode);
-  Future<List<GeoJsonFeatureModel>> getWardsBoundariesByDistrictId(int districtId);
+  Future<List<AdministrativeUnitSummaryModel>> getCommunes(String provinceCode);
+  Future<List<GeoJsonFeatureModel>> getCommunesBoundaries(String provinceCode);
+  Future<List<AdministrativeUnitSummaryModel>> getCommunesPaginated(String provinceCode, int page, int size);
   Future<AdministrativeUnitModel> getUnitByCode(String code);
   Future<GeoJsonFeatureModel> getUnitBoundary(String code);
   Future<AdministrativeUnitModel> reverseGeocode(double lat, double lng);
+  Future<List<CommitteeModel>> getCommittees();
+  Future<List<CommitteeModel>> getCommitteesByProvince(String provinceCode);
 }
 
 class GeoRemoteDataSourceImpl implements GeoRemoteDataSource {
@@ -64,11 +66,10 @@ class GeoRemoteDataSourceImpl implements GeoRemoteDataSource {
   }
 
   @override
-  Future<List<AdministrativeUnitSummaryModel>> getDistricts(
+  Future<List<AdministrativeUnitSummaryModel>> getCommunes(
       String provinceCode) async {
     final res = await _client.get<Map<String, dynamic>>(
-      ApiConstants.districts,
-      queryParameters: {'provinceCode': provinceCode},
+      ApiConstants.communes(provinceCode),
     );
     final api = ApiResponse.fromJson(
       res.data!,
@@ -82,33 +83,33 @@ class GeoRemoteDataSourceImpl implements GeoRemoteDataSource {
   }
 
   @override
-  Future<List<AdministrativeUnitSummaryModel>> getWards(
-      String districtCode) async {
+  Future<List<GeoJsonFeatureModel>> getCommunesBoundaries(
+      String provinceCode) async {
     final res = await _client.get<Map<String, dynamic>>(
-      ApiConstants.wards,
-      queryParameters: {'districtCode': districtCode},
-    );
-    final api = ApiResponse.fromJson(
-      res.data!,
-      (json) => (json as List)
-          .map((e) => AdministrativeUnitSummaryModel.fromJson(
-              e as Map<String, dynamic>))
-          .toList(),
-    );
-    _assertSuccess(api);
-    return api.data!;
-  }
-
-  @override
-  Future<List<GeoJsonFeatureModel>> getWardsBoundariesByDistrictId(
-      int districtId) async {
-    final res = await _client.get<Map<String, dynamic>>(
-        ApiConstants.wardsBoundariesByDistrictId(districtId));
+        ApiConstants.communesBoundaries(provinceCode));
     final api = ApiResponse.fromJson(
       res.data!,
       (json) => (json as List)
           .map((e) =>
               GeoJsonFeatureModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+    _assertSuccess(api);
+    return api.data!;
+  }
+
+  @override
+  Future<List<AdministrativeUnitSummaryModel>> getCommunesPaginated(
+      String provinceCode, int page, int size) async {
+    final res = await _client.get<Map<String, dynamic>>(
+      ApiConstants.communesPaginated(provinceCode),
+      queryParameters: {'page': page, 'size': size},
+    );
+    final api = ApiResponse.fromJson(
+      res.data!,
+      (json) => (json as List)
+          .map((e) => AdministrativeUnitSummaryModel.fromJson(
+              e as Map<String, dynamic>))
           .toList(),
     );
     _assertSuccess(api);
@@ -152,6 +153,33 @@ class GeoRemoteDataSourceImpl implements GeoRemoteDataSource {
       res.data!,
       (json) =>
           AdministrativeUnitModel.fromJson(json as Map<String, dynamic>),
+    );
+    _assertSuccess(api);
+    return api.data!;
+  }
+
+  @override
+  Future<List<CommitteeModel>> getCommittees() async {
+    final res = await _client.get<Map<String, dynamic>>(ApiConstants.committees);
+    final api = ApiResponse.fromJson(
+      res.data!,
+      (json) => (json as List)
+          .map((e) => CommitteeModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+    _assertSuccess(api);
+    return api.data!;
+  }
+
+  @override
+  Future<List<CommitteeModel>> getCommitteesByProvince(String provinceCode) async {
+    final res = await _client.get<Map<String, dynamic>>(
+        ApiConstants.committeesByProvince(provinceCode));
+    final api = ApiResponse.fromJson(
+      res.data!,
+      (json) => (json as List)
+          .map((e) => CommitteeModel.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
     _assertSuccess(api);
     return api.data!;

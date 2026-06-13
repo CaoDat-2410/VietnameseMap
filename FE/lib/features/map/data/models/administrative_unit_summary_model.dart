@@ -23,7 +23,7 @@ class AdministrativeUnitSummaryModel {
       id: json['id'] as int?,
       code: json['code'] as String,
       name: json['name'] as String,
-      level: _parseLevel(json['level'] as String),
+      level: _parseLevel(json['level'] as String? ?? json['kind'] as String? ?? ''),
       parentId: json['parentId'] as int?,
       parentCode: json['parentCode'] as String?,
     );
@@ -40,7 +40,10 @@ class AdministrativeUnitSummaryModel {
 
   static UnitLevel _parseLevel(String raw) => switch (raw.toUpperCase()) {
         'PROVINCE' => UnitLevel.province,
-        'DISTRICT' => UnitLevel.district,
-        _ => UnitLevel.ward,
+        'COMMUNE' => UnitLevel.commune,
+        // Legacy support for old WARD level (maps to COMMUNE)
+        'WARD' => UnitLevel.commune,
+        'DISTRICT' => UnitLevel.commune,
+        _ => UnitLevel.commune,
       };
 }

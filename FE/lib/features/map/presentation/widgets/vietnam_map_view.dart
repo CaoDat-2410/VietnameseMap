@@ -10,7 +10,6 @@ import '../providers/map_provider.dart';
 import '../../../../core/utils/geojson_utils.dart';
 import '../../data/datasources/geo_local_datasource.dart';
 import '../../domain/entities/unit_level.dart';
-import '../../domain/entities/administrative_unit.dart';
 import '../../../weather/presentation/providers/weather_provider.dart'
     show
         SelectedWeatherLocation,
@@ -44,9 +43,6 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
   List<_ProvinceBoundaryEntry> _provinceBoundaryEntries = [];
   bool _pendingCameraMove = false;
 
-  /// Builds _ProvinceBoundaryEntry list from ProvincePolygonEntry structs.
-  /// Polygon objects are created here (lightweight) so they are never recreated
-  /// on every build — only once when the Isolate resolves.
   @override
   void initState() {
     super.initState();
@@ -151,7 +147,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
       }
     }
     if (minLat != 90) {
-      // Vietnam bounds computed; reserved for future fitBounds on first load.
+      // Vietnam bounds computed
     }
   }
 
@@ -166,69 +162,51 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
     await result.when(
       ok: (unit) async {
         String? provinceName;
-        String? districtName;
-        String? wardName;
-        int? wardId;
-        String? districtCode;
-        int? districtId;
+        String? communeName;
         final String selectedCode = unit.code;
 
-        AdministrativeUnit? currentUnit = unit;
+        if (unit.level == UnitLevel.commune) {
+          communeName = unit.name;
+        } else if (unit.level == UnitLevel.province) {
+          provinceName = unit.name;
+        }
 
-        while (currentUnit != null) {
-          final cu = currentUnit;
-          if (cu.level == UnitLevel.ward) {
-            wardName = cu.name;
-            wardId = cu.id;
-          } else if (cu.level == UnitLevel.district) {
-            districtName = cu.name;
-            districtCode = cu.code;
-            districtId = cu.id;
-          } else if (cu.level == UnitLevel.province) {
-            provinceName = cu.name;
-            final provincesResult = ref.read(provincesProvider).valueOrNull;
-            if (provincesResult != null && provincesResult.isOk) {
-              final match = provincesResult.valueOrThrow
-                  .where((p) => p.code == cu.code)
-                  .firstOrNull;
-              if (match != null) {
-                ref.read(selectedProvinceProvider.notifier).state = match;
-              }
-            }
-          }
-
-          if (cu.parentCode != null) {
-            final parentResult = await repo.getUnitByCode(cu.parentCode!);
-            if (parentResult.isOk) {
-              currentUnit = parentResult.valueOrThrow;
-            } else {
-              currentUnit = null;
-            }
-          } else {
-            currentUnit = null;
+        // Get parent province for commune
+        if (unit.parentCode != null) {
+          final parentResult = await repo.getUnitByCode(unit.parentCode!);
+          if (parentResult.isOk) {
+            provinceName = parentResult.valueOrThrow.name;
           }
         }
 
-        if (districtCode != null && districtName != null && districtId != null) {
-          ref.read(selectedDistrictProvider.notifier).state =
-              (code: districtCode, name: districtName, id: districtId);
+        // Update selected province
+        if (provinceName != null) {
+          final provincesResult = ref.read(provincesProvider).valueOrNull;
+          if (provincesResult != null && provincesResult.isOk) {
+            final match = provincesResult.valueOrThrow
+                .where((p) => p.name == provinceName || p.code == unit.parentCode)
+                .firstOrNull;
+            if (match != null) {
+              ref.read(selectedProvinceProvider.notifier).state = match;
+            }
+          }
         }
-        if (wardName != null) {
-          ref.read(selectedWardProvider.notifier).state =
-              (code: unit.code, id: wardId ?? unit.id, name: wardName);
+
+        // Update selected commune
+        if (communeName != null) {
+          ref.read(selectedCommuneProvider.notifier).state =
+              (code: unit.code, name: communeName, id: unit.id);
         }
 
         ref.read(selectedWeatherLocationProvider.notifier).state =
             SelectedWeatherLocation(
           displayName: buildWeatherDisplayName(
             provinceName: provinceName,
-            districtName: districtName,
-            wardName: wardName,
+            communeName: communeName,
             fallback: 'Vị trí đã chọn',
           ),
           provinceName: provinceName,
-          districtName: districtName,
-          wardName: wardName,
+          communeName: communeName,
           lat: point.latitude,
           lng: point.longitude,
           sourceType: WeatherLocationSourceType.mapTap,
@@ -238,7 +216,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
         ref.invalidate(selectedWeatherProvider);
 
         if (mounted) {
-          _showLocationDetails(provinceName, districtName, wardName);
+          _showLocationDetails(provinceName, communeName);
         }
       },
       err: (failure) {
@@ -252,7 +230,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
     );
   }
 
-  void _showLocationDetails(String? province, String? district, String? ward) {
+  void _showLocationDetails(String? province, String? commune) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -288,8 +266,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
             ),
             const SizedBox(height: 24),
             if (province != null) _buildInfoRow('Tỉnh/Thành phố', province),
-            if (district != null) _buildInfoRow('Quận/Huyện', district),
-            if (ward != null) _buildInfoRow('Phường/Xã', ward),
+            if (commune != null) _buildInfoRow('Xã/Phường', commune),
             const Divider(height: 24),
             Consumer(
               builder: (context, ref, _) {
@@ -479,85 +456,12 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
     return allPolygons;
   }
 
-  Future<void> _handleDistrictTap(
-      LatLng point, List<({String code, String name, List<Polygon> polygons})> entries) async {
-    for (final entry in entries) {
-      for (final polygon in entry.polygons) {
-        if (GeoJsonUtils.pointInPolygon(point, polygon.points)) {
-          final repo = ref.read(geoRepositoryProvider);
-          final wardsResult = await repo.getWards(entry.code);
-          await wardsResult.when(ok: (wards) async {
-            if (wards.isNotEmpty) {
-              final firstWard = wards.first;
-              final districtId = firstWard.parentId ?? 0;
-              ref.read(selectedDistrictProvider.notifier).state =
-                  (code: entry.code, name: entry.name, id: districtId);
-            }
-          }, err: (_) {});
-
-          final districtBounds = GeoJsonUtils.getBoundsFromPolygons(entry.polygons) ??
-              LatLngBounds(point, point);
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted || _pendingCameraMove) return;
-            _pendingCameraMove = true;
-            _mapController.fitCamera(
-              CameraFit.bounds(
-                bounds: districtBounds,
-                padding: const EdgeInsets.all(48.0),
-              ),
-            );
-            Future.delayed(const Duration(milliseconds: 500), () {
-              _pendingCameraMove = false;
-            });
-          });
-          return;
-        }
-      }
-    }
-  }
-
-  void _handleWardTap(
-      LatLng point, List<({String code, int? id, String name, List<Polygon> polygons})> entries) {
-    for (final entry in entries) {
-      for (final polygon in entry.polygons) {
-        if (GeoJsonUtils.pointInPolygon(point, polygon.points)) {
-          ref.read(selectedWardProvider.notifier).state =
-              (code: entry.code, id: entry.id, name: entry.name);
-
-          final wardBounds = GeoJsonUtils.getBoundsFromPolygons(entry.polygons) ??
-              LatLngBounds(point, point);
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!mounted || _pendingCameraMove) return;
-            _pendingCameraMove = true;
-            _mapController.fitCamera(
-              CameraFit.bounds(
-                bounds: wardBounds,
-                padding: const EdgeInsets.all(48.0),
-              ),
-            );
-            Future.delayed(const Duration(milliseconds: 500), () {
-              _pendingCameraMove = false;
-            });
-          });
-          return;
-        }
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     ref.listen(selectedProvinceProvider, (previous, next) {
       if (next != null && (previous == null || previous.code != next.code)) {
         _loadBoundary(next.code);
-        ref.read(selectedDistrictProvider.notifier).state = null;
-        ref.read(selectedWardProvider.notifier).state = null;
-      }
-    });
-
-    ref.listen(selectedDistrictProvider, (previous, next) {
-      if (next != null && (previous == null || previous.code != next.code)) {
-        ref.read(selectedWardProvider.notifier).state = null;
+        ref.read(selectedCommuneProvider.notifier).state = null;
       }
     });
 
@@ -572,49 +476,29 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
     final visibleBoundaries = _getVisibleBoundaryPolygons();
 
     final selectedProvince = ref.watch(selectedProvinceProvider);
-    final asyncDistrictBoundaries = selectedProvince != null
-        ? ref.watch(districtBoundariesProvider(selectedProvince.code))
+    final selectedCommune = ref.watch(selectedCommuneProvider);
+
+    // Load commune boundaries when province is selected
+    final asyncCommuneBoundaries = selectedProvince != null
+        ? ref.watch(communeBoundariesProvider(selectedProvince.code))
         : null;
 
-    final districtEntries =
+    final communeEntries =
         <({String code, String name, List<Polygon> polygons})>[];
-    asyncDistrictBoundaries?.whenData((entries) {
+    asyncCommuneBoundaries?.whenData((entries) {
       for (final entry in entries) {
-        districtEntries.add(entry);
+        communeEntries.add(entry);
       }
     });
 
-    final selectedDistrict = ref.watch(selectedDistrictProvider);
-    final selectedWard = ref.watch(selectedWardProvider);
-    final asyncWardBoundaries = selectedDistrict != null
-        ? ref.watch(wardBoundariesProvider(selectedDistrict.id))
+    // Commune centroids for labels
+    final communeCentroidsAsync = selectedProvince != null
+        ? ref.watch(communeCentroidsProvider(selectedProvince.code))
         : null;
-
-    final wardEntries =
-        <({String code, int? id, String name, List<Polygon> polygons})>[];
-    asyncWardBoundaries?.whenData((entries) {
-      for (final entry in entries) {
-        wardEntries.add(entry);
-      }
-    });
-
-    final districtCentroidsAsync = selectedProvince != null
-        ? ref.watch(districtCentroidsProvider(selectedProvince.code))
-        : null;
-    final districtCentroids = <String, LatLng>{};
-    districtCentroidsAsync?.whenData((m) {
+    final communeCentroids = <String, LatLng>{};
+    communeCentroidsAsync?.whenData((m) {
       for (final e in m.entries) {
-        districtCentroids[e.key] = e.value;
-      }
-    });
-
-    final wardCentroidsAsync = selectedDistrict != null
-        ? ref.watch(wardCentroidsProvider(selectedDistrict.id))
-        : null;
-    final wardCentroids = <String, LatLng>{};
-    wardCentroidsAsync?.whenData((m) {
-      for (final e in m.entries) {
-        wardCentroids[e.key] = e.value;
+        communeCentroids[e.key] = e.value;
       }
     });
 
@@ -633,15 +517,15 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
       }
     }
 
-    final districtLabels = <BoundaryLabel>[];
+    final communeLabels = <BoundaryLabel>[];
     if (_currentZoom >= 9) {
-      for (final entry in districtEntries) {
-        final centroid = districtCentroids[entry.code] ??
+      for (final entry in communeEntries) {
+        final centroid = communeCentroids[entry.code] ??
             (entry.polygons.isNotEmpty
                 ? GeoJsonUtils.computePolygonCentroid(entry.polygons.first.points)
                 : null);
         if (centroid != null) {
-          districtLabels.add(BoundaryLabel(
+          communeLabels.add(BoundaryLabel(
             text: entry.name,
             position: centroid,
             maxWidth: 110,
@@ -653,52 +537,16 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
       }
     }
 
-    final wardLabels = <BoundaryLabel>[];
-    if (_currentZoom >= 12) {
-      for (final entry in wardEntries) {
-        final centroid = wardCentroids[wardKey(entry.id, entry.code, entry.name)] ??
-            (entry.polygons.isNotEmpty
-                ? GeoJsonUtils.computePolygonCentroid(entry.polygons.first.points)
-                : null);
-        if (centroid != null) {
-          wardLabels.add(BoundaryLabel(
-            text: entry.name,
-            position: centroid,
-            maxWidth: 90,
-            fontSize: 8,
-            fontWeight: FontWeight.w400,
-            backgroundColor: const Color(0xCC4A148C),
-          ));
-        }
-      }
-    }
-
-    final districtPolygons = <Polygon>[];
-    for (final entry in districtEntries) {
+    final communePolygons = <Polygon>[];
+    for (final entry in communeEntries) {
       for (final polygon in entry.polygons) {
-        final tapped = selectedDistrict?.code == entry.code;
-        districtPolygons.add(Polygon(
+        final tapped = selectedCommune?.code == entry.code;
+        communePolygons.add(Polygon(
           points: polygon.points,
           holePointsList: polygon.holePointsList,
           color: tapped ? const Color(0x4D4CAF50) : const Color(0x1A4CAF50),
           borderColor: tapped ? const Color(0xFF4CAF50) : const Color(0xCC4CAF50),
           borderStrokeWidth: tapped ? 2.5 : 1.8,
-        ));
-      }
-    }
-
-    final wardPolygons = <Polygon>[];
-    for (final entry in wardEntries) {
-      for (final polygon in entry.polygons) {
-        final tapped = selectedWard != null &&
-            wardKey(selectedWard.id, selectedWard.code, selectedWard.name) ==
-                wardKey(entry.id, entry.code, entry.name);
-        wardPolygons.add(Polygon(
-          points: polygon.points,
-          holePointsList: polygon.holePointsList,
-          color: tapped ? const Color(0x664CAF50) : const Color(0x1A4CAF50),
-          borderColor: tapped ? const Color(0xFF4CAF50) : const Color(0xCC4CAF50),
-          borderStrokeWidth: tapped ? 2.5 : 1.5,
         ));
       }
     }
@@ -721,11 +569,6 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
             },
             onTap: (tapPos, point) {
               _handleMapTap(tapPos, point);
-              if (wardEntries.isNotEmpty) {
-                _handleWardTap(point, wardEntries);
-              } else if (districtEntries.isNotEmpty) {
-                _handleDistrictTap(point, districtEntries);
-              }
             },
           ),
           children: [
@@ -739,13 +582,9 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
             if (visibleBoundaries.isNotEmpty)
               PolygonLayer(polygons: visibleBoundaries),
 
-            // District boundaries
-            if (districtPolygons.isNotEmpty)
-              PolygonLayer(polygons: districtPolygons),
-
-            // Ward boundaries
-            if (wardPolygons.isNotEmpty)
-              PolygonLayer(polygons: wardPolygons),
+            // Commune boundaries
+            if (communePolygons.isNotEmpty)
+              PolygonLayer(polygons: communePolygons),
 
             // Selected province highlight
             if (_selectedPolygons.isNotEmpty)
@@ -755,27 +594,20 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
             if (provinceLabels.isNotEmpty)
               BoundaryLabelLayer(labels: provinceLabels),
 
-            // District labels
-            if (districtLabels.isNotEmpty)
-              BoundaryLabelLayer(labels: districtLabels),
-
-            // Ward labels
-            if (wardLabels.isNotEmpty)
-              BoundaryLabelLayer(labels: wardLabels),
+            // Commune labels
+            if (communeLabels.isNotEmpty)
+              BoundaryLabelLayer(labels: communeLabels),
 
             // Markers
             MarkerLayer(
               markers: [
-                // ignore: prefer_const_constructors, prefer_const_literals_to_create_immutables
                 Marker(
                   point: const LatLng(16.5, 112.0),
                   width: 120,
                   height: 52,
                   alignment: Alignment.center,
-                  // ignore: prefer_const_constructors
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    // ignore: prefer_const_literals_to_create_immutables
                     children: [
                       const Icon(Icons.location_on, color: Colors.red, size: 16),
                       const Text(
@@ -971,8 +803,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                     _tappedLocation = null;
                   });
                   ref.read(selectedProvinceProvider.notifier).state = null;
-                  ref.read(selectedDistrictProvider.notifier).state = null;
-                  ref.read(selectedWardProvider.notifier).state = null;
+                  ref.read(selectedCommuneProvider.notifier).state = null;
                   ref.read(selectedWeatherLocationProvider.notifier).state = null;
                   ref.invalidate(selectedWeatherProvider);
                   ref.invalidate(activeWeatherLocationProvider);

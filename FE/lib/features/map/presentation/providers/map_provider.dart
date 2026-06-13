@@ -8,12 +8,11 @@ import '../../../../core/utils/result.dart';
 import '../../../../core/utils/geojson_utils.dart';
 import '../../data/datasources/geo_remote_datasource.dart';
 import '../../data/repositories/geo_repository_impl.dart';
+import '../../data/models/committee_model.dart';
 import '../../domain/entities/administrative_unit_summary.dart';
 import '../../domain/repositories/geo_repository.dart';
-import '../../domain/usecases/get_districts.dart';
 import '../../domain/usecases/get_provinces.dart';
-import '../../domain/usecases/get_wards.dart';
-import '../../domain/usecases/get_wards_boundaries_by_district_id.dart';
+import '../../domain/usecases/get_communes.dart';
 import '../../data/datasources/geo_local_datasource.dart'
     show ProvincePolygonEntry, extractRings, computeCentroid;
 
@@ -31,16 +30,8 @@ final getProvincesProvider = Provider(
   (ref) => GetProvinces(ref.watch(geoRepositoryProvider)),
 );
 
-final getDistrictsProvider = Provider(
-  (ref) => GetDistricts(ref.watch(geoRepositoryProvider)),
-);
-
-final getWardsProvider = Provider(
-  (ref) => GetWards(ref.watch(geoRepositoryProvider)),
-);
-
-final getWardsBoundariesByDistrictIdProvider = Provider(
-  (ref) => GetWardsBoundariesByDistrictId(ref.watch(geoRepositoryProvider)),
+final getCommunesProvider = Provider(
+  (ref) => GetCommunes(ref.watch(geoRepositoryProvider)),
 );
 
 final provincesProvider =
@@ -48,21 +39,32 @@ final provincesProvider =
   return ref.watch(getProvincesProvider).call();
 });
 
-final districtsProvider =
+final communesProvider =
     FutureProvider.family<Result<List<AdministrativeUnitSummary>>, String>(
         (ref, provinceCode) {
-  return ref.watch(getDistrictsProvider).call(provinceCode);
-});
-
-final wardsProvider =
-    FutureProvider.family<Result<List<AdministrativeUnitSummary>>, String>(
-        (ref, districtCode) {
-  return ref.watch(getWardsProvider).call(districtCode);
+  return ref.watch(getCommunesProvider).call(provinceCode);
 });
 
 final selectedProvinceProvider = StateProvider<AdministrativeUnitSummary?>((ref) => null);
-final selectedDistrictProvider = StateProvider<({String code, String name, int id})?>((ref) => null);
-final selectedWardProvider = StateProvider<({String code, int? id, String name})?>((ref) => null);
+final selectedCommuneProvider = StateProvider<({String code, String name, int id})?>((ref) => null);
+
+// ---------------------------------------------------------------------------
+// Committee providers (2025 reform — People's Committee HQ / Trụ sở UBND)
+// ---------------------------------------------------------------------------
+
+final committeesProvider =
+    FutureProvider<Result<List<CommitteeModel>>>((ref) async {
+  final repo = ref.watch(geoRepositoryProvider);
+  final result = await repo.getCommittees();
+  return result;
+});
+
+final committeesByProvinceProvider =
+    FutureProvider.family<Result<List<CommitteeModel>>, String>((ref, provinceCode) async {
+  final repo = ref.watch(geoRepositoryProvider);
+  final result = await repo.getCommitteesByProvince(provinceCode);
+  return result;
+});
 
 // ---------------------------------------------------------------------------
 // Province boundary providers (from backend API)
@@ -112,84 +114,46 @@ List<ProvincePolygonEntry> _parseFeatureCollection(Map<String, dynamic> collecti
   return entries;
 }
 
-/// Loads and renders individual district boundaries for a given province.
-/// Returns a list of (district code, district name, polygons) for all districts.
-final districtBoundariesProvider = FutureProvider.family<
+/// Loads and renders individual commune boundaries for a given province.
+/// Returns a list of (commune code, commune name, polygons) for all communes.
+final communeBoundariesProvider = FutureProvider.family<
     List<({String code, String name, List<Polygon> polygons})>, String>(
   (ref, provinceCode) async {
-    final repo = ref.watch(geoRepositoryProvider);
-    final districtsResult = await repo.getDistricts(provinceCode);
+  final repo = ref.watch(geoRepositoryProvider);
+  final communesResult = await repo.getCommunes(provinceCode);
 
-    return districtsResult.when(
-      ok: (districts) async {
-        final entries = <({String code, String name, List<Polygon> polygons})>[];
+  return communesResult.when(
+    ok: (communes) async {
+      final entries = <({String code, String name, List<Polygon> polygons})>[];
 
-        for (final district in districts) {
-          final boundaryResult = await repo.getUnitBoundary(district.code);
-          boundaryResult.when(
-            ok: (feature) {
-              try {
-                final coords = feature.geometry.coordinates;
-                if (coords.isNotEmpty) {
-                  final polygons = GeoJsonUtils.parseGeoJsonToPolygons(
-                    coords,
-                    fillColor: const Color(0x1500ACC1),
-                    borderColor: const Color(0xFF00796B),
-                    borderStrokeWidth: 1.5,
-                  );
-                  if (polygons.isNotEmpty) {
-                    entries.add((code: district.code, name: district.name, polygons: polygons));
-                  }
+      for (final commune in communes) {
+        final boundaryResult = await repo.getCommuneBoundary(commune.code);
+        boundaryResult.when(
+          ok: (feature) {
+            try {
+              final coords = feature.geometry.coordinates;
+              if (coords.isNotEmpty) {
+                final polygons = GeoJsonUtils.parseGeoJsonToPolygons(
+                  coords,
+                  fillColor: const Color(0x1500ACC1),
+                  borderColor: const Color(0xFF00796B),
+                  borderStrokeWidth: 1.5,
+                );
+                if (polygons.isNotEmpty) {
+                  entries.add((code: commune.code, name: commune.name, polygons: polygons));
                 }
-              } catch (_) {}
-            },
-            err: (_) {},
-          );
-        }
-
-        return entries;
-      },
-      err: (_) => [],
-    );
-  },
-);
-
-/// Loads and renders individual ward boundaries for a given district.
-/// Uses the bulk endpoint that fetches all ward boundaries at once using districtId
-/// to avoid duplicate ward code issues.
-final wardBoundariesProvider = FutureProvider.family<
-    List<({String code, int? id, String name, List<Polygon> polygons})>, int>(
-  (ref, districtId) async {
-    final getWardsBoundaries = ref.watch(getWardsBoundariesByDistrictIdProvider);
-    final result = await getWardsBoundaries.call(districtId);
-
-    return result.when(
-      ok: (features) {
-        final entries = <({String code, int? id, String name, List<Polygon> polygons})>[];
-
-        for (final feature in features) {
-          try {
-            final coords = feature.geometry.coordinates;
-            if (coords.isNotEmpty) {
-              final polygons = GeoJsonUtils.parseGeoJsonToPolygons(
-                coords,
-                fillColor: const Color(0x1A9C27B0),
-                borderColor: const Color(0xFF9C27B0),
-                borderStrokeWidth: 1.5,
-              );
-              if (polygons.isNotEmpty) {
-                entries.add((code: feature.code, id: feature.id, name: feature.name, polygons: polygons));
               }
-            }
-          } catch (_) {}
-        }
+            } catch (_) {}
+          },
+          err: (_) {},
+        );
+      }
 
-        return entries;
-      },
-      err: (_) => [],
-    );
-  },
-);
+      return entries;
+    },
+    err: (_) => [],
+  );
+});
 
 /// Returns province centroid map (code -> LatLng) from the precomputed values in
 /// ProvincePolygonEntry. No parsing needed on the main thread.
@@ -205,12 +169,12 @@ final provinceCentroidsProvider =
   return centroids;
 });
 
-/// Computes centroid coordinates for all districts of a given province
-/// from the polygon data already loaded by districtBoundariesProvider.
-/// Returns a map of district code -> LatLng centroid.
-final districtCentroidsProvider =
+/// Computes centroid coordinates for all communes of a given province
+/// from the polygon data already loaded by communeBoundariesProvider.
+/// Returns a map of commune code -> LatLng centroid.
+final communeCentroidsProvider =
     FutureProvider.family<Map<String, LatLng>, String>((ref, provinceCode) async {
-  final entries = await ref.watch(districtBoundariesProvider(provinceCode).future);
+  final entries = await ref.watch(communeBoundariesProvider(provinceCode).future);
   final centroids = <String, LatLng>{};
 
   for (final entry in entries) {
@@ -225,29 +189,3 @@ final districtCentroidsProvider =
 
   return centroids;
 });
-
-/// Fetches centroid coordinates for all wards of a given district.
-/// Returns a map of ward code -> LatLng centroid.
-final wardCentroidsProvider =
-    FutureProvider.family<Map<String, LatLng>, int>((ref, districtId) async {
-  final wardsResult = await ref.watch(wardBoundariesProvider(districtId).future);
-  final centroids = <String, LatLng>{};
-
-  for (final entry in wardsResult) {
-    for (final polygon in entry.polygons) {
-      final centroid = GeoJsonUtils.computePolygonCentroid(polygon.points);
-      if (centroid != null) {
-        centroids[_wardEntryKey(entry.id, entry.code, entry.name)] = centroid;
-        break;
-      }
-    }
-  }
-
-  return centroids;
-});
-
-String wardKey(int? id, String code, String name) =>
-    id != null ? 'id:$id' : 'code:$code:$name';
-
-String _wardEntryKey(int? id, String code, String name) =>
-    wardKey(id, code, name);

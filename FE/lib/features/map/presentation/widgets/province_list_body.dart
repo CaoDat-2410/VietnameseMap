@@ -32,7 +32,7 @@ class Debouncer {
 final provinceSearchQueryProvider = StateProvider<String>((ref) => '');
 
 /// Tracks the current drill-down level in the list body.
-enum DrillLevel { province, district, ward }
+enum DrillLevel { province, commune }
 
 class ProvinceListBody extends ConsumerStatefulWidget {
   const ProvinceListBody({super.key, this.scrollController});
@@ -66,7 +66,10 @@ class _ProvinceListBodyState extends ConsumerState<ProvinceListBody> {
       }
       // Auto-scroll to top on level change
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        widget.scrollController?.animateTo(
+        final controller = widget.scrollController;
+        if (!mounted || controller == null || !controller.hasClients) return;
+
+        controller.animateTo(
           0,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
@@ -78,25 +81,17 @@ class _ProvinceListBodyState extends ConsumerState<ProvinceListBody> {
   @override
   Widget build(BuildContext context) {
     final selectedProvince = ref.watch(selectedProvinceProvider);
-    final selectedDistrict = ref.watch(selectedDistrictProvider);
-    final selectedWard = ref.watch(selectedWardProvider);
+    final selectedCommune = ref.watch(selectedCommuneProvider);
 
     final DrillLevel level;
     final String? provinceCode;
-    final String? districtCode;
 
-    if (selectedWard != null) {
-      level = DrillLevel.ward;
-      provinceCode = selectedProvince?.code;
-      districtCode = selectedDistrict?.code;
-    } else if (selectedDistrict != null) {
-      level = DrillLevel.district;
-      provinceCode = selectedProvince?.code;
-      districtCode = selectedDistrict.code;
+    if (selectedProvince != null) {
+      level = DrillLevel.commune;
+      provinceCode = selectedProvince.code;
     } else {
       level = DrillLevel.province;
       provinceCode = null;
-      districtCode = null;
     }
 
     _onLevelChanged(level);
@@ -106,13 +101,10 @@ class _ProvinceListBodyState extends ConsumerState<ProvinceListBody> {
         _DrillDownHeader(
           level: level,
           selectedProvince: selectedProvince,
-          selectedDistrict: selectedDistrict,
+          selectedCommune: selectedCommune,
           onBackToProvinces: () {
-            ref.read(selectedDistrictProvider.notifier).state = null;
-            ref.read(selectedWardProvider.notifier).state = null;
-          },
-          onBackToDistricts: () {
-            ref.read(selectedWardProvider.notifier).state = null;
+            ref.read(selectedProvinceProvider.notifier).state = null;
+            ref.read(selectedCommuneProvider.notifier).state = null;
           },
         ),
         if (level == DrillLevel.province) _buildSearchBar(),
@@ -120,7 +112,6 @@ class _ProvinceListBodyState extends ConsumerState<ProvinceListBody> {
           child: _DrillDownList(
             level: level,
             provinceCode: provinceCode,
-            districtCode: districtCode,
             scrollController: widget.scrollController,
           ),
         ),
@@ -193,16 +184,14 @@ class _DrillDownHeader extends StatelessWidget {
   const _DrillDownHeader({
     required this.level,
     required this.selectedProvince,
-    required this.selectedDistrict,
+    required this.selectedCommune,
     required this.onBackToProvinces,
-    required this.onBackToDistricts,
   });
 
   final DrillLevel level;
   final AdministrativeUnitSummary? selectedProvince;
-  final ({String code, int id, String name})? selectedDistrict;
+  final ({String code, int id, String name})? selectedCommune;
   final VoidCallback onBackToProvinces;
-  final VoidCallback onBackToDistricts;
 
   @override
   Widget build(BuildContext context) {
@@ -234,18 +223,6 @@ class _DrillDownHeader extends StatelessWidget {
               child: Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
             ),
           ],
-          if (level == DrillLevel.ward) ...[
-            _BreadcrumbChip(
-              icon: Icons.location_city,
-              label: selectedDistrict?.name ?? 'Huyện',
-              color: const Color(0xFF00695C),
-              onTap: onBackToDistricts,
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
-            ),
-          ],
           Expanded(
             child: Text(
               _levelTitle,
@@ -265,10 +242,8 @@ class _DrillDownHeader extends StatelessWidget {
     switch (level) {
       case DrillLevel.province:
         return 'Tỉnh / Thành phố';
-      case DrillLevel.district:
-        return 'Quận / Huyện';
-      case DrillLevel.ward:
-        return 'Phường / Xã';
+      case DrillLevel.commune:
+        return 'Xã / Phường';
     }
   }
 }
@@ -329,13 +304,11 @@ class _DrillDownList extends ConsumerWidget {
   const _DrillDownList({
     required this.level,
     required this.provinceCode,
-    required this.districtCode,
     this.scrollController,
   });
 
   final DrillLevel level;
   final String? provinceCode;
-  final String? districtCode;
   final ScrollController? scrollController;
 
   @override
@@ -343,14 +316,9 @@ class _DrillDownList extends ConsumerWidget {
     switch (level) {
       case DrillLevel.province:
         return _ProvinceListView(scrollController: scrollController);
-      case DrillLevel.district:
-        return _DistrictListView(
+      case DrillLevel.commune:
+        return _CommuneListView(
           provinceCode: provinceCode!,
-          scrollController: scrollController,
-        );
-      case DrillLevel.ward:
-        return _WardListView(
-          districtCode: districtCode!,
           scrollController: scrollController,
         );
     }
@@ -435,6 +403,8 @@ class _ProvinceListView extends ConsumerWidget {
                       onTap: () {
                         ref.read(selectedProvinceProvider.notifier).state =
                             province;
+                        ref.read(selectedCommuneProvider.notifier).state = null;
+                        ref.read(provinceSearchQueryProvider.notifier).state = '';
                         _selectWeatherForUnit(
                           ref,
                           unit: province,
@@ -458,34 +428,34 @@ class _ProvinceListView extends ConsumerWidget {
   }
 }
 
-class _DistrictListView extends ConsumerWidget {
-  const _DistrictListView({required this.provinceCode, this.scrollController});
+class _CommuneListView extends ConsumerWidget {
+  const _CommuneListView({required this.provinceCode, this.scrollController});
 
   final String provinceCode;
   final ScrollController? scrollController;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final asyncDistricts = ref.watch(districtsProvider(provinceCode));
-    final selectedDistrict = ref.watch(selectedDistrictProvider);
+    final asyncCommunes = ref.watch(communesProvider(provinceCode));
+    final selectedCommune = ref.watch(selectedCommuneProvider);
     final selectedProvince = ref.watch(selectedProvinceProvider);
 
-    return asyncDistricts.when(
-      loading: () => const LoadingWidget(message: 'Đang tải quận/huyện...'),
+    return asyncCommunes.when(
+      loading: () => const LoadingWidget(message: 'Đang tải xã/phường...'),
       error: (e, _) => AppErrorWidget(
         failure: UnknownFailure(e.toString()),
-        onRetry: () => ref.invalidate(districtsProvider(provinceCode)),
+        onRetry: () => ref.invalidate(communesProvider(provinceCode)),
       ),
       data: (result) => result.when(
-        ok: (districts) {
-          if (districts.isEmpty) {
+        ok: (communes) {
+          if (communes.isEmpty) {
             return Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.location_off, size: 48, color: Colors.grey.shade400),
                   const SizedBox(height: 8),
-                  Text('Không có dữ liệu quận/huyện',
+                  Text('Không có dữ liệu xã/phường',
                       style: TextStyle(color: Colors.grey.shade500)),
                 ],
               ),
@@ -495,109 +465,27 @@ class _DistrictListView extends ConsumerWidget {
           return ListView.separated(
             controller: scrollController,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            itemCount: districts.length,
+            itemCount: communes.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
-              final district = districts[index];
-              final isSelected = selectedDistrict?.code == district.code;
+              final commune = communes[index];
+              final isSelected = selectedCommune?.code == commune.code;
 
               return _UnitCard(
-                unit: district,
+                unit: commune,
                 index: index,
                 isSelected: isSelected,
                 color: const Color(0xFF00695C),
-                onTap: () async {
-                  ref.read(selectedDistrictProvider.notifier).state =
-                      (code: district.code, name: district.name, id: district.id ?? 0);
-                  await _selectWeatherForUnit(
-                    ref,
-                    unit: district,
-                    sourceType: WeatherLocationSourceType.district,
-                    provinceName: selectedProvince?.name,
-                    districtName: district.name,
-                  );
-                },
-              );
-            },
-          );
-        },
-        err: (failure) => AppErrorWidget(
-          failure: failure,
-          onRetry: () => ref.invalidate(districtsProvider(provinceCode)),
-        ),
-      ),
-    );
-  }
-}
-
-class _WardListView extends ConsumerWidget {
-  const _WardListView({required this.districtCode, this.scrollController});
-
-  final String districtCode;
-  final ScrollController? scrollController;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final asyncWards = ref.watch(wardsProvider(districtCode));
-    final selectedWard = ref.watch(selectedWardProvider);
-    final selectedProvince = ref.watch(selectedProvinceProvider);
-    final selectedDistrict = ref.watch(selectedDistrictProvider);
-
-    return asyncWards.when(
-      loading: () => const LoadingWidget(message: 'Đang tải phường/xã...'),
-      error: (e, _) => AppErrorWidget(
-        failure: UnknownFailure(e.toString()),
-        onRetry: () => ref.invalidate(wardsProvider(districtCode)),
-      ),
-      data: (result) => result.when(
-        ok: (wards) {
-          if (wards.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.location_off, size: 48, color: Colors.grey.shade400),
-                  const SizedBox(height: 8),
-                  Text('Không có dữ liệu phường/xã',
-                      style: TextStyle(color: Colors.grey.shade500)),
-                ],
-              ),
-            );
-          }
-
-          return ListView.separated(
-            controller: scrollController,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            itemCount: wards.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final ward = wards[index];
-              final isSelected = selectedWard != null &&
-                  wardKey(selectedWard.id, selectedWard.code, selectedWard.name) ==
-                      wardKey(ward.id, ward.code, ward.name);
-
-              return _UnitCard(
-                unit: ward,
-                index: index,
-                isSelected: isSelected,
-                color: const Color(0xFF6A1B9A),
                 showChevron: false,
                 onTap: () async {
-                  ref.read(selectedWardProvider.notifier).state =
-                      (code: ward.code, id: ward.id, name: ward.name);
-                  final centroid = await _wardCentroidFor(
-                    ref,
-                    selectedDistrict,
-                    ward,
-                  );
+                  ref.read(selectedCommuneProvider.notifier).state =
+                      (code: commune.code, name: commune.name, id: commune.id ?? 0);
                   await _selectWeatherForUnit(
                     ref,
-                    unit: ward,
-                    sourceType: WeatherLocationSourceType.ward,
+                    unit: commune,
+                    sourceType: WeatherLocationSourceType.commune,
                     provinceName: selectedProvince?.name,
-                    districtName: selectedDistrict?.name,
-                    wardName: ward.name,
-                    centroid: centroid,
+                    communeName: commune.name,
                   );
                 },
               );
@@ -606,7 +494,7 @@ class _WardListView extends ConsumerWidget {
         },
         err: (failure) => AppErrorWidget(
           failure: failure,
-          onRetry: () => ref.invalidate(wardsProvider(districtCode)),
+          onRetry: () => ref.invalidate(communesProvider(provinceCode)),
         ),
       ),
     );
@@ -614,7 +502,7 @@ class _WardListView extends ConsumerWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Shared card widget for all three levels
+// Shared card widget for all levels
 // ---------------------------------------------------------------------------
 
 Future<void> _selectWeatherForUnit(
@@ -622,8 +510,7 @@ Future<void> _selectWeatherForUnit(
   required AdministrativeUnitSummary unit,
   required WeatherLocationSourceType sourceType,
   String? provinceName,
-  String? districtName,
-  String? wardName,
+  String? communeName,
   latlng.LatLng? centroid,
 }) async {
   if (centroid != null) {
@@ -631,13 +518,11 @@ Future<void> _selectWeatherForUnit(
         SelectedWeatherLocation(
       displayName: buildWeatherDisplayName(
         provinceName: provinceName,
-        districtName: districtName,
-        wardName: wardName,
+        communeName: communeName,
         fallback: unit.name,
       ),
       provinceName: provinceName,
-      districtName: districtName,
-      wardName: wardName,
+      communeName: communeName,
       lat: centroid.latitude,
       lng: centroid.longitude,
       sourceType: sourceType,
@@ -659,13 +544,11 @@ Future<void> _selectWeatherForUnit(
           SelectedWeatherLocation(
         displayName: buildWeatherDisplayName(
           provinceName: provinceName,
-          districtName: districtName,
-          wardName: wardName,
+          communeName: communeName,
           fallback: unit.name,
         ),
         provinceName: provinceName,
-        districtName: districtName,
-        wardName: wardName,
+        communeName: communeName,
         lat: lat,
         lng: lng,
         sourceType: sourceType,
@@ -676,24 +559,6 @@ Future<void> _selectWeatherForUnit(
     },
     err: (_) {},
   );
-}
-
-Future<latlng.LatLng?> _wardCentroidFor(
-  WidgetRef ref,
-  ({String code, int id, String name})? selectedDistrict,
-  AdministrativeUnitSummary ward,
-) async {
-  if (ward.id == null || selectedDistrict == null) return null;
-  final loadedCentroids =
-      ref.read(wardCentroidsProvider(selectedDistrict.id)).valueOrNull;
-  final key = wardKey(ward.id, ward.code, ward.name);
-  if (loadedCentroids != null && loadedCentroids.containsKey(key)) {
-    return loadedCentroids[key];
-  }
-
-  final centroids =
-      await ref.read(wardCentroidsProvider(selectedDistrict.id).future);
-  return centroids[key];
 }
 
 String _normalizeVietnamese(String value) {
@@ -743,38 +608,6 @@ class _UnitCard extends ConsumerWidget {
   ];
 
   Color get _color => color ?? _avatarColors[index % _avatarColors.length];
-
-  Widget _buildHighlightedText(String text, String query, Color highlightColor, TextStyle baseStyle) {
-    if (query.isEmpty) {
-      return Text(text, style: baseStyle, maxLines: 1, overflow: TextOverflow.ellipsis);
-    }
-    final lowerText = text.toLowerCase();
-    final lowerQuery = query.toLowerCase();
-    final startIndex = lowerText.indexOf(lowerQuery);
-    if (startIndex == -1) {
-      return Text(text, style: baseStyle, maxLines: 1, overflow: TextOverflow.ellipsis);
-    }
-    final endIndex = startIndex + query.length;
-    return RichText(
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      text: TextSpan(
-        style: baseStyle,
-        children: [
-          TextSpan(text: text.substring(0, startIndex)),
-          TextSpan(
-            text: text.substring(startIndex, endIndex),
-            style: baseStyle.copyWith(
-              color: highlightColor,
-              fontWeight: FontWeight.bold,
-              backgroundColor: highlightColor.withValues(alpha: 0.1),
-            ),
-          ),
-          TextSpan(text: text.substring(endIndex)),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -827,14 +660,14 @@ class _UnitCard extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildHighlightedText(
+                      Text(
                         unit.name,
-                        '',
-                        _color,
-                        const TextStyle(
+                        style: const TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Container(

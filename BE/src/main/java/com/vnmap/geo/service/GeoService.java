@@ -2,6 +2,7 @@ package com.vnmap.geo.service;
 
 import com.vnmap.geo.dto.AdministrativeUnitDto;
 import com.vnmap.geo.dto.AdministrativeUnitSummaryDto;
+import com.vnmap.geo.dto.CommitteeLocationDto;
 import com.vnmap.geo.dto.GeoJsonFeatureDto;
 
 import java.util.List;
@@ -10,23 +11,26 @@ public interface GeoService {
 
     List<AdministrativeUnitSummaryDto> getAllProvinces();
 
-    List<AdministrativeUnitSummaryDto> getDistrictsByProvince(String provinceCode);
+    List<AdministrativeUnitSummaryDto> getCommunesByProvince(String provinceCode);
 
-    List<AdministrativeUnitSummaryDto> getWardsByDistrict(String districtCode);
+    List<AdministrativeUnitSummaryDto> getCommunesByMacroRegion(String macroRegion);
 
     AdministrativeUnitDto getByCode(String code);
 
     GeoJsonFeatureDto getBoundaryByCode(String code);
 
-    /// Returns a GeoJSON FeatureCollection containing boundaries for all provinces.
-    /// This is much more efficient than fetching each province boundary individually.
     Object getAllProvincesBoundaries();
 
-    /// Returns all ward boundaries for a given district.
-    /// Uses districtId to avoid duplicate ward code issues.
-    List<GeoJsonFeatureDto> getWardsBoundariesByDistrictId(Long districtId);
+    List<GeoJsonFeatureDto> getCommunesBoundariesByProvinceCode(String provinceCode);
 
     AdministrativeUnitDto findUnitByCoordinate(double lat, double lng);
 
     int calculateCentroids();
+
+    void evictAllGeoCache();
+
+    // Committee endpoints
+    List<CommitteeLocationDto> getAllCommittees();
+
+    List<CommitteeLocationDto> getCommitteesByProvince(String provinceCode);
 }

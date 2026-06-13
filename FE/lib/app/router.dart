@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/campaign/presentation/pages/campaigns_temp_page.dart';
 import '../features/map/presentation/pages/map_page.dart';
-import '../features/map/presentation/pages/province_detail_page.dart';
 import '../features/map/presentation/widgets/vietnam_map_view.dart';
+import '../features/school/presentation/pages/schools_temp_page.dart';
 import '../features/weather/presentation/pages/weather_page.dart';
 
 final router = GoRouter(
   initialLocation: '/map',
   redirect: (context, state) {
     if (state.uri.path == '/') return '/map';
+    if (state.uri.path.startsWith('/province/')) return '/map';
     return null;
   },
   routes: [
@@ -28,13 +30,19 @@ final router = GoRouter(
             child: WeatherPage(),
           ),
         ),
+        GoRoute(
+          path: '/campaigns-temp',
+          pageBuilder: (context, state) => const NoTransitionPage(
+            child: CampaignsTempPage(),
+          ),
+        ),
+        GoRoute(
+          path: '/schools-temp',
+          pageBuilder: (context, state) => const NoTransitionPage(
+            child: SchoolsTempPage(),
+          ),
+        ),
       ],
-    ),
-    GoRoute(
-      path: '/province/:code',
-      builder: (context, state) => ProvinceDetailPage(
-        code: state.pathParameters['code']!,
-      ),
     ),
   ],
 );
@@ -47,7 +55,13 @@ class _AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).uri.path;
-    final index = location.startsWith('/weather') ? 1 : 0;
+    final index = location.startsWith('/weather')
+        ? 1
+        : location.startsWith('/campaigns')
+            ? 2
+            : location.startsWith('/schools')
+                ? 3
+                : 0;
 
     final navBar = Container(
       decoration: const BoxDecoration(
@@ -62,18 +76,29 @@ class _AppShell extends StatelessWidget {
       child: NavigationBar(
         selectedIndex: index,
         onDestinationSelected: (i) {
-          context.go(['/map', '/weather'][i]);
+          context
+              .go(['/map', '/weather', '/campaigns-temp', '/schools-temp'][i]);
         },
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.map_outlined),
             selectedIcon: Icon(Icons.map),
-            label: 'Bản đồ',
+            label: 'Map',
           ),
           NavigationDestination(
             icon: Icon(Icons.cloud_outlined),
             selectedIcon: Icon(Icons.cloud),
-            label: 'Thời tiết',
+            label: 'Weather',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.campaign_outlined),
+            selectedIcon: Icon(Icons.campaign),
+            label: 'Campaign',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.school_outlined),
+            selectedIcon: Icon(Icons.school),
+            label: 'Schools',
           ),
         ],
       ),
@@ -82,7 +107,6 @@ class _AppShell extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth > 600) {
-          // Wide Screen: Map on the left, child on the right
           return Scaffold(
             body: Row(
               children: [
@@ -105,7 +129,6 @@ class _AppShell extends StatelessWidget {
             ),
           );
         } else {
-          // Mobile Screen
           return Scaffold(
             body: child,
             bottomNavigationBar: navBar,

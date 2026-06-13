@@ -3,6 +3,7 @@ package com.vnmap.geo.controller;
 import com.vnmap.common.model.ApiResponse;
 import com.vnmap.geo.dto.AdministrativeUnitDto;
 import com.vnmap.geo.dto.AdministrativeUnitSummaryDto;
+import com.vnmap.geo.dto.CommitteeLocationDto;
 import com.vnmap.geo.dto.GeoJsonFeatureDto;
 import com.vnmap.geo.service.GeoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,9 +14,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,7 +30,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/geo")
 @Validated
-@Tag(name = "Geo", description = "Administrative boundary APIs for Vietnam")
+@Tag(name = "Geo", description = "Administrative boundary APIs for Vietnam (2025 Reform)")
 public class GeoController {
 
     private final GeoService geoService;
@@ -41,7 +41,7 @@ public class GeoController {
 
     @Operation(
             summary = "Get all provinces",
-            description = "Retrieves a list of all provinces in Vietnam with basic information"
+            description = "Retrieves a list of all 34 provinces in Vietnam with basic information"
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -58,7 +58,7 @@ public class GeoController {
 
     @Operation(
             summary = "Get province boundary",
-            description = "Retrieves the simplified GeoJSON boundary for a specific province"
+            description = "Retrieves the GeoJSON boundary for a specific province"
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Boundary retrieved"),
@@ -73,52 +73,89 @@ public class GeoController {
     }
 
     @Operation(
-            summary = "Get districts by province",
-            description = "Retrieves all districts belonging to a specific province"
+            summary = "Get all provinces boundaries",
+            description = "Retrieves GeoJSON FeatureCollection with boundaries for all provinces"
     )
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Districts retrieved"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Boundaries retrieved")
+    })
+    @GetMapping("/provinces-boundaries")
+    public ResponseEntity<ApiResponse<Object>> getAllProvincesBoundaries() {
+        Object boundaries = geoService.getAllProvincesBoundaries();
+        return ResponseEntity.ok(ApiResponse.success(boundaries, "All province boundaries retrieved"));
+    }
+
+    @Operation(
+            summary = "Get communes by province",
+            description = "Retrieves all communes belonging to a specific province"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Communes retrieved"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Province not found")
     })
-    @GetMapping("/districts")
-    public ResponseEntity<ApiResponse<List<AdministrativeUnitSummaryDto>>> getDistricts(
+    @GetMapping("/provinces/{code}/communes")
+    public ResponseEntity<ApiResponse<List<AdministrativeUnitSummaryDto>>> getCommunes(
             @Parameter(description = "Province code", required = true)
-            @RequestParam @NotBlank
-            @Pattern(regexp = "^[A-Za-z0-9._-]+$") String provinceCode) {
-        List<AdministrativeUnitSummaryDto> districts = geoService.getDistrictsByProvince(provinceCode);
-        return ResponseEntity.ok(ApiResponse.success(districts, "Districts retrieved successfully"));
+            @PathVariable String code) {
+        List<AdministrativeUnitSummaryDto> communes = geoService.getCommunesByProvince(code);
+        return ResponseEntity.ok(ApiResponse.success(communes, "Communes retrieved successfully"));
     }
 
     @Operation(
-            summary = "Get wards by district",
-            description = "Retrieves all wards belonging to a specific district"
+            summary = "Get commune boundaries for a province",
+            description = "Retrieves GeoJSON boundaries for all communes in a province (for map display)"
     )
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Wards retrieved"),
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "District not found")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Commune boundaries retrieved"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Province not found")
     })
-    @GetMapping("/wards")
-    public ResponseEntity<ApiResponse<List<AdministrativeUnitSummaryDto>>> getWards(
-            @Parameter(description = "District code", required = true)
-            @RequestParam @NotBlank
-            @Pattern(regexp = "^[A-Za-z0-9._-]+$") String districtCode) {
-        List<AdministrativeUnitSummaryDto> wards = geoService.getWardsByDistrict(districtCode);
-        return ResponseEntity.ok(ApiResponse.success(wards, "Wards retrieved successfully"));
+    @GetMapping("/provinces/{code}/communes-boundaries")
+    public ResponseEntity<ApiResponse<List<GeoJsonFeatureDto>>> getCommunesBoundaries(
+            @Parameter(description = "Province code", required = true)
+            @PathVariable String code) {
+        List<GeoJsonFeatureDto> boundaries = geoService.getCommunesBoundariesByProvinceCode(code);
+        return ResponseEntity.ok(ApiResponse.success(boundaries, "Commune boundaries retrieved"));
     }
 
     @Operation(
-            summary = "Get ward boundaries by district",
-            description = "Retrieves all ward boundaries for a given district using district ID to avoid duplicate ward code issues"
+            summary = "Get paginated communes for a province",
+            description = "Retrieves a paginated list of communes in a province"
     )
     @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Ward boundaries retrieved")
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Communes retrieved"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Province not found")
     })
-    @GetMapping("/districts/{districtId}/wards-boundaries")
-    public ResponseEntity<ApiResponse<List<GeoJsonFeatureDto>>> getWardsBoundaries(
-            @Parameter(description = "District ID")
-            @PathVariable Long districtId) {
-        List<GeoJsonFeatureDto> boundaries = geoService.getWardsBoundariesByDistrictId(districtId);
-        return ResponseEntity.ok(ApiResponse.success(boundaries, "Ward boundaries retrieved"));
+    @GetMapping("/provinces/{code}/communes-paginated")
+    public ResponseEntity<ApiResponse<List<AdministrativeUnitSummaryDto>>> getCommunesPaginated(
+            @Parameter(description = "Province code", required = true)
+            @PathVariable String code,
+            @Parameter(description = "Page number (0-based)", required = true)
+            @RequestParam @Min(0) int page,
+            @Parameter(description = "Page size", required = true)
+            @RequestParam @Min(1) @Max(100) int size) {
+        List<AdministrativeUnitSummaryDto> allCommunes = geoService.getCommunesByProvince(code);
+        int start = page * size;
+        int end = Math.min(start + size, allCommunes.size());
+        List<AdministrativeUnitSummaryDto> paged = start < allCommunes.size()
+                ? allCommunes.subList(start, end)
+                : List.of();
+        return ResponseEntity.ok(ApiResponse.success(paged, "Communes retrieved (page " + page + ")"));
+    }
+
+    @Operation(
+            summary = "Get communes by macro-region",
+            description = "Retrieves all communes in a specific macro-region (e.g., 'North Delta', 'Mekong Delta')"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Communes retrieved"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Macro-region not found")
+    })
+    @GetMapping("/macro-regions/{name}/communes")
+    public ResponseEntity<ApiResponse<List<AdministrativeUnitSummaryDto>>> getCommunesByMacroRegion(
+            @Parameter(description = "Macro-region name", required = true)
+            @PathVariable String name) {
+        List<AdministrativeUnitSummaryDto> communes = geoService.getCommunesByMacroRegion(name);
+        return ResponseEntity.ok(ApiResponse.success(communes, "Communes in " + name + " retrieved"));
     }
 
     @Operation(
@@ -139,7 +176,7 @@ public class GeoController {
 
     @Operation(
             summary = "Get boundary by code",
-            description = "Retrieves the simplified GeoJSON boundary for any administrative unit"
+            description = "Retrieves the GeoJSON boundary for any administrative unit"
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Boundary retrieved"),
@@ -154,21 +191,8 @@ public class GeoController {
     }
 
     @Operation(
-            summary = "Get all province boundaries",
-            description = "Retrieves GeoJSON FeatureCollection with boundaries for all provinces in one request"
-    )
-    @ApiResponses(value = {
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Boundaries retrieved")
-    })
-    @GetMapping("/provinces-boundaries")
-    public ResponseEntity<ApiResponse<Object>> getAllProvincesBoundaries() {
-        Object boundaries = geoService.getAllProvincesBoundaries();
-        return ResponseEntity.ok(ApiResponse.success(boundaries, "All province boundaries retrieved"));
-    }
-
-    @Operation(
             summary = "Reverse geocode coordinates",
-            description = "Finds the administrative unit containing the given GPS coordinates"
+            description = "Finds the administrative unit (commune or province) containing the given GPS coordinates"
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Unit found"),
@@ -195,5 +219,34 @@ public class GeoController {
     public ResponseEntity<ApiResponse<Integer>> calculateCentroids() {
         int count = geoService.calculateCentroids();
         return ResponseEntity.ok(ApiResponse.success(count, "Calculated " + count + " centroids"));
+    }
+
+    @Operation(
+            summary = "Get all committees",
+            description = "Retrieves all People's Committee HQ (trụ sở UBND) locations"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Committees retrieved")
+    })
+    @GetMapping("/committees")
+    public ResponseEntity<ApiResponse<List<CommitteeLocationDto>>> getAllCommittees() {
+        List<CommitteeLocationDto> committees = geoService.getAllCommittees();
+        return ResponseEntity.ok(ApiResponse.success(committees, "All committees retrieved"));
+    }
+
+    @Operation(
+            summary = "Get committees by province",
+            description = "Retrieves all People's Committee HQ locations for a specific province"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Committees retrieved"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "Province not found")
+    })
+    @GetMapping("/committees/{provinceCode}")
+    public ResponseEntity<ApiResponse<List<CommitteeLocationDto>>> getCommitteesByProvince(
+            @Parameter(description = "Province code", required = true)
+            @PathVariable String provinceCode) {
+        List<CommitteeLocationDto> committees = geoService.getCommitteesByProvince(provinceCode);
+        return ResponseEntity.ok(ApiResponse.success(committees, "Committees for province " + provinceCode + " retrieved"));
     }
 }
