@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../features/campaign/presentation/pages/campaigns_temp_page.dart';
+import '../features/campaign/dashboard/pages/campaign_list_page.dart';
+import '../features/campaign/dashboard/pages/campaign_dashboard_page.dart';
 import '../features/map/presentation/pages/map_page.dart';
 import '../features/map/presentation/widgets/vietnam_map_view.dart';
 import '../features/school/presentation/pages/schools_temp_page.dart';
@@ -31,10 +32,21 @@ final router = GoRouter(
           ),
         ),
         GoRoute(
-          path: '/campaigns-temp',
+          path: '/campaigns',
           pageBuilder: (context, state) => const NoTransitionPage(
-            child: CampaignsTempPage(),
+            child: CampaignListPage(),
           ),
+        ),
+        GoRoute(
+          path: '/campaigns/:campaignId/dashboard',
+          pageBuilder: (context, state) {
+            final idStr = state.pathParameters['campaignId'] ?? '0';
+            return NoTransitionPage(
+              child: CampaignDashboardPage(
+                campaignId: int.tryParse(idStr) ?? 0,
+              ),
+            );
+          },
         ),
         GoRoute(
           path: '/schools-temp',
@@ -77,7 +89,7 @@ class _AppShell extends StatelessWidget {
         selectedIndex: index,
         onDestinationSelected: (i) {
           context
-              .go(['/map', '/weather', '/campaigns-temp', '/schools-temp'][i]);
+              .go(['/map', '/weather', '/campaigns', '/schools-temp'][i]);
         },
         destinations: const [
           NavigationDestination(

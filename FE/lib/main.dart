@@ -16,6 +16,7 @@ class VietnameseMapApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
+      debugShowCheckedModeBanner: false,
       title: 'Vietnamese Map',
       theme: _buildTheme(),
       routerConfig: router,

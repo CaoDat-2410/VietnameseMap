@@ -32,6 +32,7 @@ dependencies:
   flutter_dotenv: ^5.1.0
   geolocator: ^14.0.2
   shared_preferences: ^2.2.3
+  package_info_plus: ^10.1.0
 
 dev_dependencies:
   flutter_test:
