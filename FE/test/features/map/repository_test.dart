@@ -1,10 +1,40 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:vietnamese_map/features/map/data/datasources/geo_local_datasource.dart';
 import 'package:vietnamese_map/features/map/data/models/committee_model.dart';
 import 'package:vietnamese_map/features/map/data/models/administrative_unit_model.dart';
 import 'package:vietnamese_map/features/map/data/models/administrative_unit_summary_model.dart';
 import 'package:vietnamese_map/features/map/domain/entities/unit_level.dart';
 
 void main() {
+  group('GeoJSON ring extraction', () {
+    test('extractRings parses MultiPolygon coordinates', () {
+      final coordinates = [
+        [
+          [
+            [105.0, 21.0],
+            [106.0, 21.0],
+            [106.0, 22.0],
+            [105.0, 21.0],
+          ],
+        ],
+        [
+          [
+            [107.0, 23.0],
+            [108.0, 23.0],
+            [108.0, 24.0],
+            [107.0, 23.0],
+          ],
+        ],
+      ];
+
+      final rings = extractRings(coordinates);
+
+      expect(rings, hasLength(2));
+      expect(rings.first.first, {'lat': 21.0, 'lng': 105.0});
+      expect(rings.last.first, {'lat': 23.0, 'lng': 107.0});
+    });
+  });
+
   group('AdministrativeUnitModel (2025 Reform)', () {
     test('fromJson parses backend response with kind field (new format)', () {
       final json = {

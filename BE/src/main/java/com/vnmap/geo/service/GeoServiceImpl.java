@@ -111,10 +111,8 @@ public class GeoServiceImpl implements GeoService {
         } else {
             repository.findCentroidByCode(code, unit.getKind())
                     .ifPresent(row -> {
-                        @SuppressWarnings("unchecked")
-                        Object[] arr = (Object[]) row;
-                        if (arr[1] != null) dto.setCentroidLat(((Number) arr[1]).doubleValue());
-                        if (arr[0] != null) dto.setCentroidLng(((Number) arr[0]).doubleValue());
+                        if (row[1] != null) dto.setCentroidLat(((Number) row[1]).doubleValue());
+                        if (row[0] != null) dto.setCentroidLng(((Number) row[0]).doubleValue());
                     });
         }
 
@@ -188,10 +186,8 @@ public class GeoServiceImpl implements GeoService {
         } else {
             repository.findCentroidByCode(unit.getCode(), unit.getKind())
                     .ifPresent(row -> {
-                        @SuppressWarnings("unchecked")
-                        Object[] arr = (Object[]) row;
-                        if (arr[1] != null) dto.setCentroidLat(((Number) arr[1]).doubleValue());
-                        if (arr[0] != null) dto.setCentroidLng(((Number) arr[0]).doubleValue());
+                        if (row[1] != null) dto.setCentroidLat(((Number) row[1]).doubleValue());
+                        if (row[0] != null) dto.setCentroidLng(((Number) row[0]).doubleValue());
                     });
         }
 

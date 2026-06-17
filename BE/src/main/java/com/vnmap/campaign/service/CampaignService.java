@@ -3,16 +3,19 @@ package com.vnmap.campaign.service;
 import com.vnmap.campaign.dto.*;
 import com.vnmap.common.exception.ResourceNotFoundException;
 import com.vnmap.common.model.PagedResponse;
+import com.vnmap.common.security.CurrentUser;
+import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
-import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -22,10 +25,53 @@ import java.util.Map;
 @Service
 public class CampaignService {
 
-    private final JdbcTemplate jdbc;
+    private static final String SCHOOL_UID_COLUMN = "school_uid";
+    private static final String FULL_NAME_COLUMN = "full_name";
+    private static final String TOTAL_COLUMN = "total";
+    private static final String STUDENT_ID_COLUMN = "student_id";
+    private static final String PHONE_COLUMN = "phone";
+    private static final String PROVINCE_CODE_COLUMN = "province_code";
+    private static final String PROVINCE_NAME_COLUMN = "province_name";
+    private static final String SCHOOL_NAME_COLUMN = "school_name";
+    private static final String CAMPAIGN_ID_COLUMN = "campaign_id";
+    private static final String STATUS_COLUMN = "status";
+    private static final String ACTIVE_STATUS = "ACTIVE";
+    private static final String INSERT_INTERACTION_SQL = """
+            INSERT INTO interactions (
+                campaign_id, event_id, employee_id, school_uid, participant_type,
+                participant_id, channel, outcome, note, next_follow_up_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """;
+    private static final String REGISTRATION_SELECT_SQL = """
+            SELECT r.id, r.campaign_id, r.student_id, r.school_uid, r.status, r.note,
+                   r.created_at, r.updated_at,
+                   st.full_name student_name, st.email student_email, st.phone student_phone,
+                   st.date_of_birth student_date_of_birth, st.address student_address,
+                   st.grade student_grade, st.class_name student_class_name,
+                   sc.province_code, sc.province_name, sc.commune_code, sc.commune_name,
+                   sc.school_code, sc.school_name, sc.address school_address, sc.area_type
+            FROM campaign_student_registrations r
+            JOIN students st ON st.id = r.student_id
+            JOIN schools sc ON sc.school_uid = r.school_uid
+            """;
 
-    public CampaignService(JdbcTemplate jdbc) {
+    private final JdbcTemplate jdbc;
+    private final PasswordEncoder passwordEncoder;
+
+    public CampaignService(JdbcTemplate jdbc, PasswordEncoder passwordEncoder) {
         this.jdbc = jdbc;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    private long generatedId(KeyHolder keyHolder) {
+        Map<String, Object> keys = keyHolder.getKeys();
+        if (keys != null && keys.get("id") instanceof Number id) {
+            return id.longValue();
+        }
+        if (keyHolder.getKey() != null) {
+            return keyHolder.getKey().longValue();
+        }
+        throw new IllegalStateException("Insert did not return generated id");
     }
 
     public PagedResponse<SchoolDto> getSchools(
@@ -64,22 +110,21 @@ public class CampaignService {
     public SchoolDetailDto getSchoolDetail(String schoolUid) {
         SchoolDto school = getSchool(schoolUid);
         List<StudentDto> students = jdbc.query(
-                "SELECT id, school_uid, full_name, grade, class_name FROM students WHERE school_uid = ? ORDER BY full_name",
-                (rs, rowNum) -> new StudentDto(
-                        rs.getLong("id"),
-                        rs.getString("school_uid"),
-                        rs.getString("full_name"),
-                        rs.getString("grade"),
-                        rs.getString("class_name")
-                ),
+                """
+                SELECT id, school_uid, full_name, email, phone, date_of_birth, address, grade, class_name
+                FROM students
+                WHERE school_uid = ?
+                ORDER BY full_name
+                """,
+                this::mapStudent,
                 schoolUid
         );
         List<PersonDto> persons = jdbc.query(
                 "SELECT id, school_uid, full_name, role FROM persons WHERE school_uid = ? ORDER BY full_name",
                 (rs, rowNum) -> new PersonDto(
                         rs.getLong("id"),
-                        rs.getString("school_uid"),
-                        rs.getString("full_name"),
+                        rs.getString(SCHOOL_UID_COLUMN),
+                        rs.getString(FULL_NAME_COLUMN),
                         rs.getString("role")
                 ),
                 schoolUid
@@ -93,24 +138,37 @@ public class CampaignService {
                 """,
                 (rs, rowNum) -> new StudentRelativeDto(
                         rs.getLong("id"),
-                        rs.getString("school_uid"),
-                        rs.getString("full_name"),
-                        rs.getLong("student_id"),
+                        rs.getString(SCHOOL_UID_COLUMN),
+                        rs.getString(FULL_NAME_COLUMN),
+                        rs.getLong(STUDENT_ID_COLUMN),
                         rs.getString("relationship"),
-                        rs.getString("phone")
+                        rs.getString(PHONE_COLUMN)
                 ),
                 schoolUid
         );
         return new SchoolDetailDto(school, students, persons, relatives);
     }
 
-    public List<CampaignDto> getCampaigns() {
+    public List<EmployeeDto> getEmployees() {
         return jdbc.query(
                 """
+                SELECT id, full_name, role
+                FROM employees
+                ORDER BY id
+                """,
+                this::mapEmployee
+        );
+    }
+
+    public List<CampaignDto> getCampaigns(boolean includeArchived) {
+        String where = includeArchived ? "" : "WHERE status <> 'ARCHIVED'";
+        return jdbc.query(
+                ("""
                 SELECT id, name, status, objective, start_date, end_date, owner_employee_id
                 FROM campaigns
+                %s
                 ORDER BY created_at DESC, id DESC
-                """,
+                """).formatted(where),
                 this::mapCampaign
         );
     }
@@ -142,12 +200,12 @@ public class CampaignService {
             ps.setString(1, request.name());
             ps.setString(2, request.status());
             ps.setString(3, request.objective());
-            ps.setDate(4, request.startDate() == null ? null : Date.valueOf(request.startDate()));
-            ps.setDate(5, request.endDate() == null ? null : Date.valueOf(request.endDate()));
+            ps.setObject(4, request.startDate());
+            ps.setObject(5, request.endDate());
             ps.setLong(6, request.ownerEmployeeId());
             return ps;
         }, keyHolder);
-        return getCampaign(keyHolder.getKey().longValue());
+        return getCampaign(generatedId(keyHolder));
     }
 
     @Transactional
@@ -162,8 +220,8 @@ public class CampaignService {
                 request.name(),
                 request.status(),
                 request.objective(),
-                request.startDate() == null ? null : Date.valueOf(request.startDate()),
-                request.endDate() == null ? null : Date.valueOf(request.endDate()),
+                request.startDate(),
+                request.endDate(),
                 request.ownerEmployeeId(),
                 id
         );
@@ -216,7 +274,7 @@ public class CampaignService {
                 campaignId
         ).forEach(row -> byOutcome.put(
                 (String) row.get("outcome"),
-                ((Number) row.get("total")).longValue()
+                ((Number) row.get(TOTAL_COLUMN)).longValue()
         ));
 
         List<ProvinceInteractionDto> byProvince = jdbc.query(
@@ -229,9 +287,9 @@ public class CampaignService {
                 ORDER BY total DESC, s.province_name
                 """,
                 (rs, rowNum) -> new ProvinceInteractionDto(
-                        rs.getString("province_code"),
-                        rs.getString("province_name"),
-                        rs.getLong("total")
+                        rs.getString(PROVINCE_CODE_COLUMN),
+                        rs.getString(PROVINCE_NAME_COLUMN),
+                        rs.getLong(TOTAL_COLUMN)
                 ),
                 campaignId
         );
@@ -246,9 +304,9 @@ public class CampaignService {
                 LIMIT 10
                 """,
                 (rs, rowNum) -> new TopSchoolDto(
-                        rs.getString("school_uid"),
-                        rs.getString("school_name"),
-                        rs.getLong("total")
+                        rs.getString(SCHOOL_UID_COLUMN),
+                        rs.getString(SCHOOL_NAME_COLUMN),
+                        rs.getLong(TOTAL_COLUMN)
                 ),
                 campaignId
         );
@@ -265,15 +323,18 @@ public class CampaignService {
         );
     }
 
-    public List<CampaignEventDto> getEvents(long campaignId) {
+    public List<CampaignEventDto> getEvents(long campaignId, boolean includeArchived) {
         getCampaign(campaignId);
+        String archivedFilter = includeArchived ? "" : "AND status <> 'ARCHIVED'";
         return jdbc.query(
-                """
-                SELECT id, campaign_id, name, event_type, status, starts_at, ends_at, note
+                ("""
+                SELECT id, campaign_id, name, event_type, status, starts_at, ends_at, note,
+                       location_label, latitude, longitude, school_uid, province_code
                 FROM campaign_events
                 WHERE campaign_id = ?
+                %s
                 ORDER BY starts_at NULLS LAST, id
-                """,
+                """).formatted(archivedFilter),
                 this::mapEvent,
                 campaignId
         );
@@ -282,7 +343,8 @@ public class CampaignService {
     public CampaignEventDto getEvent(long eventId) {
         return jdbc.query(
                 """
-                SELECT id, campaign_id, name, event_type, status, starts_at, ends_at, note
+                SELECT id, campaign_id, name, event_type, status, starts_at, ends_at, note,
+                       location_label, latitude, longitude, school_uid, province_code
                 FROM campaign_events
                 WHERE id = ?
                 """,
@@ -294,13 +356,15 @@ public class CampaignService {
     @Transactional
     public CampaignEventDto createEvent(long campaignId, CampaignEventRequest request) {
         getCampaign(campaignId);
+        ensureSchoolIfPresent(request.schoolUid());
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbc.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(
                     """
                     INSERT INTO campaign_events (
-                        campaign_id, name, event_type, status, starts_at, ends_at, note
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                        campaign_id, name, event_type, status, starts_at, ends_at, note,
+                        location_label, latitude, longitude, school_uid, province_code
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     Statement.RETURN_GENERATED_KEYS
             );
@@ -308,29 +372,41 @@ public class CampaignService {
             ps.setString(2, request.name());
             ps.setString(3, request.eventType());
             ps.setString(4, request.status());
-            ps.setTimestamp(5, timestamp(request.startsAt()));
-            ps.setTimestamp(6, timestamp(request.endsAt()));
+            ps.setObject(5, request.startsAt());
+            ps.setObject(6, request.endsAt());
             ps.setString(7, request.note());
+            ps.setString(8, blankToNull(request.locationLabel()));
+            ps.setObject(9, request.latitude());
+            ps.setObject(10, request.longitude());
+            ps.setString(11, blankToNull(request.schoolUid()));
+            ps.setString(12, blankToNull(request.provinceCode()));
             return ps;
         }, keyHolder);
-        return getEvent(keyHolder.getKey().longValue());
+        return getEvent(generatedId(keyHolder));
     }
 
     @Transactional
     public CampaignEventDto updateEvent(long eventId, CampaignEventRequest request) {
+        ensureSchoolIfPresent(request.schoolUid());
         int updated = jdbc.update(
                 """
                 UPDATE campaign_events
                 SET name = ?, event_type = ?, status = ?, starts_at = ?, ends_at = ?,
-                    note = ?, updated_at = CURRENT_TIMESTAMP
+                    note = ?, location_label = ?, latitude = ?, longitude = ?,
+                    school_uid = ?, province_code = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
                 """,
                 request.name(),
                 request.eventType(),
                 request.status(),
-                timestamp(request.startsAt()),
-                timestamp(request.endsAt()),
+                request.startsAt(),
+                request.endsAt(),
                 request.note(),
+                blankToNull(request.locationLabel()),
+                request.latitude(),
+                request.longitude(),
+                blankToNull(request.schoolUid()),
+                blankToNull(request.provinceCode()),
                 eventId
         );
         if (updated == 0) {
@@ -355,6 +431,22 @@ public class CampaignService {
         jdbc.update("DELETE FROM event_schools WHERE event_id = ? AND school_uid = ?", eventId, schoolUid);
     }
 
+    public List<SchoolDto> getEventSchools(long eventId) {
+        getEvent(eventId);
+        return jdbc.query(
+                """
+                SELECT s.school_uid, s.province_code, s.province_name, s.commune_code, s.commune_name,
+                       s.school_code, s.school_name, s.address, s.area_type
+                FROM event_schools es
+                JOIN schools s ON s.school_uid = es.school_uid
+                WHERE es.event_id = ?
+                ORDER BY s.province_code, s.school_name
+                """,
+                this::mapSchool,
+                eventId
+        );
+    }
+
     @Transactional
     public void assignEmployee(long eventId, long employeeId) {
         getEvent(eventId);
@@ -369,6 +461,21 @@ public class CampaignService {
     @Transactional
     public void removeEmployee(long eventId, long employeeId) {
         jdbc.update("DELETE FROM event_assignments WHERE event_id = ? AND employee_id = ?", eventId, employeeId);
+    }
+
+    public List<EmployeeDto> getEventAssignments(long eventId) {
+        getEvent(eventId);
+        return jdbc.query(
+                """
+                SELECT e.id, e.full_name, e.role
+                FROM event_assignments ea
+                JOIN employees e ON e.id = ea.employee_id
+                WHERE ea.event_id = ?
+                ORDER BY e.id
+                """,
+                this::mapEmployee,
+                eventId
+        );
     }
 
     public List<InteractionDto> getInteractions(long eventId) {
@@ -394,12 +501,7 @@ public class CampaignService {
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbc.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(
-                    """
-                    INSERT INTO interactions (
-                        campaign_id, event_id, employee_id, school_uid, participant_type,
-                        participant_id, channel, outcome, note, next_follow_up_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
+                    INSERT_INTERACTION_SQL,
                     Statement.RETURN_GENERATED_KEYS
             );
             ps.setLong(1, event.campaignId());
@@ -411,11 +513,11 @@ public class CampaignService {
             ps.setString(7, request.channel());
             ps.setString(8, request.outcome());
             ps.setString(9, request.note());
-            ps.setTimestamp(10, timestamp(request.nextFollowUpAt()));
+            ps.setObject(10, request.nextFollowUpAt());
             return ps;
         }, keyHolder);
 
-        long id = keyHolder.getKey().longValue();
+        long id = generatedId(keyHolder);
         return jdbc.query(
                 """
                 SELECT id, campaign_id, event_id, employee_id, school_uid, participant_type,
@@ -426,6 +528,506 @@ public class CampaignService {
                 this::mapInteraction,
                 id
         ).get(0);
+    }
+
+    @Transactional
+    public void archiveCampaign(long id) {
+        int updated = jdbc.update(
+                "UPDATE campaigns SET status = 'ARCHIVED', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                id
+        );
+        if (updated == 0) {
+            throw new ResourceNotFoundException("Campaign", "id", id);
+        }
+    }
+
+    @Transactional
+    public void archiveEvent(long eventId) {
+        int updated = jdbc.update(
+                "UPDATE campaign_events SET status = 'ARCHIVED', updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                eventId
+        );
+        if (updated == 0) {
+            throw new ResourceNotFoundException("CampaignEvent", "id", eventId);
+        }
+    }
+
+    @Transactional
+    public InteractionDto updateInteraction(long eventId, long interactionId, CreateInteractionRequest request, CurrentUser user) {
+        InteractionDto existing = getInteractionForEvent(eventId, interactionId);
+        ensureInteractionOwnerOrManager(existing, user);
+        ensureEmployee(request.employeeId());
+        getSchool(request.schoolUid());
+        jdbc.update(
+                """
+                UPDATE interactions
+                SET employee_id = ?, school_uid = ?, participant_type = ?, participant_id = ?,
+                    channel = ?, outcome = ?, note = ?, next_follow_up_at = ?
+                WHERE id = ? AND event_id = ?
+                """,
+                request.employeeId(),
+                request.schoolUid(),
+                request.participantType(),
+                request.participantId(),
+                request.channel(),
+                request.outcome(),
+                request.note(),
+                request.nextFollowUpAt(),
+                interactionId,
+                eventId
+        );
+        return getInteractionForEvent(eventId, interactionId);
+    }
+
+    @Transactional
+    public void deleteInteraction(long eventId, long interactionId, CurrentUser user) {
+        InteractionDto existing = getInteractionForEvent(eventId, interactionId);
+        ensureInteractionOwnerOrManager(existing, user);
+        jdbc.update("DELETE FROM interactions WHERE id = ? AND event_id = ?", interactionId, eventId);
+    }
+
+    @Transactional
+    public StudentRegistrationDto registerStudent(long campaignId, StudentRegistrationRequest request) {
+        getCampaign(campaignId);
+        SchoolDto school = getSchool(request.schoolUid());
+        Long studentId = findStudentIdByEmail(request.email());
+        if (studentId == null) {
+            studentId = createStudent(new StudentRequest(
+                    request.schoolUid(),
+                    request.fullName(),
+                    request.email(),
+                    request.phone(),
+                    request.dateOfBirth(),
+                    request.address(),
+                    request.grade(),
+                    request.className()
+            )).id();
+        } else {
+            requireMatchingStudentPassword(request.email(), request.password());
+            updateStudent(studentId, new StudentRequest(
+                    request.schoolUid(),
+                    request.fullName(),
+                    request.email(),
+                    request.phone(),
+                    request.dateOfBirth(),
+                    request.address(),
+                    request.grade(),
+                    request.className()
+            ));
+        }
+
+        Long userId = findUserIdByEmail(request.email());
+        if (userId == null) {
+            jdbc.update(
+                    """
+                    INSERT INTO app_users (email, password_hash, role, status, student_id)
+                    VALUES (?, ?, 'STUDENT', 'ACTIVE', ?)
+                    """,
+                    request.email(),
+                    passwordEncoder.encode(request.password()),
+                    studentId
+            );
+        } else {
+            jdbc.update(
+                    "UPDATE app_users SET student_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND student_id IS NULL",
+                    studentId,
+                    userId
+            );
+        }
+
+        Long registrationId = findRegistrationId(campaignId, studentId);
+        if (registrationId == null) {
+            KeyHolder keyHolder = new GeneratedKeyHolder();
+            Long finalStudentId = studentId;
+            jdbc.update(connection -> {
+                PreparedStatement ps = connection.prepareStatement(
+                        """
+                        INSERT INTO campaign_student_registrations (
+                            campaign_id, student_id, school_uid, status, note
+                        ) VALUES (?, ?, ?, 'PENDING', ?)
+                        """,
+                        Statement.RETURN_GENERATED_KEYS
+                );
+                ps.setLong(1, campaignId);
+                ps.setLong(2, finalStudentId);
+                ps.setString(3, school.schoolUid());
+                ps.setString(4, request.note());
+                return ps;
+            }, keyHolder);
+            return getRegistration(generatedId(keyHolder));
+        }
+
+        StudentRegistrationDto existing = getRegistration(registrationId);
+        if ("PENDING".equals(existing.status()) || "APPROVED".equals(existing.status())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Registration already exists");
+        }
+        jdbc.update(
+                """
+                UPDATE campaign_student_registrations
+                SET status = 'PENDING', school_uid = ?, note = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                school.schoolUid(),
+                request.note(),
+                registrationId
+        );
+        return getRegistration(registrationId);
+    }
+
+    public List<StudentRegistrationDto> getCampaignRegistrations(long campaignId) {
+        getCampaign(campaignId);
+        return jdbc.query(
+                REGISTRATION_SELECT_SQL + " WHERE r.campaign_id = ? ORDER BY r.created_at DESC, r.id DESC",
+                this::mapRegistration,
+                campaignId
+        );
+    }
+
+    public List<StudentRegistrationDto> getMyRegistrations(CurrentUser user) {
+        if (user.studentId() == null) {
+            return List.of();
+        }
+        return jdbc.query(
+                REGISTRATION_SELECT_SQL + " WHERE r.student_id = ? ORDER BY r.created_at DESC, r.id DESC",
+                this::mapRegistration,
+                user.studentId()
+        );
+    }
+
+    @Transactional
+    public StudentRegistrationDto updateRegistrationStatus(long id, String status) {
+        validateIn(status, "PENDING", "APPROVED", "REJECTED", "CANCELLED");
+        int updated = jdbc.update(
+                "UPDATE campaign_student_registrations SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                status,
+                id
+        );
+        if (updated == 0) {
+            throw new ResourceNotFoundException("StudentRegistration", "id", id);
+        }
+        return getRegistration(id);
+    }
+
+    public PagedResponse<StudentDto> getStudents(int page, int limit, String schoolUid, String query) {
+        int safePage = Math.max(page, 0);
+        int safeLimit = Math.min(Math.max(limit, 1), 200);
+        List<Object> params = new ArrayList<>();
+        List<String> filters = new ArrayList<>();
+        if (schoolUid != null && !schoolUid.isBlank()) {
+            filters.add("school_uid = ?");
+            params.add(schoolUid);
+        }
+        if (query != null && !query.isBlank()) {
+            filters.add("(LOWER(full_name) LIKE LOWER(?) OR LOWER(email) LIKE LOWER(?))");
+            String pattern = "%" + query.trim() + "%";
+            params.add(pattern);
+            params.add(pattern);
+        }
+        String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
+        Long total = jdbc.queryForObject("SELECT COUNT(*) FROM students " + where, Long.class, params.toArray());
+        params.add(safeLimit);
+        params.add(safePage * safeLimit);
+        List<StudentDto> items = jdbc.query(
+                ("""
+                SELECT id, school_uid, full_name, email, phone, date_of_birth, address, grade, class_name
+                FROM students
+                %s
+                ORDER BY full_name
+                LIMIT ? OFFSET ?
+                """).formatted(where),
+                this::mapStudent,
+                params.toArray()
+        );
+        return PagedResponse.of(items, safePage, safeLimit, total == null ? 0 : total);
+    }
+
+    @Transactional
+    public StudentDto createStudent(StudentRequest request) {
+        getSchool(request.schoolUid());
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbc.update(connection -> {
+            PreparedStatement ps = connection.prepareStatement(
+                    """
+                    INSERT INTO students (
+                        school_uid, full_name, email, phone, date_of_birth, address, grade, class_name
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    Statement.RETURN_GENERATED_KEYS
+            );
+            setStudentRequest(ps, request);
+            return ps;
+        }, keyHolder);
+        return getStudent(generatedId(keyHolder));
+    }
+
+    @Transactional
+    public StudentDto updateStudent(long id, StudentRequest request) {
+        getSchool(request.schoolUid());
+        int updated = jdbc.update(
+                """
+                UPDATE students
+                SET school_uid = ?, full_name = ?, email = ?, phone = ?, date_of_birth = ?,
+                    address = ?, grade = ?, class_name = ?
+                WHERE id = ?
+                """,
+                request.schoolUid(),
+                request.fullName(),
+                blankToNull(request.email()),
+                request.phone(),
+                request.dateOfBirth(),
+                request.address(),
+                request.grade(),
+                request.className(),
+                id
+        );
+        if (updated == 0) {
+            throw new ResourceNotFoundException("Student", "id", id);
+        }
+        return getStudent(id);
+    }
+
+    @Transactional
+    public void deleteStudent(long id) {
+        int updated = jdbc.update("DELETE FROM students WHERE id = ?", id);
+        if (updated == 0) {
+            throw new ResourceNotFoundException("Student", "id", id);
+        }
+    }
+
+    public List<PersonDto> getPersons(String schoolUid) {
+        return jdbc.query(
+                """
+                SELECT id, school_uid, full_name, role
+                FROM persons
+                WHERE (? IS NULL OR school_uid = ?)
+                ORDER BY full_name
+                """,
+                this::mapPerson,
+                schoolUid,
+                schoolUid
+        );
+    }
+
+    @Transactional
+    public PersonDto createPerson(PersonRequest request) {
+        getSchool(request.schoolUid());
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbc.update(connection -> {
+            PreparedStatement ps = connection.prepareStatement(
+                    "INSERT INTO persons (school_uid, full_name, role) VALUES (?, ?, ?)",
+                    Statement.RETURN_GENERATED_KEYS
+            );
+            ps.setString(1, request.schoolUid());
+            ps.setString(2, request.fullName());
+            ps.setString(3, request.role());
+            return ps;
+        }, keyHolder);
+        return getPerson(generatedId(keyHolder));
+    }
+
+    @Transactional
+    public PersonDto updatePerson(long id, PersonRequest request) {
+        getSchool(request.schoolUid());
+        int updated = jdbc.update(
+                "UPDATE persons SET school_uid = ?, full_name = ?, role = ? WHERE id = ?",
+                request.schoolUid(),
+                request.fullName(),
+                request.role(),
+                id
+        );
+        if (updated == 0) {
+            throw new ResourceNotFoundException("Person", "id", id);
+        }
+        return getPerson(id);
+    }
+
+    @Transactional
+    public void deletePerson(long id) {
+        int updated = jdbc.update("DELETE FROM persons WHERE id = ?", id);
+        if (updated == 0) {
+            throw new ResourceNotFoundException("Person", "id", id);
+        }
+    }
+
+    public List<StudentRelativeDto> getRelatives(String schoolUid, Long studentId) {
+        return jdbc.query(
+                """
+                SELECT id, school_uid, full_name, student_id, relationship, phone
+                FROM student_relatives
+                WHERE (? IS NULL OR school_uid = ?) AND (? IS NULL OR student_id = ?)
+                ORDER BY full_name
+                """,
+                this::mapRelative,
+                schoolUid,
+                schoolUid,
+                studentId,
+                studentId
+        );
+    }
+
+    @Transactional
+    public StudentRelativeDto createRelative(StudentRelativeRequest request) {
+        getStudent(request.studentId());
+        getSchool(request.schoolUid());
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbc.update(connection -> {
+            PreparedStatement ps = connection.prepareStatement(
+                    """
+                    INSERT INTO student_relatives (student_id, school_uid, full_name, relationship, phone)
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    Statement.RETURN_GENERATED_KEYS
+            );
+            ps.setLong(1, request.studentId());
+            ps.setString(2, request.schoolUid());
+            ps.setString(3, request.fullName());
+            ps.setString(4, request.relationship());
+            ps.setString(5, request.phone());
+            return ps;
+        }, keyHolder);
+        return getRelative(generatedId(keyHolder));
+    }
+
+    @Transactional
+    public StudentRelativeDto updateRelative(long id, StudentRelativeRequest request) {
+        getStudent(request.studentId());
+        getSchool(request.schoolUid());
+        int updated = jdbc.update(
+                """
+                UPDATE student_relatives
+                SET student_id = ?, school_uid = ?, full_name = ?, relationship = ?, phone = ?
+                WHERE id = ?
+                """,
+                request.studentId(),
+                request.schoolUid(),
+                request.fullName(),
+                request.relationship(),
+                request.phone(),
+                id
+        );
+        if (updated == 0) {
+            throw new ResourceNotFoundException("StudentRelative", "id", id);
+        }
+        return getRelative(id);
+    }
+
+    @Transactional
+    public void deleteRelative(long id) {
+        int updated = jdbc.update("DELETE FROM student_relatives WHERE id = ?", id);
+        if (updated == 0) {
+            throw new ResourceNotFoundException("StudentRelative", "id", id);
+        }
+    }
+
+    public List<UserDto> getUsers() {
+        return jdbc.query(
+                "SELECT id, email, role, status, employee_id, student_id FROM app_users ORDER BY id",
+                this::mapUser
+        );
+    }
+
+    @Transactional
+    public UserDto createUser(UserRequest request) {
+        validateRole(request.role());
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbc.update(connection -> {
+            PreparedStatement ps = connection.prepareStatement(
+                    """
+                    INSERT INTO app_users (email, password_hash, role, status, employee_id, student_id)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    """,
+                    Statement.RETURN_GENERATED_KEYS
+            );
+            ps.setString(1, request.email());
+            ps.setString(2, passwordEncoder.encode(request.password()));
+            ps.setString(3, request.role());
+            ps.setString(4, request.status() == null || request.status().isBlank() ? ACTIVE_STATUS : request.status());
+            ps.setObject(5, request.employeeId());
+            ps.setObject(6, request.studentId());
+            return ps;
+        }, keyHolder);
+        return getUser(generatedId(keyHolder));
+    }
+
+    @Transactional
+    public UserDto updateUser(long id, UserRequest request) {
+        validateRole(request.role());
+        int updated = jdbc.update(
+                """
+                UPDATE app_users
+                SET email = ?, password_hash = ?, role = ?, status = ?, employee_id = ?,
+                    student_id = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                request.email(),
+                passwordEncoder.encode(request.password()),
+                request.role(),
+                request.status() == null || request.status().isBlank() ? ACTIVE_STATUS : request.status(),
+                request.employeeId(),
+                request.studentId(),
+                id
+        );
+        if (updated == 0) {
+            throw new ResourceNotFoundException("User", "id", id);
+        }
+        return getUser(id);
+    }
+
+    @Transactional
+    public UserDto updateUserRole(long id, String role) {
+        validateRole(role);
+        return updateUserColumn(id, "role", role);
+    }
+
+    @Transactional
+    public UserDto updateUserStatus(long id, String status) {
+        validateIn(status, ACTIVE_STATUS, "DISABLED");
+        return updateUserColumn(id, STATUS_COLUMN, status);
+    }
+
+    @Transactional
+    public void deleteUser(long id) {
+        int updated = jdbc.update("DELETE FROM app_users WHERE id = ?", id);
+        if (updated == 0) {
+            throw new ResourceNotFoundException("User", "id", id);
+        }
+    }
+
+    @Transactional
+    public EmployeeDto createEmployee(EmployeeDto request) {
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbc.update(connection -> {
+            PreparedStatement ps = connection.prepareStatement(
+                    "INSERT INTO employees (full_name, role) VALUES (?, ?)",
+                    Statement.RETURN_GENERATED_KEYS
+            );
+            ps.setString(1, request.fullName());
+            ps.setString(2, request.role());
+            return ps;
+        }, keyHolder);
+        return getEmployee(generatedId(keyHolder));
+    }
+
+    @Transactional
+    public EmployeeDto updateEmployee(long id, EmployeeDto request) {
+        int updated = jdbc.update(
+                "UPDATE employees SET full_name = ?, role = ? WHERE id = ?",
+                request.fullName(),
+                request.role(),
+                id
+        );
+        if (updated == 0) {
+            throw new ResourceNotFoundException("Employee", "id", id);
+        }
+        return getEmployee(id);
+    }
+
+    @Transactional
+    public void deleteEmployee(long id) {
+        int updated = jdbc.update("DELETE FROM employees WHERE id = ?", id);
+        if (updated == 0) {
+            throw new ResourceNotFoundException("Employee", "id", id);
+        }
     }
 
     private String buildSchoolWhere(
@@ -470,6 +1072,157 @@ public class CampaignService {
         ).stream().findFirst().orElseThrow(() -> new ResourceNotFoundException("School", "schoolUid", schoolUid));
     }
 
+    private StudentDto getStudent(long id) {
+        return jdbc.query(
+                """
+                SELECT id, school_uid, full_name, email, phone, date_of_birth, address, grade, class_name
+                FROM students
+                WHERE id = ?
+                """,
+                this::mapStudent,
+                id
+        ).stream().findFirst().orElseThrow(() -> new ResourceNotFoundException("Student", "id", id));
+    }
+
+    private PersonDto getPerson(long id) {
+        return jdbc.query(
+                "SELECT id, school_uid, full_name, role FROM persons WHERE id = ?",
+                this::mapPerson,
+                id
+        ).stream().findFirst().orElseThrow(() -> new ResourceNotFoundException("Person", "id", id));
+    }
+
+    private StudentRelativeDto getRelative(long id) {
+        return jdbc.query(
+                "SELECT id, school_uid, full_name, student_id, relationship, phone FROM student_relatives WHERE id = ?",
+                this::mapRelative,
+                id
+        ).stream().findFirst().orElseThrow(() -> new ResourceNotFoundException("StudentRelative", "id", id));
+    }
+
+    private EmployeeDto getEmployee(long id) {
+        return jdbc.query(
+                "SELECT id, full_name, role FROM employees WHERE id = ?",
+                this::mapEmployee,
+                id
+        ).stream().findFirst().orElseThrow(() -> new ResourceNotFoundException("Employee", "id", id));
+    }
+
+    private UserDto getUser(long id) {
+        return jdbc.query(
+                "SELECT id, email, role, status, employee_id, student_id FROM app_users WHERE id = ?",
+                this::mapUser,
+                id
+        ).stream().findFirst().orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
+    }
+
+    private StudentRegistrationDto getRegistration(long id) {
+        return jdbc.query(
+                REGISTRATION_SELECT_SQL + " WHERE r.id = ?",
+                this::mapRegistration,
+                id
+        ).stream().findFirst().orElseThrow(() -> new ResourceNotFoundException("StudentRegistration", "id", id));
+    }
+
+    private InteractionDto getInteractionForEvent(long eventId, long interactionId) {
+        return jdbc.query(
+                """
+                SELECT id, campaign_id, event_id, employee_id, school_uid, participant_type,
+                       participant_id, channel, outcome, note, next_follow_up_at, created_at
+                FROM interactions
+                WHERE event_id = ? AND id = ?
+                """,
+                this::mapInteraction,
+                eventId,
+                interactionId
+        ).stream().findFirst().orElseThrow(() -> new ResourceNotFoundException("Interaction", "id", interactionId));
+    }
+
+    private Long findStudentIdByEmail(String email) {
+        return jdbc.query(
+                "SELECT id FROM students WHERE LOWER(email) = LOWER(?)",
+                (rs, rowNum) -> rs.getLong("id"),
+                email
+        ).stream().findFirst().orElse(null);
+    }
+
+    private Long findUserIdByEmail(String email) {
+        return jdbc.query(
+                "SELECT id FROM app_users WHERE LOWER(email) = LOWER(?)",
+                (rs, rowNum) -> rs.getLong("id"),
+                email
+        ).stream().findFirst().orElse(null);
+    }
+
+    private Long findRegistrationId(long campaignId, long studentId) {
+        return jdbc.query(
+                "SELECT id FROM campaign_student_registrations WHERE campaign_id = ? AND student_id = ?",
+                (rs, rowNum) -> rs.getLong("id"),
+                campaignId,
+                studentId
+        ).stream().findFirst().orElse(null);
+    }
+
+    private void requireMatchingStudentPassword(String email, String password) {
+        String hash = jdbc.query(
+                "SELECT password_hash FROM app_users WHERE LOWER(email) = LOWER(?)",
+                (rs, rowNum) -> rs.getString("password_hash"),
+                email
+        ).stream().findFirst().orElse(null);
+        if (hash != null && !passwordEncoder.matches(password, hash)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Email or password is incorrect");
+        }
+    }
+
+    private void setStudentRequest(PreparedStatement ps, StudentRequest request) throws java.sql.SQLException {
+        ps.setString(1, request.schoolUid());
+        ps.setString(2, request.fullName());
+        ps.setString(3, blankToNull(request.email()));
+        ps.setString(4, request.phone());
+        ps.setObject(5, request.dateOfBirth());
+        ps.setString(6, request.address());
+        ps.setString(7, request.grade());
+        ps.setString(8, request.className());
+    }
+
+    private String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value;
+    }
+
+    private void ensureInteractionOwnerOrManager(InteractionDto interaction, CurrentUser user) {
+        if ("MANAGER".equals(user.role()) || "ADMIN".equals(user.role())) {
+            return;
+        }
+        if (user.employeeId() == null || !user.employeeId().equals(interaction.employeeId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
+        }
+    }
+
+    private void validateRole(String role) {
+        validateIn(role, "ADMIN", "MANAGER", "STAFF", "STUDENT");
+    }
+
+    private void validateIn(String value, String... allowed) {
+        for (String item : allowed) {
+            if (item.equals(value)) {
+                return;
+            }
+        }
+        throw new IllegalArgumentException("Invalid value: " + value);
+    }
+
+    private UserDto updateUserColumn(long id, String column, String value) {
+        int updated = jdbc.update(
+                "UPDATE app_users SET " + column + " = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                value,
+                id
+        );
+        if (updated == 0) {
+            throw new ResourceNotFoundException("User", "id", id);
+        }
+        return getUser(id);
+    }
+
     private void ensureEmployee(long employeeId) {
         Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM employees WHERE id = ?", Integer.class, employeeId);
         if (count == null || count == 0) {
@@ -477,73 +1230,171 @@ public class CampaignService {
         }
     }
 
+    private void ensureSchoolIfPresent(String schoolUid) {
+        if (schoolUid == null || schoolUid.isBlank()) {
+            return;
+        }
+        getSchool(schoolUid);
+    }
+
     private long zero(Long value) {
         return value == null ? 0 : value;
     }
 
-    private Timestamp timestamp(LocalDateTime value) {
-        return value == null ? null : Timestamp.valueOf(value);
-    }
-
     private SchoolDto mapSchool(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
         return new SchoolDto(
-                rs.getString("school_uid"),
-                rs.getString("province_code"),
-                rs.getString("province_name"),
+                rs.getString(SCHOOL_UID_COLUMN),
+                rs.getString(PROVINCE_CODE_COLUMN),
+                rs.getString(PROVINCE_NAME_COLUMN),
                 rs.getString("commune_code"),
                 rs.getString("commune_name"),
                 rs.getString("school_code"),
-                rs.getString("school_name"),
+                rs.getString(SCHOOL_NAME_COLUMN),
                 rs.getString("address"),
                 rs.getString("area_type")
         );
     }
 
+    private StudentDto mapStudent(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+        return new StudentDto(
+                rs.getLong("id"),
+                rs.getString(SCHOOL_UID_COLUMN),
+                rs.getString(FULL_NAME_COLUMN),
+                rs.getString("email"),
+                rs.getString(PHONE_COLUMN),
+                rs.getObject("date_of_birth", LocalDate.class),
+                rs.getString("address"),
+                rs.getString("grade"),
+                rs.getString("class_name")
+        );
+    }
+
+    private PersonDto mapPerson(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+        return new PersonDto(
+                rs.getLong("id"),
+                rs.getString(SCHOOL_UID_COLUMN),
+                rs.getString(FULL_NAME_COLUMN),
+                rs.getString("role")
+        );
+    }
+
+    private StudentRelativeDto mapRelative(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+        return new StudentRelativeDto(
+                rs.getLong("id"),
+                rs.getString(SCHOOL_UID_COLUMN),
+                rs.getString(FULL_NAME_COLUMN),
+                rs.getLong(STUDENT_ID_COLUMN),
+                rs.getString("relationship"),
+                rs.getString(PHONE_COLUMN)
+        );
+    }
+
+    private UserDto mapUser(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+        return new UserDto(
+                rs.getLong("id"),
+                rs.getString("email"),
+                rs.getString("role"),
+                rs.getString(STATUS_COLUMN),
+                rs.getObject("employee_id", Long.class),
+                rs.getObject(STUDENT_ID_COLUMN, Long.class)
+        );
+    }
+
+    private StudentRegistrationDto mapRegistration(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+        StudentDto student = new StudentDto(
+                rs.getLong(STUDENT_ID_COLUMN),
+                rs.getString(SCHOOL_UID_COLUMN),
+                rs.getString("student_name"),
+                rs.getString("student_email"),
+                rs.getString("student_phone"),
+                rs.getObject("student_date_of_birth", LocalDate.class),
+                rs.getString("student_address"),
+                rs.getString("student_grade"),
+                rs.getString("student_class_name")
+        );
+        SchoolDto school = new SchoolDto(
+                rs.getString(SCHOOL_UID_COLUMN),
+                rs.getString(PROVINCE_CODE_COLUMN),
+                rs.getString(PROVINCE_NAME_COLUMN),
+                rs.getString("commune_code"),
+                rs.getString("commune_name"),
+                rs.getString("school_code"),
+                rs.getString(SCHOOL_NAME_COLUMN),
+                rs.getString("school_address"),
+                rs.getString("area_type")
+        );
+        return new StudentRegistrationDto(
+                rs.getLong("id"),
+                rs.getLong(CAMPAIGN_ID_COLUMN),
+                rs.getLong(STUDENT_ID_COLUMN),
+                rs.getString(SCHOOL_UID_COLUMN),
+                rs.getString(STATUS_COLUMN),
+                rs.getString("note"),
+                rs.getObject("created_at", LocalDateTime.class),
+                rs.getObject("updated_at", LocalDateTime.class),
+                student,
+                school
+        );
+    }
+
     private CampaignDto mapCampaign(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
-        Date startDate = rs.getDate("start_date");
-        Date endDate = rs.getDate("end_date");
+        LocalDate startDate = rs.getObject("start_date", LocalDate.class);
+        LocalDate endDate = rs.getObject("end_date", LocalDate.class);
         return new CampaignDto(
                 rs.getLong("id"),
                 rs.getString("name"),
-                rs.getString("status"),
+                rs.getString(STATUS_COLUMN),
                 rs.getString("objective"),
-                startDate == null ? null : startDate.toLocalDate(),
-                endDate == null ? null : endDate.toLocalDate(),
+                startDate,
+                endDate,
                 rs.getObject("owner_employee_id", Long.class)
         );
     }
 
+    private EmployeeDto mapEmployee(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+        return new EmployeeDto(
+                rs.getLong("id"),
+                rs.getString(FULL_NAME_COLUMN),
+                rs.getString("role")
+        );
+    }
+
     private CampaignEventDto mapEvent(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
-        Timestamp startsAt = rs.getTimestamp("starts_at");
-        Timestamp endsAt = rs.getTimestamp("ends_at");
+        LocalDateTime startsAt = rs.getObject("starts_at", LocalDateTime.class);
+        LocalDateTime endsAt = rs.getObject("ends_at", LocalDateTime.class);
         return new CampaignEventDto(
                 rs.getLong("id"),
-                rs.getLong("campaign_id"),
+                rs.getLong(CAMPAIGN_ID_COLUMN),
                 rs.getString("name"),
                 rs.getString("event_type"),
-                rs.getString("status"),
-                startsAt == null ? null : startsAt.toLocalDateTime(),
-                endsAt == null ? null : endsAt.toLocalDateTime(),
-                rs.getString("note")
+                rs.getString(STATUS_COLUMN),
+                startsAt,
+                endsAt,
+                rs.getString("note"),
+                rs.getString("location_label"),
+                rs.getObject("latitude", Double.class),
+                rs.getObject("longitude", Double.class),
+                rs.getString(SCHOOL_UID_COLUMN),
+                rs.getString("province_code")
         );
     }
 
     private InteractionDto mapInteraction(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
-        Timestamp nextFollowUpAt = rs.getTimestamp("next_follow_up_at");
-        Timestamp createdAt = rs.getTimestamp("created_at");
+        LocalDateTime nextFollowUpAt = rs.getObject("next_follow_up_at", LocalDateTime.class);
+        LocalDateTime createdAt = rs.getObject("created_at", LocalDateTime.class);
         return new InteractionDto(
                 rs.getLong("id"),
-                rs.getLong("campaign_id"),
+                rs.getLong(CAMPAIGN_ID_COLUMN),
                 rs.getLong("event_id"),
                 rs.getLong("employee_id"),
-                rs.getString("school_uid"),
+                rs.getString(SCHOOL_UID_COLUMN),
                 rs.getString("participant_type"),
                 rs.getLong("participant_id"),
                 rs.getString("channel"),
                 rs.getString("outcome"),
                 rs.getString("note"),
-                nextFollowUpAt == null ? null : nextFollowUpAt.toLocalDateTime(),
-                createdAt == null ? null : createdAt.toLocalDateTime()
+                nextFollowUpAt,
+                createdAt
         );
     }
 }

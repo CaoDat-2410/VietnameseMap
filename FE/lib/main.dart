@@ -23,7 +23,7 @@ class VietnameseMapApp extends StatelessWidget {
   }
 
   ThemeData _buildTheme() {
-  const primary = Color(0xFFDA291C);
+    const primary = Color(0xFFDA291C);
 
     return ThemeData(
       useMaterial3: true,

@@ -10,6 +10,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.server.ResponseStatusException;
 import jakarta.validation.ConstraintViolationException;
 
 import java.util.HashMap;
@@ -149,6 +150,19 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> handleResponseStatusException(
+            ResponseStatusException ex, HttpServletRequest request) {
+        HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+        ErrorResponse error = ErrorResponse.of(
+                status.value(),
+                status.getReasonPhrase(),
+                ex.getReason() == null ? status.getReasonPhrase() : ex.getReason(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(status).body(error);
     }
 
     @ExceptionHandler(Exception.class)

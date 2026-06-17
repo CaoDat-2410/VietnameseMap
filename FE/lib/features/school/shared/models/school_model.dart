@@ -72,6 +72,10 @@ class StudentModel {
     required this.id,
     required this.schoolUid,
     required this.fullName,
+    required this.email,
+    required this.phone,
+    required this.dateOfBirth,
+    required this.address,
     required this.grade,
     required this.className,
   });
@@ -79,6 +83,10 @@ class StudentModel {
   final int id;
   final String schoolUid;
   final String fullName;
+  final String email;
+  final String phone;
+  final String dateOfBirth;
+  final String address;
   final String grade;
   final String className;
 
@@ -86,6 +94,10 @@ class StudentModel {
         id: json['id'] as int? ?? 0,
         schoolUid: json['schoolUid'] as String? ?? '',
         fullName: json['fullName'] as String? ?? '',
+        email: json['email'] as String? ?? '',
+        phone: json['phone'] as String? ?? '',
+        dateOfBirth: json['dateOfBirth'] as String? ?? '',
+        address: json['address'] as String? ?? '',
         grade: json['grade'] as String? ?? '',
         className: json['className'] as String? ?? '',
       );

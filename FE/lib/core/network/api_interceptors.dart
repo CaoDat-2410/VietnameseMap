@@ -52,7 +52,8 @@ class ErrorInterceptor extends Interceptor {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        return const ApiException(message: 'Request timed out. Please try again.');
+        return const ApiException(
+            message: 'Request timed out. Please try again.');
 
       case DioExceptionType.connectionError:
         return const ApiException(message: 'No internet connection.');

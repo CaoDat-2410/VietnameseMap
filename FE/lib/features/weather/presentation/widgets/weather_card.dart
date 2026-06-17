@@ -91,8 +91,8 @@ class _MainWeatherCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       weather.description,
-                      style: const TextStyle(
-                          color: Colors.white70, fontSize: 14),
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 14),
                     ),
                   ],
                 ),
@@ -280,8 +280,7 @@ class _DetailCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(detail.label,
-                  style: TextStyle(
-                      color: Colors.grey.shade500, fontSize: 11)),
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
               const SizedBox(height: 2),
               Text(detail.value,
                   style: const TextStyle(
@@ -310,8 +309,7 @@ class _CachedBadge extends StatelessWidget {
             Icon(Icons.cached, size: 14, color: Colors.grey.shade500),
             const SizedBox(width: 4),
             Text('Dữ liệu cache',
-                style:
-                    TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
           ],
         ),
       ),

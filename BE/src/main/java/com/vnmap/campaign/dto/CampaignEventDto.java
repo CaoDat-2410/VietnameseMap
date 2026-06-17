@@ -10,6 +10,11 @@ public record CampaignEventDto(
         String status,
         LocalDateTime startsAt,
         LocalDateTime endsAt,
-        String note
+        String note,
+        String locationLabel,
+        Double latitude,
+        Double longitude,
+        String schoolUid,
+        String provinceCode
 ) {
 }

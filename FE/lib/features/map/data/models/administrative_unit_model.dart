@@ -54,7 +54,8 @@ class AdministrativeUnitModel {
       id: json['id'] as int,
       name: json['name'] as String,
       code: json['code'] as String,
-      level: _parseLevel(json['level'] as String? ?? json['kind'] as String? ?? ''),
+      level: _parseLevel(
+          json['level'] as String? ?? json['kind'] as String? ?? ''),
       parentId: json['parentId'] as int?,
       parentCode: json['parentCode'] as String?,
       centroidLat: (json['centroidLat'] as num?)?.toDouble(),

@@ -4,7 +4,16 @@ import '../widgets/province_list_body.dart';
 import '../widgets/vietnam_map_view.dart';
 
 class MapPage extends StatelessWidget {
-  const MapPage({super.key});
+  const MapPage({
+    super.key,
+    this.focusLat,
+    this.focusLng,
+    this.focusLabel,
+  });
+
+  final double? focusLat;
+  final double? focusLng;
+  final String? focusLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +31,11 @@ class MapPage extends StatelessWidget {
             // Mobile Screen
             return Stack(
               children: [
-                const VietnamMapView(),
+                VietnamMapView(
+                  focusLat: focusLat,
+                  focusLng: focusLng,
+                  focusLabel: focusLabel,
+                ),
                 DraggableScrollableSheet(
                   initialChildSize: 0.4,
                   minChildSize: 0.1,
@@ -31,7 +44,8 @@ class MapPage extends StatelessWidget {
                     return Container(
                       decoration: const BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                        borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(24)),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black12,

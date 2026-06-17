@@ -30,6 +30,28 @@ class SchoolSearchParams {
       if (query?.isNotEmpty ?? false) 'q': query,
     };
   }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is SchoolSearchParams &&
+            other.page == page &&
+            other.limit == limit &&
+            other.provinceCode == provinceCode &&
+            other.communeCode == communeCode &&
+            other.area == area &&
+            other.query == query;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        page,
+        limit,
+        provinceCode,
+        communeCode,
+        area,
+        query,
+      );
 }
 
 class SchoolsRepository {

@@ -85,8 +85,7 @@ class ProvinceDetailPage extends ConsumerWidget {
               child: unitAsync.when(
                 loading: () => const Card(
                     child: Padding(
-                        padding: EdgeInsets.all(24),
-                        child: LoadingWidget())),
+                        padding: EdgeInsets.all(24), child: LoadingWidget())),
                 error: (_, __) => const SizedBox.shrink(),
                 data: (unit) => unit == null
                     ? const SizedBox.shrink()
@@ -115,8 +114,7 @@ class ProvinceDetailPage extends ConsumerWidget {
                               // New fields from HuggingFace dataset
                               if (unit.macroRegion != null)
                                 _InfoRow(
-                                    label: 'Vùng',
-                                    value: unit.macroRegion!),
+                                    label: 'Vùng', value: unit.macroRegion!),
                               if (unit.population != null)
                                 _InfoRow(
                                     label: 'Dân số',
@@ -124,15 +122,14 @@ class ProvinceDetailPage extends ConsumerWidget {
                               if (unit.areaKm2 != null)
                                 _InfoRow(
                                     label: 'Diện tích',
-                                    value: '${unit.areaKm2!.toStringAsFixed(2)} km²'),
+                                    value:
+                                        '${unit.areaKm2!.toStringAsFixed(2)} km²'),
                               if (unit.capital != null)
                                 _InfoRow(
-                                    label: 'Thủ phủ',
-                                    value: unit.capital!),
+                                    label: 'Thủ phủ', value: unit.capital!),
                               if (unit.decree != null)
                                 _InfoRow(
-                                    label: 'Nghị định',
-                                    value: unit.decree!),
+                                    label: 'Nghị định', value: unit.decree!),
                               if (unit.childCount != null)
                                 _InfoRow(
                                     label: 'Số xã',
@@ -177,8 +174,7 @@ class ProvinceDetailPage extends ConsumerWidget {
                                                   Colors.blue.shade50,
                                               child: Icon(Icons.location_on,
                                                   size: 15,
-                                                  color:
-                                                      Colors.blue.shade700),
+                                                  color: Colors.blue.shade700),
                                             ),
                                             title: Text(c.name,
                                                 style: const TextStyle(
@@ -186,13 +182,12 @@ class ProvinceDetailPage extends ConsumerWidget {
                                             trailing: Text(c.code,
                                                 style: TextStyle(
                                                     fontSize: 11,
-                                                    color: Colors
-                                                        .grey.shade500)),
+                                                    color:
+                                                        Colors.grey.shade500)),
                                           ))
                                       .toList(),
                                 ),
-                          err: (_) =>
-                              _hint('Cần mã số tỉnh để tải xã/phường'),
+                          err: (_) => _hint('Cần mã số tỉnh để tải xã/phường'),
                         ),
                       ),
                     ],
@@ -219,12 +214,10 @@ class ProvinceDetailPage extends ConsumerWidget {
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: Row(
           children: [
-            Icon(Icons.info_outline,
-                size: 15, color: Colors.grey.shade400),
+            Icon(Icons.info_outline, size: 15, color: Colors.grey.shade400),
             const SizedBox(width: 6),
             Text(msg,
-                style:
-                    TextStyle(color: Colors.grey.shade500, fontSize: 13)),
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 13)),
           ],
         ),
       );
@@ -242,8 +235,7 @@ class _SectionTitle extends StatelessWidget {
         Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
         const SizedBox(width: 8),
         Text(title,
-            style: const TextStyle(
-                fontWeight: FontWeight.bold, fontSize: 15)),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
       ],
     );
   }
@@ -263,13 +255,12 @@ class _InfoRow extends StatelessWidget {
           SizedBox(
             width: 90,
             child: Text(label,
-                style: TextStyle(
-                    color: Colors.grey.shade600, fontSize: 13)),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
           ),
           Expanded(
             child: Text(value,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w500, fontSize: 13)),
+                style:
+                    const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
           ),
         ],
       ),

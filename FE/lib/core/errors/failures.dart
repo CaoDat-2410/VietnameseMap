@@ -4,7 +4,8 @@ sealed class Failure {
 }
 
 final class NetworkFailure extends Failure {
-  const NetworkFailure([super.message = 'No internet connection or request timed out.']);
+  const NetworkFailure(
+      [super.message = 'No internet connection or request timed out.']);
 }
 
 final class ServerFailure extends Failure {

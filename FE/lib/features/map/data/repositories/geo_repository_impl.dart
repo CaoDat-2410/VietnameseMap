@@ -31,14 +31,16 @@ class GeoRepositoryImpl implements GeoRepository {
       });
 
   @override
-  Future<Result<List<AdministrativeUnitSummary>>> getCommunes(String provinceCode) =>
+  Future<Result<List<AdministrativeUnitSummary>>> getCommunes(
+          String provinceCode) =>
       _wrap(() async {
         final models = await _dataSource.getCommunes(provinceCode);
         return models.map((m) => m.toEntity()).toList();
       });
 
   @override
-  Future<Result<List<GeoJsonFeature>>> getCommunesBoundaries(String provinceCode) =>
+  Future<Result<List<GeoJsonFeature>>> getCommunesBoundaries(
+          String provinceCode) =>
       _wrap(() async {
         final models = await _dataSource.getCommunesBoundaries(provinceCode);
         return models.map((m) => m.toEntity()).toList();
@@ -48,7 +50,8 @@ class GeoRepositoryImpl implements GeoRepository {
   Future<Result<List<AdministrativeUnitSummary>>> getCommunesPaginated(
           String provinceCode, int page, int size) =>
       _wrap(() async {
-        final models = await _dataSource.getCommunesPaginated(provinceCode, page, size);
+        final models =
+            await _dataSource.getCommunesPaginated(provinceCode, page, size);
         return models.map((m) => m.toEntity()).toList();
       });
 
@@ -85,7 +88,8 @@ class GeoRepositoryImpl implements GeoRepository {
       _wrap(() => _dataSource.getCommittees());
 
   @override
-  Future<Result<List<CommitteeModel>>> getCommitteesByProvince(String provinceCode) =>
+  Future<Result<List<CommitteeModel>>> getCommitteesByProvince(
+          String provinceCode) =>
       _wrap(() => _dataSource.getCommitteesByProvince(provinceCode));
 
   Future<Result<T>> _wrap<T>(Future<T> Function() fn) async {

@@ -22,10 +22,26 @@ import '../../../weather/presentation/widgets/weather_summary_row.dart';
 import 'boundary_label_widget.dart';
 
 class VietnamMapView extends ConsumerStatefulWidget {
-  const VietnamMapView({super.key});
+  const VietnamMapView({
+    super.key,
+    this.focusLat,
+    this.focusLng,
+    this.focusLabel,
+  });
+
+  final double? focusLat;
+  final double? focusLng;
+  final String? focusLabel;
 
   @override
   ConsumerState<VietnamMapView> createState() => _VietnamMapViewState();
+}
+
+class _EventFocus {
+  const _EventFocus({required this.lat, required this.lng, required this.label});
+  final double lat;
+  final double lng;
+  final String label;
 }
 
 class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
@@ -33,6 +49,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
 
   static const LatLng _vietnamCenter = LatLng(16.0, 106.5);
   static const double _initialZoom = 6.0;
+  static const double _focusZoom = 13.0;
 
   LatLng? _currentLocation;
   LatLng? _tappedLocation;
@@ -42,10 +59,28 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
 
   List<_ProvinceBoundaryEntry> _provinceBoundaryEntries = [];
   bool _pendingCameraMove = false;
+  _EventFocus? _eventFocus;
+  bool _focusCameraApplied = false;
 
   @override
   void initState() {
     super.initState();
+    final lat = widget.focusLat;
+    final lng = widget.focusLng;
+    final label = widget.focusLabel;
+    if (lat != null && lng != null) {
+      _eventFocus = _EventFocus(lat: lat, lng: lng, label: label ?? '');
+    }
+  }
+
+  void _maybeApplyFocusCamera() {
+    final focus = _eventFocus;
+    if (focus == null || _focusCameraApplied) return;
+    _focusCameraApplied = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _mapController.move(LatLng(focus.lat, focus.lng), _focusZoom);
+    });
   }
 
   Future<void> _getCurrentLocation() async {
@@ -54,7 +89,8 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
       if (!serviceEnabled) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Location services are disabled on this device')),
+            const SnackBar(
+                content: Text('Location services are disabled on this device')),
           );
         }
         return;
@@ -76,7 +112,8 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
       if (permission == LocationPermission.deniedForever) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Location permissions are permanently denied')),
+            const SnackBar(
+                content: Text('Location permissions are permanently denied')),
           );
         }
         return;
@@ -84,7 +121,8 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
 
       if (!mounted) return;
       final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.medium),
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.medium),
       );
       if (!mounted) return;
       setState(() {
@@ -111,9 +149,12 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
       for (final ring in e.rings) {
         if (ring.isEmpty) continue;
         final outer = ring.map((p) => LatLng(p['lat']!, p['lng']!)).toList();
-        final holes = e.rings.skip(1).map(
-          (h) => h.map((p) => LatLng(p['lat']!, p['lng']!)).toList(),
-        ).toList();
+        final holes = e.rings
+            .skip(1)
+            .map(
+              (h) => h.map((p) => LatLng(p['lat']!, p['lng']!)).toList(),
+            )
+            .toList();
         polygons.add(Polygon(
           points: outer,
           holePointsList: holes.isEmpty ? null : holes,
@@ -122,7 +163,9 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
           borderStrokeWidth: 1.2,
         ));
       }
-      final centroid = e.centroid != null ? LatLng(e.centroid!['lat']!, e.centroid!['lng']!) : null;
+      final centroid = e.centroid != null
+          ? LatLng(e.centroid!['lat']!, e.centroid!['lng']!)
+          : null;
       return _ProvinceBoundaryEntry(
         code: e.code,
         name: e.name,
@@ -184,7 +227,8 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
           final provincesResult = ref.read(provincesProvider).valueOrNull;
           if (provincesResult != null && provincesResult.isOk) {
             final match = provincesResult.valueOrThrow
-                .where((p) => p.name == provinceName || p.code == unit.parentCode)
+                .where(
+                    (p) => p.name == provinceName || p.code == unit.parentCode)
                 .firstOrNull;
             if (match != null) {
               ref.read(selectedProvinceProvider.notifier).state = match;
@@ -223,7 +267,8 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-                content: Text('Vị trí chọn nằm ngoài lãnh thổ Việt Nam hoặc không có dữ liệu.')),
+                content: Text(
+                    'Vị trí chọn nằm ngoài lãnh thổ Việt Nam hoặc không có dữ liệu.')),
           );
         }
       },
@@ -245,81 +290,84 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: const BoxDecoration(
-                    color: Color.fromRGBO(33, 150, 243, 0.1),
-                    shape: BoxShape.circle,
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: const BoxDecoration(
+                      color: Color.fromRGBO(33, 150, 243, 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.location_on, color: Colors.blue),
                   ),
-                  child: const Icon(Icons.location_on, color: Colors.blue),
-                ),
-                const SizedBox(width: 16),
-                const Expanded(
-                  child: Text(
-                    'Thông tin khu vực',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Text(
+                      'Thông tin khu vực',
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            if (province != null) _buildInfoRow('Tỉnh/Thành phố', province),
-            if (commune != null) _buildInfoRow('Xã/Phường', commune),
-            const Divider(height: 24),
-            Consumer(
-              builder: (context, ref, _) {
-                final weatherAsync = ref.watch(selectedWeatherProvider);
-                return weatherAsync.when(
-                  loading: () => Row(
-                    children: [
-                      SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text('Đang tải thời tiết...'),
-                    ],
-                  ),
-                  error: (_, __) => const Text('Không tải được thời tiết'),
-                  data: (result) => result.when(
-                    ok: (snapshot) =>
-                        WeatherSummaryRow(weather: snapshot.weather),
-                    err: (_) => const Text('Không tải được thời tiết'),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.pop(context);
-                context.go('/weather');
-              },
-              icon: const Icon(Icons.cloud_outlined),
-              label: const Text('Xem chi tiết thời tiết'),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Đóng', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ],
               ),
-            ),
+              const SizedBox(height: 24),
+              if (province != null) _buildInfoRow('Tỉnh/Thành phố', province),
+              if (commune != null) _buildInfoRow('Xã/Phường', commune),
+              const Divider(height: 24),
+              Consumer(
+                builder: (context, ref, _) {
+                  final weatherAsync = ref.watch(selectedWeatherProvider);
+                  return weatherAsync.when(
+                    loading: () => Row(
+                      children: [
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text('Đang tải thời tiết...'),
+                      ],
+                    ),
+                    error: (_, __) => const Text('Không tải được thời tiết'),
+                    data: (result) => result.when(
+                      ok: (snapshot) =>
+                          WeatherSummaryRow(weather: snapshot.weather),
+                      err: (_) => const Text('Không tải được thời tiết'),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pop(context);
+                  context.go('/weather');
+                },
+                icon: const Icon(Icons.cloud_outlined),
+                label: const Text('Xem chi tiết thời tiết'),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Đóng',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+              ),
             ],
           ),
         ),
@@ -407,7 +455,8 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
           debugPrint('Error parsing GeoJSON: $e');
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-                content: Text('Dữ liệu bản đồ không hợp lệ hoặc bị lỗi định dạng.')),
+                content:
+                    Text('Dữ liệu bản đồ không hợp lệ hoặc bị lỗi định dạng.')),
           );
         }
       },
@@ -426,17 +475,17 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
   }
 
   List<Polygon> _getVisibleBoundaryPolygons() {
-    double fillOpacity = 0.12;
-    double borderOpacity = 0.8;
-    double borderStrokeWidth = 1.5;
+    double fillOpacity = 0.22;
+    double borderOpacity = 0.95;
+    double borderStrokeWidth = 2.2;
 
     if (_currentZoom > 7) {
-      fillOpacity = 0.04;
-      borderOpacity = 0.5;
-      borderStrokeWidth = 2.0;
+      fillOpacity = 0.10;
+      borderOpacity = 0.75;
+      borderStrokeWidth = 2.4;
     }
 
-    const baseColor = Color(0xFF1E88E5);
+    const baseColor = Color(0xFF1565C0);
 
     final allPolygons = <Polygon>[];
     for (final entry in _provinceBoundaryEntries) {
@@ -458,6 +507,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
 
   @override
   Widget build(BuildContext context) {
+    _maybeApplyFocusCamera();
     ref.listen(selectedProvinceProvider, (previous, next) {
       if (next != null && (previous == null || previous.code != next.code)) {
         _loadBoundary(next.code);
@@ -503,7 +553,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
     });
 
     final provinceLabels = <BoundaryLabel>[];
-    if (_currentZoom >= 6) {
+    if (_currentZoom >= 7.5) {
       for (final entry in _provinceBoundaryEntries) {
         final centroid = entry.centroid;
         if (centroid != null) {
@@ -522,7 +572,8 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
       for (final entry in communeEntries) {
         final centroid = communeCentroids[entry.code] ??
             (entry.polygons.isNotEmpty
-                ? GeoJsonUtils.computePolygonCentroid(entry.polygons.first.points)
+                ? GeoJsonUtils.computePolygonCentroid(
+                    entry.polygons.first.points)
                 : null);
         if (centroid != null) {
           communeLabels.add(BoundaryLabel(
@@ -545,7 +596,8 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
           points: polygon.points,
           holePointsList: polygon.holePointsList,
           color: tapped ? const Color(0x4D4CAF50) : const Color(0x1A4CAF50),
-          borderColor: tapped ? const Color(0xFF4CAF50) : const Color(0xCC4CAF50),
+          borderColor:
+              tapped ? const Color(0xFF4CAF50) : const Color(0xCC4CAF50),
           borderStrokeWidth: tapped ? 2.5 : 1.8,
         ));
       }
@@ -556,8 +608,10 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
         FlutterMap(
           mapController: _mapController,
           options: MapOptions(
-            initialCenter: _vietnamCenter,
-            initialZoom: _initialZoom,
+            initialCenter: _eventFocus != null
+                ? LatLng(_eventFocus!.lat, _eventFocus!.lng)
+                : _vietnamCenter,
+            initialZoom: _eventFocus != null ? _focusZoom : _initialZoom,
             minZoom: 5.5,
             maxZoom: 18.0,
             onPositionChanged: (position, hasGesture) {
@@ -573,7 +627,8 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
           ),
           children: [
             TileLayer(
-              urlTemplate: 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
+              urlTemplate:
+                  'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
               tileProvider: CancellableNetworkTileProvider(),
               userAgentPackageName: 'com.example.vietnamese_map',
             ),
@@ -609,7 +664,8 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.location_on, color: Colors.red, size: 16),
+                      const Icon(Icons.location_on,
+                          color: Colors.red, size: 16),
                       const Text(
                         'QĐ. Hoàng Sa',
                         textAlign: TextAlign.center,
@@ -651,7 +707,9 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                           fontWeight: FontWeight.w600,
                           fontSize: 10,
                           height: 1.1,
-                          shadows: [Shadow(color: Color(0xFFFFFFFF), blurRadius: 4)],
+                          shadows: [
+                            Shadow(color: Color(0xFFFFFFFF), blurRadius: 4)
+                          ],
                         ),
                       ),
                       Text(
@@ -661,7 +719,9 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                           color: Colors.black54,
                           fontSize: 8,
                           height: 1.1,
-                          shadows: [Shadow(color: Color(0xFFFFFFFF), blurRadius: 4)],
+                          shadows: [
+                            Shadow(color: Color(0xFFFFFFFF), blurRadius: 4)
+                          ],
                         ),
                       ),
                     ],
@@ -673,14 +733,57 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                     width: 40,
                     height: 40,
                     alignment: Alignment.topCenter,
-                    child: const Icon(Icons.location_on, color: Colors.red, size: 36),
+                    child: const Icon(Icons.location_on,
+                        color: Colors.red, size: 36),
                   ),
                 if (_currentLocation != null)
                   Marker(
                     point: _currentLocation!,
                     width: 40,
                     height: 40,
-                    child: const Icon(Icons.my_location, color: Colors.blue, size: 24),
+                    child: const Icon(Icons.my_location,
+                        color: Colors.blue, size: 24),
+                  ),
+                if (_eventFocus != null)
+                  Marker(
+                    point: LatLng(_eventFocus!.lat, _eventFocus!.lng),
+                    width: 160,
+                    height: 60,
+                    alignment: Alignment.bottomCenter,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Tooltip(
+                          message: _eventFocus!.label,
+                          child: const Icon(Icons.location_on,
+                              color: Colors.red, size: 40),
+                        ),
+                        if (_eventFocus!.label.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(4),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 2,
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              _eventFocus!.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
               ],
             ),
@@ -702,7 +805,8 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
             right: 0,
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.black87,
                   borderRadius: BorderRadius.circular(20),
@@ -739,7 +843,8 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
               borderRadius: BorderRadius.circular(12),
               elevation: 4,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
                   color: Colors.red.shade50,
                   borderRadius: BorderRadius.circular(12),
@@ -747,7 +852,8 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.error_outline, color: Colors.red.shade700, size: 20),
+                    Icon(Icons.error_outline,
+                        color: Colors.red.shade700, size: 20),
                     const SizedBox(width: 8),
                     const Expanded(
                       child: Text(
@@ -756,7 +862,8 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                       ),
                     ),
                     TextButton(
-                      onPressed: () => ref.invalidate(provincePolygonEntriesProvider),
+                      onPressed: () =>
+                          ref.invalidate(provincePolygonEntriesProvider),
                       child: const Text('Thử lại'),
                     ),
                   ],
@@ -804,7 +911,8 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                   });
                   ref.read(selectedProvinceProvider.notifier).state = null;
                   ref.read(selectedCommuneProvider.notifier).state = null;
-                  ref.read(selectedWeatherLocationProvider.notifier).state = null;
+                  ref.read(selectedWeatherLocationProvider.notifier).state =
+                      null;
                   ref.invalidate(selectedWeatherProvider);
                   ref.invalidate(activeWeatherLocationProvider);
                 },
