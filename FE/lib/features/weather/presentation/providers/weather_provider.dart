@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/errors/failures.dart';
+import '../../../../core/utils/failure_mapper.dart';
 import '../../../../core/utils/result.dart';
 import '../../../location/presentation/providers/location_provider.dart';
 import '../../../map/domain/entities/administrative_unit.dart';
@@ -13,6 +14,8 @@ import '../../data/repositories/weather_repository_impl.dart';
 import '../../domain/entities/current_weather.dart';
 import '../../domain/repositories/weather_repository.dart';
 import '../../domain/usecases/get_current_weather.dart';
+import '../../models/weather_model.dart';
+import '../../providers/weather_provider.dart' as weather_api;
 
 final weatherDataSourceProvider = Provider<WeatherRemoteDataSource>(
   (ref) => WeatherRemoteDataSourceImpl(ref.watch(dioClientProvider)),
@@ -142,15 +145,23 @@ final selectedWeatherProvider =
         );
       }
 
-      final weatherResult = await ref
-          .watch(getCurrentWeatherProvider)
-          .call(location.lat, location.lng);
-      return weatherResult.when(
-        ok: (weather) => Ok(
-          SelectedWeatherSnapshot(location: location, weather: weather),
-        ),
-        err: (failure) => Err(failure),
-      );
+      try {
+        final weather = await ref.read(
+          weather_api
+              .currentWeatherByLatLngProvider(
+                weather_api.WeatherLatLng(location.lat, location.lng),
+              )
+              .future,
+        );
+        return Ok(
+          SelectedWeatherSnapshot(
+            location: location,
+            weather: _toCurrentWeather(weather),
+          ),
+        );
+      } catch (error) {
+        return Err(mapExceptionToFailure(error));
+      }
     },
     err: (failure) async => Err(failure),
   );
@@ -163,6 +174,28 @@ bool _isValidCoordinate(double lat, double lng) {
       lat <= 90 &&
       lng >= -180 &&
       lng <= 180;
+}
+
+CurrentWeather _toCurrentWeather(WeatherModel weather) {
+  final timestamp = DateTime.tryParse(
+        weather.lastUpdated.replaceFirst(' ', 'T'),
+      ) ??
+      DateTime.now();
+  return CurrentWeather(
+    temperature: weather.tempC,
+    feelsLike: weather.feelslikeC,
+    humidity: weather.humidity,
+    windSpeed: weather.windKph / 3.6,
+    windKph: weather.windKph,
+    cloud: weather.cloud,
+    uv: weather.uv,
+    description: weather.conditionText,
+    iconCode: '',
+    iconUrlOverride: weather.conditionIcon,
+    locationName: weather.locationName,
+    timestamp: timestamp,
+    source: 'WeatherAPI.com',
+  );
 }
 
 typedef AdministrativeNames = ({

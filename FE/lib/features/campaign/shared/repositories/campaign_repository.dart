@@ -21,7 +21,9 @@ class CampaignRepository {
   }
 
   Future<CampaignModel> getCampaign(int campaignId) async {
-    final res = await _client.get<Map<String, dynamic>>('/api/v1/campaigns/$campaignId');
+    final res = await _client.get<Map<String, dynamic>>(
+      '/api/v1/campaigns/$campaignId',
+    );
     final api = ApiResponse.fromJson(
       res.data!,
       (json) => CampaignModel.fromJson(json as Map<String, dynamic>),
@@ -85,6 +87,34 @@ class CampaignRepository {
     return api.data!;
   }
 
+  Future<CampaignEventModel> getEvent(int eventId) async {
+    final res = await _client.get<Map<String, dynamic>>(
+      '/api/v1/events/$eventId',
+    );
+    final api = ApiResponse.fromJson(
+      res.data!,
+      (json) => CampaignEventModel.fromJson(json as Map<String, dynamic>),
+    );
+    _assertSuccess(api);
+    return api.data!;
+  }
+
+  Future<CampaignEventModel> updateEvent(
+    int eventId,
+    Map<String, dynamic> data,
+  ) async {
+    final res = await _client.put<Map<String, dynamic>>(
+      '/api/v1/events/$eventId',
+      data: data,
+    );
+    final api = ApiResponse.fromJson(
+      res.data!,
+      (json) => CampaignEventModel.fromJson(json as Map<String, dynamic>),
+    );
+    _assertSuccess(api);
+    return api.data!;
+  }
+
   Future<void> assignSchool(int eventId, String schoolUid) async {
     await _client.post<Map<String, dynamic>>(
       '/api/v1/events/$eventId/schools',
@@ -92,10 +122,22 @@ class CampaignRepository {
     );
   }
 
+  Future<void> removeSchool(int eventId, String schoolUid) async {
+    await _client.delete<Map<String, dynamic>>(
+      '/api/v1/events/$eventId/schools/$schoolUid',
+    );
+  }
+
   Future<void> assignEmployee(int eventId, int employeeId) async {
     await _client.post<Map<String, dynamic>>(
       '/api/v1/events/$eventId/assignments',
       data: {'employeeId': employeeId},
+    );
+  }
+
+  Future<void> removeEmployee(int eventId, int employeeId) async {
+    await _client.delete<Map<String, dynamic>>(
+      '/api/v1/events/$eventId/assignments/$employeeId',
     );
   }
 

@@ -14,6 +14,10 @@ class CurrentWeather {
     required this.timestamp,
     this.source,
     this.cached = false,
+    this.iconUrlOverride,
+    this.windKph,
+    this.cloud,
+    this.uv,
   });
 
   final double temperature;
@@ -30,7 +34,12 @@ class CurrentWeather {
   final DateTime timestamp;
   final String? source;
   final bool cached;
+  final String? iconUrlOverride;
+  final double? windKph;
+  final int? cloud;
+  final double? uv;
 
-  String get iconUrl =>
-      'https://openweathermap.org/img/wn/$iconCode@2x.png';
+  String get iconUrl => iconUrlOverride?.isNotEmpty == true
+      ? iconUrlOverride!
+      : 'https://openweathermap.org/img/wn/$iconCode@2x.png';
 }

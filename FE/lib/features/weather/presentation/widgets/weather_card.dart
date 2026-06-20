@@ -91,8 +91,8 @@ class _MainWeatherCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       weather.description,
-                      style: const TextStyle(
-                          color: Colors.white70, fontSize: 14),
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 14),
                     ),
                   ],
                 ),
@@ -199,8 +199,22 @@ class _DetailsGrid extends StatelessWidget {
       _Detail(
           icon: Icons.air,
           label: 'Gió',
-          value: '${weather.windSpeed.toStringAsFixed(1)} m/s',
+          value: weather.windKph != null
+              ? '${weather.windKph!.toStringAsFixed(1)} km/h'
+              : '${weather.windSpeed.toStringAsFixed(1)} m/s',
           color: const Color(0xFF66BB6A)),
+      if (weather.cloud != null)
+        _Detail(
+            icon: Icons.cloud_outlined,
+            label: 'Mây',
+            value: '${weather.cloud}%',
+            color: const Color(0xFF78909C)),
+      if (weather.uv != null)
+        _Detail(
+            icon: Icons.wb_sunny_outlined,
+            label: 'UV',
+            value: weather.uv!.toStringAsFixed(1),
+            color: const Color(0xFFFFB300)),
       if (weather.pressure != null)
         _Detail(
             icon: Icons.compress,
@@ -280,8 +294,7 @@ class _DetailCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(detail.label,
-                  style: TextStyle(
-                      color: Colors.grey.shade500, fontSize: 11)),
+                  style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
               const SizedBox(height: 2),
               Text(detail.value,
                   style: const TextStyle(
@@ -310,8 +323,7 @@ class _CachedBadge extends StatelessWidget {
             Icon(Icons.cached, size: 14, color: Colors.grey.shade500),
             const SizedBox(width: 4),
             Text('Dữ liệu cache',
-                style:
-                    TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
           ],
         ),
       ),

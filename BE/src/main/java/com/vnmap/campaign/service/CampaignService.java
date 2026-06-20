@@ -11,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
-import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -137,7 +136,7 @@ public class CampaignService {
                         name, status, objective, start_date, end_date, owner_employee_id
                     ) VALUES (?, ?, ?, ?, ?, ?)
                     """,
-                    Statement.RETURN_GENERATED_KEYS
+                    new String[]{"id"}
             );
             ps.setString(1, request.name());
             ps.setString(2, request.status());
@@ -302,7 +301,7 @@ public class CampaignService {
                         campaign_id, name, event_type, status, starts_at, ends_at, note
                     ) VALUES (?, ?, ?, ?, ?, ?, ?)
                     """,
-                    Statement.RETURN_GENERATED_KEYS
+                    new String[]{"id"}
             );
             ps.setLong(1, campaignId);
             ps.setString(2, request.name());
@@ -400,7 +399,7 @@ public class CampaignService {
                         participant_id, channel, outcome, note, next_follow_up_at
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
-                    Statement.RETURN_GENERATED_KEYS
+                    new String[]{"id"}
             );
             ps.setLong(1, event.campaignId());
             ps.setLong(2, eventId);

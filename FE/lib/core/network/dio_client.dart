@@ -68,9 +68,10 @@ class RetryInterceptor extends Interceptor {
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     final isServerError =
         err.response?.statusCode != null && err.response!.statusCode! >= 500;
+    final isSafeToRetry = err.requestOptions.method == 'GET';
 
     final retryCount = err.requestOptions.extra['_retryCount'] as int? ?? 0;
-    if (!isServerError || retryCount >= maxRetries) {
+    if (!isServerError || !isSafeToRetry || retryCount >= maxRetries) {
       handler.next(err);
       return;
     }

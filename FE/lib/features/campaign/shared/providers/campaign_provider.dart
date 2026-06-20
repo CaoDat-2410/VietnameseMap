@@ -12,8 +12,10 @@ final campaignsProvider = FutureProvider<List<CampaignModel>>((ref) {
   return ref.watch(campaignRepositoryProvider).getCampaigns();
 });
 
-final campaignDetailProvider =
-    FutureProvider.family<CampaignModel, int>((ref, campaignId) {
+final campaignDetailProvider = FutureProvider.family<CampaignModel, int>((
+  ref,
+  campaignId,
+) {
   return ref.watch(campaignRepositoryProvider).getCampaign(campaignId);
 });
 
@@ -25,6 +27,13 @@ final campaignDashboardProvider =
 final campaignEventsProvider =
     FutureProvider.family<List<CampaignEventModel>, int>((ref, campaignId) {
   return ref.watch(campaignRepositoryProvider).getEvents(campaignId);
+});
+
+final eventDetailProvider = FutureProvider.family<CampaignEventModel, int>((
+  ref,
+  eventId,
+) {
+  return ref.watch(campaignRepositoryProvider).getEvent(eventId);
 });
 
 final eventInteractionsProvider =

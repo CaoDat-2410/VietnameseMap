@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,7 +7,9 @@ import 'app/router.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load();
+  if (!kIsWeb) {
+    await dotenv.load(isOptional: true);
+  }
   runApp(const ProviderScope(child: VietnameseMapApp()));
 }
 
@@ -24,7 +27,7 @@ class VietnameseMapApp extends StatelessWidget {
   }
 
   ThemeData _buildTheme() {
-  const primary = Color(0xFFDA291C);
+    const primary = Color(0xFFDA291C);
 
     return ThemeData(
       useMaterial3: true,

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../shared/models/campaign_models.dart';
 import '../../shared/providers/campaign_provider.dart';
+import '../widgets/campaign_status_chip.dart';
 
 class CampaignListPage extends ConsumerStatefulWidget {
   const CampaignListPage({super.key});
@@ -16,7 +17,13 @@ class _CampaignListPageState extends ConsumerState<CampaignListPage> {
   String _searchQuery = '';
   String _statusFilter = 'ALL';
 
-  final List<String> _statuses = ['ALL', 'DRAFT', 'ACTIVE', 'DONE', 'CANCELLED'];
+  final List<String> _statuses = [
+    'ALL',
+    'DRAFT',
+    'ACTIVE',
+    'DONE',
+    'CANCELLED',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -35,8 +42,11 @@ class _CampaignListPageState extends ConsumerState<CampaignListPage> {
       body: campaignsAsync.when(
         data: (campaigns) {
           final filteredCampaigns = campaigns.where((c) {
-            final matchesStatus = _statusFilter == 'ALL' || c.status == _statusFilter;
-            final matchesSearch = c.name.toLowerCase().contains(_searchQuery.toLowerCase());
+            final matchesStatus =
+                _statusFilter == 'ALL' || c.status == _statusFilter;
+            final matchesSearch = c.name.toLowerCase().contains(
+                  _searchQuery.toLowerCase(),
+                );
             return matchesStatus && matchesSearch;
           }).toList();
 
@@ -62,7 +72,10 @@ class _CampaignListPageState extends ConsumerState<CampaignListPage> {
                       isExpanded: true,
                       value: _statusFilter,
                       decoration: const InputDecoration(
-                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                       ),
                       items: _statuses.map((status) {
                         return DropdownMenuItem(
@@ -99,14 +112,20 @@ class _CampaignListPageState extends ConsumerState<CampaignListPage> {
               ),
               Expanded(
                 child: filteredCampaigns.isEmpty
-                    ? const Center(child: Text('No campaigns found.'))
+                    ? Center(
+                        child: Text(
+                          campaigns.isEmpty
+                              ? 'No campaigns yet.'
+                              : 'No campaigns found.',
+                        ),
+                      )
                     : RefreshIndicator(
                         onRefresh: () async {
                           ref.invalidate(campaignsProvider);
                         },
                         child: LayoutBuilder(
                           builder: (context, constraints) {
-                            if (constraints.maxWidth > 600) {
+                            if (constraints.maxWidth > 1000) {
                               return _buildTableView(filteredCampaigns);
                             } else {
                               return _buildCardView(filteredCampaigns);
@@ -145,11 +164,36 @@ class _CampaignListPageState extends ConsumerState<CampaignListPage> {
         child: DataTable(
           showCheckboxColumn: false,
           columns: const [
-            DataColumn(label: Text('Name', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('Status', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('Objective', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('Duration', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('Owner ID', style: TextStyle(fontWeight: FontWeight.bold))),
+            DataColumn(
+              label: Text(
+                'Name',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                'Status',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                'Objective',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                'Duration',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                'Owner ID',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
           ],
           rows: campaigns.map((c) {
             return DataRow(
@@ -158,7 +202,7 @@ class _CampaignListPageState extends ConsumerState<CampaignListPage> {
               },
               cells: [
                 DataCell(Text(c.name)),
-                DataCell(Chip(label: Text(c.status))),
+                DataCell(CampaignStatusChip(status: c.status)),
                 DataCell(Text(c.objective)),
                 DataCell(Text('${c.startDate} - ${c.endDate}')),
                 DataCell(Text('${c.ownerEmployeeId}')),
@@ -198,7 +242,7 @@ class _CampaignListPageState extends ConsumerState<CampaignListPage> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Chip(label: Text(c.status)),
+                      CampaignStatusChip(status: c.status),
                     ],
                   ),
                   const SizedBox(height: 8),
