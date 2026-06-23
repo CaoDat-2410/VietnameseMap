@@ -6,6 +6,7 @@ import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_ti
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../../../map/presentation/providers/map_provider.dart';
 import '../../shared/models/campaign_models.dart';
 import '../../shared/providers/campaign_provider.dart';
@@ -149,13 +150,14 @@ class _EventFormDialogState extends ConsumerState<EventFormDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final eventId = widget.event?.id ?? 0;
     final schoolsAsync = ref.watch(eventSchoolsProvider(eventId));
     final centroidsAsync = ref.watch(provinceCentroidsProvider);
     final hasLocation = _lat != null && _lng != null;
 
     return AlertDialog(
-      title: Text(widget.event == null ? 'Create Event' : 'Edit Event'),
+      title: Text(widget.event == null ? l10n.createEventTitle : l10n.editEventTitle),
       content: SizedBox(
         width: 520,
         child: Form(
@@ -166,13 +168,13 @@ class _EventFormDialogState extends ConsumerState<EventFormDialog> {
               children: [
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(labelText: 'Name'),
-                  validator: _required,
+                  decoration: InputDecoration(labelText: l10n.name),
+                  validator: (v) => v?.trim().isEmpty == true ? l10n.required : null,
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: _eventType,
-                  decoration: const InputDecoration(labelText: 'Event type'),
+                  decoration: InputDecoration(labelText: l10n.eventType),
                   items: const [
                     DropdownMenuItem(
                       value: 'SCHOOL_VISIT',
@@ -192,7 +194,7 @@ class _EventFormDialogState extends ConsumerState<EventFormDialog> {
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: _status,
-                  decoration: const InputDecoration(labelText: 'Status'),
+                  decoration: InputDecoration(labelText: l10n.status),
                   items: const [
                     DropdownMenuItem(value: 'PLANNED', child: Text('PLANNED')),
                     DropdownMenuItem(
@@ -212,29 +214,32 @@ class _EventFormDialogState extends ConsumerState<EventFormDialog> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _startsAtController,
-                  decoration: const InputDecoration(
-                    labelText: 'Starts at',
+                  decoration: InputDecoration(
+                    labelText: l10n.startsAt,
                     hintText: '2026-06-20T08:00:00',
                   ),
-                  validator: _datetime,
+                  validator: (v) {
+                    final text = v?.trim() ?? '';
+                    if (text.isEmpty) return null;
+                    if (DateTime.tryParse(text) == null) return l10n.useYyyyMmDdTHhMmSs;
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _endsAtController,
-                  decoration: const InputDecoration(
-                    labelText: 'Ends at',
+                  decoration: InputDecoration(
+                    labelText: l10n.endsAt,
                     hintText: '2026-06-20T11:00:00',
                   ),
                   validator: (value) {
-                    final formatError = _datetime(value);
-                    if (formatError != null) return formatError;
-                    final startsAt =
-                        DateTime.tryParse(_startsAtController.text);
-                    final endsAt = DateTime.tryParse(value ?? '');
-                    if (startsAt != null &&
-                        endsAt != null &&
-                        endsAt.isBefore(startsAt)) {
-                      return 'Ends at must be after starts at';
+                    final text = value?.trim() ?? '';
+                    if (text.isEmpty) return null;
+                    if (DateTime.tryParse(text) == null) return l10n.useYyyyMmDdTHhMmSs;
+                    final startsAt = DateTime.tryParse(_startsAtController.text);
+                    final endsAt = DateTime.tryParse(text);
+                    if (startsAt != null && endsAt != null && endsAt.isBefore(startsAt)) {
+                      return l10n.endsAtMustBeAfterStartsAt;
                     }
                     return null;
                   },
@@ -242,28 +247,28 @@ class _EventFormDialogState extends ConsumerState<EventFormDialog> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _noteController,
-                  decoration: const InputDecoration(labelText: 'Note'),
+                  decoration: InputDecoration(labelText: l10n.note),
                   maxLines: 3,
                 ),
                 const SizedBox(height: 20),
-                const _SectionHeader('Location'),
+                _SectionHeader(l10n.location),
                 const SizedBox(height: 8),
                 schoolsAsync.when(
                   loading: () => const LinearProgressIndicator(),
                   error: (e, _) => Text(
-                    'Could not load schools: $e',
+                    '${l10n.noAssignedSchools}: $e',
                     style: const TextStyle(color: Colors.red),
                   ),
                   data: (schools) {
                     if (schools.isEmpty) {
-                      return const Text(
-                        'No schools assigned yet. Assign schools in the Schools tab to enable auto-location, or drop a pin manually below.',
-                        style: TextStyle(color: Colors.black54),
+                      return Text(
+                        l10n.noSchoolsAssigned,
+                        style: const TextStyle(color: Colors.black54),
                       );
                     }
                     return DropdownButtonFormField<String>(
                       initialValue: _selectedSchoolUid,
-                      decoration: const InputDecoration(labelText: 'School'),
+                      decoration: InputDecoration(labelText: l10n.school),
                       items: [
                         for (final s in schools)
                           DropdownMenuItem(
@@ -278,7 +283,7 @@ class _EventFormDialogState extends ConsumerState<EventFormDialog> {
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _locationLabelController,
-                  decoration: const InputDecoration(labelText: 'Address label'),
+                  decoration: InputDecoration(labelText: l10n.locationLabel),
                 ),
                 const SizedBox(height: 12),
                 SizedBox(
@@ -304,14 +309,14 @@ class _EventFormDialogState extends ConsumerState<EventFormDialog> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
-                      children: const [
-                        Icon(Icons.warning_amber_rounded,
+                      children: [
+                        const Icon(Icons.warning_amber_rounded,
                             color: Colors.deepOrange, size: 18),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Using province center as approximate location - drag the pin to refine.',
-                            style: TextStyle(fontSize: 12),
+                            l10n.provinceCenterLocation,
+                            style: const TextStyle(fontSize: 12),
                           ),
                         ),
                       ],
@@ -325,14 +330,14 @@ class _EventFormDialogState extends ConsumerState<EventFormDialog> {
                       child: Text(
                         hasLocation
                             ? 'Lat ${_lat!.toStringAsFixed(4)}, Lng ${_lng!.toStringAsFixed(4)}'
-                            : 'No location selected',
+                            : l10n.noLocationSelected,
                         style: const TextStyle(color: Colors.black54),
                       ),
                     ),
                     FilledButton.tonalIcon(
                       onPressed: _openPicker,
                       icon: const Icon(Icons.map_outlined),
-                      label: const Text('Pick on map'),
+                      label: Text(l10n.pickOnMap),
                     ),
                   ],
                 ),
@@ -349,7 +354,7 @@ class _EventFormDialogState extends ConsumerState<EventFormDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         FilledButton(
           onPressed: _saving ? null : _submit,
@@ -358,23 +363,10 @@ class _EventFormDialogState extends ConsumerState<EventFormDialog> {
                   dimension: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Save'),
+              : Text(l10n.save),
         ),
       ],
     );
-  }
-
-  String? _required(String? value) {
-    return value == null || value.trim().isEmpty ? 'Required' : null;
-  }
-
-  String? _datetime(String? value) {
-    final text = value?.trim() ?? '';
-    if (text.isEmpty) return null;
-    if (DateTime.tryParse(text) == null) {
-      return 'Use yyyy-MM-ddTHH:mm:ss';
-    }
-    return null;
   }
 
   String? _emptyToNull(String? value) {

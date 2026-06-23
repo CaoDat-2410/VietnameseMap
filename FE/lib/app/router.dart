@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/providers/locale_provider.dart';
+import '../core/providers/theme_provider.dart';
 import '../features/admin/presentation/pages/admin_users_page.dart';
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/logout_page.dart';
@@ -14,34 +16,70 @@ import '../features/campaign/dashboard/pages/campaign_dashboard_page.dart';
 import '../features/campaign/dashboard/pages/campaign_list_page.dart';
 import '../features/campaign/events/pages/campaign_events_page.dart';
 import '../features/campaign/events/pages/event_detail_page.dart';
-import '../features/campaign/presentation/pages/campaigns_temp_page.dart';
 import '../features/map/presentation/pages/map_page.dart';
 import '../features/map/presentation/widgets/vietnam_map_view.dart';
 import '../features/school/presentation/pages/school_detail_page.dart';
 import '../features/school/presentation/pages/school_list_page.dart';
-import '../features/school/presentation/pages/schools_temp_page.dart';
 import '../features/student/presentation/pages/my_registrations_page.dart';
 import '../features/student/presentation/pages/student_register_page.dart';
 import '../features/weather/presentation/pages/weather_page.dart';
+import '../l10n/app_localizations.dart';
+
+// Smooth page transition for better UX
+CustomTransitionPage<void> _buildPageWithSlideTransition({
+  required BuildContext context,
+  required Widget child,
+  required GoRouterState state,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 300),
+    reverseTransitionDuration: const Duration(milliseconds: 250),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      // Slide from right with fade
+      final tween = Tween(
+        begin: const Offset(1.0, 0.0),
+        end: Offset.zero,
+      ).chain(CurveTween(curve: Curves.easeOutCubic));
+
+      final fadeTween = Tween(begin: 0.0, end: 1.0);
+
+      return SlideTransition(
+        position: animation.drive(tween),
+        child: FadeTransition(
+          opacity: animation.drive(fadeTween),
+          child: child,
+        ),
+      );
+    },
+  );
+}
 
 final router = GoRouter(
-  initialLocation: '/map',
+  initialLocation: '/login',
   redirect: (context, state) async {
-    if (state.uri.path == '/') return '/map';
-    if (state.uri.path.startsWith('/province/')) return '/map';
     final path = state.uri.path;
-    final isPublic = path == '/login' ||
-        path == '/map' ||
-        path == '/weather' ||
-        path == '/logout' ||
-        path.startsWith('/student/register/');
+    if (path == '/' || path.startsWith('/province/')) return '/map';
     final hasToken =
         (await TokenStorage().readAccessToken())?.isNotEmpty == true;
-    if (!hasToken && !isPublic) return '/login';
-    if (hasToken && path == '/login') {
-      final token = await TokenStorage().readAccessToken();
-      return landingPathForRole(_roleFromAccessToken(token));
+
+    // Always allow /login, /logout, and student self-registration links.
+    final isAlwaysPublic = path == '/login' ||
+        path == '/logout' ||
+        path.startsWith('/student/register/');
+
+    if (isAlwaysPublic) {
+      // If user is already signed in, skip the login screen and go to landing.
+      if (hasToken && path == '/login') {
+        final token = await TokenStorage().readAccessToken();
+        return landingPathForRole(_roleFromAccessToken(token));
+      }
+      return null;
     }
+
+    // Everything else requires a token.
+    if (!hasToken) return '/login';
     return null;
   },
   routes: [
@@ -69,7 +107,9 @@ final router = GoRouter(
             final lat = double.tryParse(params['lat'] ?? '');
             final lng = double.tryParse(params['lng'] ?? '');
             final label = params['eventName'];
-            return NoTransitionPage(
+            return _buildPageWithSlideTransition(
+              context: context,
+              state: state,
               child: MapPage(
                 focusLat: lat,
                 focusLng: lng,
@@ -80,22 +120,28 @@ final router = GoRouter(
         ),
         GoRoute(
           path: '/weather',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: WeatherPage(),
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
+            child: const WeatherPage(),
           ),
         ),
         GoRoute(
           path: '/campaigns',
-          pageBuilder: (context, state) => const NoTransitionPage(
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
             child: _RoleGate(
               allowedRoles: {'STAFF', 'MANAGER', 'ADMIN'},
-              child: CampaignListPage(),
+              child: const CampaignListPage(),
             ),
           ),
         ),
         GoRoute(
           path: '/campaigns/:campaignId/dashboard',
-          pageBuilder: (context, state) => NoTransitionPage(
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
             child: _RoleGate(
               allowedRoles: const {'STAFF', 'MANAGER', 'ADMIN'},
               child: CampaignDashboardPage(
@@ -106,7 +152,9 @@ final router = GoRouter(
         ),
         GoRoute(
           path: '/campaigns/:campaignId/events',
-          pageBuilder: (context, state) => NoTransitionPage(
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
             child: _RoleGate(
               allowedRoles: const {'STAFF', 'MANAGER', 'ADMIN'},
               child: CampaignEventsPage(
@@ -117,7 +165,9 @@ final router = GoRouter(
         ),
         GoRoute(
           path: '/events/:eventId',
-          pageBuilder: (context, state) => NoTransitionPage(
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
             child: _RoleGate(
               allowedRoles: const {'STAFF', 'MANAGER', 'ADMIN'},
               child: EventDetailPage(
@@ -127,23 +177,21 @@ final router = GoRouter(
           ),
         ),
         GoRoute(
-          path: '/campaigns-temp',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: CampaignsTempPage(),
-          ),
-        ),
-        GoRoute(
           path: '/schools',
-          pageBuilder: (context, state) => const NoTransitionPage(
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
             child: _RoleGate(
               allowedRoles: {'STAFF', 'MANAGER', 'ADMIN'},
-              child: SchoolListPage(),
+              child: const SchoolListPage(),
             ),
           ),
         ),
         GoRoute(
           path: '/schools/:schoolUid',
-          pageBuilder: (context, state) => NoTransitionPage(
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
             child: _RoleGate(
               allowedRoles: const {'STAFF', 'MANAGER', 'ADMIN'},
               child: SchoolDetailPage(
@@ -153,26 +201,24 @@ final router = GoRouter(
           ),
         ),
         GoRoute(
-          path: '/schools-temp',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: SchoolsTempPage(),
-          ),
-        ),
-        GoRoute(
           path: '/student/my-registrations',
-          pageBuilder: (context, state) => const NoTransitionPage(
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
             child: _RoleGate(
               allowedRoles: {'STUDENT'},
-              child: MyRegistrationsPage(),
+              child: const MyRegistrationsPage(),
             ),
           ),
         ),
         GoRoute(
           path: '/admin/users',
-          pageBuilder: (context, state) => const NoTransitionPage(
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
             child: _RoleGate(
               allowedRoles: {'ADMIN'},
-              child: AdminUsersPage(),
+              child: const AdminUsersPage(),
             ),
           ),
         ),
@@ -194,9 +240,12 @@ class _AppShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final themeMode = ref.watch(themeModeProvider);
+    final locale = ref.watch(localeProvider);
     final location = GoRouterState.of(context).uri.path;
     final user = ref.watch(activeUserProvider).valueOrNull;
-    final navItems = _navItemsFor(user?.role);
+    final navItems = _navItemsFor(user?.role, l10n);
     final activePath = _activeNavPath(location);
     final index = navItems.indexWhere((item) => item.path == activePath);
     final selectedIndex = index < 0 ? 0 : index;
@@ -239,11 +288,42 @@ class _AppShell extends ConsumerWidget {
                 ),
                 Container(
                   width: 1,
-                  color: Colors.grey.shade300,
+                  color: Theme.of(context).dividerColor,
                 ),
                 Expanded(
                   flex: 4,
                   child: Scaffold(
+                    appBar: AppBar(
+                      automaticallyImplyLeading: false,
+                      actions: [
+                        IconButton(
+                          icon: Text(
+                            locale.languageCode.toUpperCase(),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          tooltip: 'Change language',
+                          onPressed: () {
+                            ref.read(localeProvider.notifier).toggleLocale();
+                          },
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            themeMode == ThemeMode.dark
+                                ? Icons.light_mode
+                                : Icons.dark_mode,
+                          ),
+                          tooltip: themeMode == ThemeMode.dark
+                              ? 'Light mode'
+                              : 'Dark mode',
+                          onPressed: () {
+                            ref.read(themeModeProvider.notifier).toggleTheme();
+                          },
+                        ),
+                      ],
+                    ),
                     body: child,
                     bottomNavigationBar: navBar,
                   ),
@@ -253,6 +333,37 @@ class _AppShell extends ConsumerWidget {
           );
         } else {
           return Scaffold(
+            appBar: AppBar(
+              automaticallyImplyLeading: false,
+              actions: [
+                IconButton(
+                  icon: Text(
+                    locale.languageCode.toUpperCase(),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  tooltip: 'Change language',
+                  onPressed: () {
+                    ref.read(localeProvider.notifier).toggleLocale();
+                  },
+                ),
+                IconButton(
+                  icon: Icon(
+                    themeMode == ThemeMode.dark
+                        ? Icons.light_mode
+                        : Icons.dark_mode,
+                  ),
+                  tooltip: themeMode == ThemeMode.dark
+                      ? 'Light mode'
+                      : 'Dark mode',
+                  onPressed: () {
+                    ref.read(themeModeProvider.notifier).toggleTheme();
+                  },
+                ),
+              ],
+            ),
             body: child,
             bottomNavigationBar: navBar,
           );
@@ -262,6 +373,8 @@ class _AppShell extends ConsumerWidget {
   }
 
   String _activeNavPath(String location) {
+    if (location.startsWith('/login')) return '/login';
+    if (location.startsWith('/logout')) return '/logout';
     if (location.startsWith('/campaigns') || location.startsWith('/events')) {
       return '/campaigns';
     }
@@ -274,32 +387,35 @@ class _AppShell extends ConsumerWidget {
     return '/map';
   }
 
-  List<_NavItem> _navItemsFor(String? role) {
+  List<_NavItem> _navItemsFor(String? role, AppLocalizations l10n) {
     final items = <_NavItem>[
-      const _NavItem('/map', 'Map', Icons.map_outlined, Icons.map),
-      const _NavItem('/weather', 'Weather', Icons.cloud_outlined, Icons.cloud),
+      _NavItem('/map', l10n.map, Icons.map_outlined, Icons.map),
+      _NavItem('/weather', l10n.weather, Icons.cloud_outlined, Icons.cloud),
     ];
+    if (role == null) {
+      items.add(
+          _NavItem('/login', l10n.login, Icons.login_outlined, Icons.login));
+      return items;
+    }
     if (role == 'STUDENT') {
-      items.add(const _NavItem('/student/my-registrations', 'Mine',
+      items.add(_NavItem('/student/my-registrations', l10n.mine,
           Icons.assignment_ind_outlined, Icons.assignment_ind));
-      items.add(const _NavItem(
-          '/logout', 'Logout', Icons.logout_outlined, Icons.logout));
+      items.add(_NavItem(
+          '/logout', l10n.logout, Icons.logout_outlined, Icons.logout));
       return items;
     }
     if (role == 'STAFF' || role == 'MANAGER' || role == 'ADMIN') {
-      items.add(const _NavItem(
-          '/campaigns', 'Campaign', Icons.campaign_outlined, Icons.campaign));
-      items.add(const _NavItem(
-          '/schools', 'Schools', Icons.school_outlined, Icons.school));
+      items.add(_NavItem(
+          '/campaigns', l10n.campaigns, Icons.campaign_outlined, Icons.campaign));
+      items.add(_NavItem(
+          '/schools', l10n.schools, Icons.school_outlined, Icons.school));
     }
     if (role == 'ADMIN') {
-      items.add(const _NavItem('/admin/users', 'Users',
+      items.add(_NavItem('/admin/users', l10n.users,
           Icons.admin_panel_settings_outlined, Icons.admin_panel_settings));
     }
-    if (role != null) {
-      items.add(const _NavItem(
-          '/logout', 'Logout', Icons.logout_outlined, Icons.logout));
-    }
+    items.add(_NavItem(
+        '/logout', l10n.logout, Icons.logout_outlined, Icons.logout));
     return items;
   }
 }
@@ -315,6 +431,7 @@ class _RoleGate extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final user = ref.watch(activeUserProvider);
     return user.when(
       loading: () => const Scaffold(
@@ -328,9 +445,9 @@ class _RoleGate extends ConsumerWidget {
           return child;
         }
         return Scaffold(
-          appBar: AppBar(title: const Text('Access denied')),
-          body: const Center(
-            child: Text('You do not have permission to view this page.'),
+          appBar: AppBar(title: Text(l10n.accessDenied)),
+          body: Center(
+            child: Text(l10n.noPermission),
           ),
         );
       },
@@ -352,7 +469,8 @@ String? _roleFromAccessToken(String? token) {
   final parts = token.split('.');
   if (parts.length != 3) return null;
   try {
-    final payload = utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
+    final payload =
+        utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
     final json = jsonDecode(payload) as Map<String, dynamic>;
     return json['role'] as String?;
   } catch (_) {

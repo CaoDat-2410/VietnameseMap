@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../../../auth/shared/providers/auth_provider.dart';
 import '../../shared/models/campaign_models.dart';
 import '../../shared/providers/campaign_provider.dart';
@@ -13,6 +14,7 @@ class CampaignEventsPage extends ConsumerWidget {
   final int campaignId;
 
   Future<void> _createEvent(BuildContext context, WidgetRef ref) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       await showDialog<void>(
         context: context,
@@ -28,7 +30,7 @@ class CampaignEventsPage extends ConsumerWidget {
       );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Event saved')),
+          SnackBar(content: Text(l10n.eventSaved)),
         );
       }
     } catch (error) {
@@ -36,8 +38,45 @@ class CampaignEventsPage extends ConsumerWidget {
     }
   }
 
+  Future<void> _archiveEvent(BuildContext context, WidgetRef ref, CampaignEventModel event) async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.confirmArchive),
+        content: Text('${l10n.archive} "${event.name}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.archive),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await ref.read(campaignRepositoryProvider).archiveEvent(event.id);
+        ref.invalidate(campaignEventsProvider(campaignId));
+        ref.invalidate(campaignDashboardProvider(campaignId));
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.archived)),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) _showError(context, e);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final campaign = ref.watch(campaignDetailProvider(campaignId));
     final events = ref.watch(campaignEventsProvider(campaignId));
     final role = ref.watch(activeUserProvider).valueOrNull?.role;
@@ -46,12 +85,12 @@ class CampaignEventsPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: campaign.maybeWhen(
-          data: (item) => Text('${item.name} Events'),
-          orElse: () => const Text('Campaign Events'),
+          data: (item) => Text('${item.name} ${l10n.events}'),
+          orElse: () => Text(l10n.campaignEvents),
         ),
         actions: [
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: l10n.refresh,
             onPressed: () => ref.invalidate(campaignEventsProvider(campaignId)),
             icon: const Icon(Icons.refresh),
           ),
@@ -61,7 +100,7 @@ class CampaignEventsPage extends ConsumerWidget {
           ? FloatingActionButton.extended(
               onPressed: () => _createEvent(context, ref),
               icon: const Icon(Icons.add),
-              label: const Text('Create Event'),
+              label: Text(l10n.createEvent),
             )
           : null,
       body: events.when(
@@ -72,13 +111,17 @@ class CampaignEventsPage extends ConsumerWidget {
         ),
         data: (items) {
           if (items.isEmpty) {
-            return const Center(child: Text('No events yet'));
+            return Center(child: Text(l10n.noEventsYet));
           }
           return ListView.builder(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
             itemCount: items.length,
             itemBuilder: (context, index) {
-              return _EventCard(event: items[index]);
+              return _EventCard(
+                event: items[index],
+                canManage: canManage,
+                onArchive: () => _archiveEvent(context, ref, items[index]),
+              );
             },
           );
         },
@@ -88,12 +131,20 @@ class CampaignEventsPage extends ConsumerWidget {
 }
 
 class _EventCard extends StatelessWidget {
-  const _EventCard({required this.event});
+  const _EventCard({
+    required this.event,
+    required this.canManage,
+    required this.onArchive,
+  });
 
   final CampaignEventModel event;
+  final bool canManage;
+  final VoidCallback onArchive;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Card(
       child: ListTile(
         onTap: () => context.go('/events/${event.id}'),
@@ -105,7 +156,20 @@ class _EventCard extends StatelessWidget {
           '${event.endsAt.isEmpty ? '-' : event.endsAt}\n'
           '${event.note.isEmpty ? '-' : event.note}',
         ),
-        trailing: Text('#${event.id}'),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('#${event.id}'),
+            if (canManage) ...[
+              const SizedBox(width: 4),
+              IconButton(
+                icon: const Icon(Icons.archive_outlined),
+                tooltip: l10n.archive,
+                onPressed: onArchive,
+              ),
+            ],
+          ],
+        ),
         isThreeLine: true,
       ),
     );
@@ -120,6 +184,8 @@ class _ErrorBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Center(
       child: Card(
         color: Theme.of(context).colorScheme.errorContainer,
@@ -133,7 +199,7 @@ class _ErrorBlock extends StatelessWidget {
               FilledButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
+                label: Text(l10n.retry),
               ),
             ],
           ),

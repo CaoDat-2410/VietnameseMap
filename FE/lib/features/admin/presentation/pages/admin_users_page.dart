@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../../../campaign/shared/providers/campaign_provider.dart';
 
 class AdminUsersPage extends ConsumerWidget {
@@ -8,9 +9,11 @@ class AdminUsersPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final users = ref.watch(usersProvider);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Users')),
+      appBar: AppBar(title: Text(l10n.users)),
       body: users.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text(error.toString())),
@@ -24,7 +27,7 @@ class AdminUsersPage extends ConsumerWidget {
             return Card(
               child: ListTile(
                 title: Text(user['email'] as String? ?? ''),
-                subtitle: Text('Role: ${user['role']} | ${user['status']}'),
+                subtitle: Text('${l10n.role}: ${user['role']} | ${l10n.status}: ${user['status']}'),
                 trailing: PopupMenuButton<String>(
                   onSelected: (role) async {
                     await ref
@@ -32,11 +35,11 @@ class AdminUsersPage extends ConsumerWidget {
                         .updateUserRole(id, role);
                     ref.invalidate(usersProvider);
                   },
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(value: 'ADMIN', child: Text('ADMIN')),
-                    PopupMenuItem(value: 'MANAGER', child: Text('MANAGER')),
-                    PopupMenuItem(value: 'STAFF', child: Text('STAFF')),
-                    PopupMenuItem(value: 'STUDENT', child: Text('STUDENT')),
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(value: 'ADMIN', child: Text('ADMIN')),
+                    const PopupMenuItem(value: 'MANAGER', child: Text('MANAGER')),
+                    const PopupMenuItem(value: 'STAFF', child: Text('STAFF')),
+                    const PopupMenuItem(value: 'STUDENT', child: Text('STUDENT')),
                   ],
                 ),
               ),

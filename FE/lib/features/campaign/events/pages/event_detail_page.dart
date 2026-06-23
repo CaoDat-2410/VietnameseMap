@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../../../auth/shared/providers/auth_provider.dart';
 import '../../../map/presentation/widgets/event_map_preview.dart';
 import '../../../school/shared/models/school_model.dart';
@@ -12,16 +13,33 @@ import '../../shared/models/campaign_models.dart';
 import '../../shared/providers/campaign_provider.dart';
 import '../widgets/event_form_dialog.dart';
 
-class EventDetailPage extends ConsumerWidget {
+class EventDetailPage extends ConsumerStatefulWidget {
   const EventDetailPage({super.key, required this.eventId});
 
   final int eventId;
 
-  Future<void> _editEvent(
-    BuildContext context,
-    WidgetRef ref,
-    CampaignEventModel event,
-  ) async {
+  @override
+  ConsumerState<EventDetailPage> createState() => _EventDetailPageState();
+}
+
+class _EventDetailPageState extends ConsumerState<EventDetailPage>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _editEvent(CampaignEventModel event) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       await showDialog<void>(
         context: context,
@@ -39,7 +57,7 @@ class EventDetailPage extends ConsumerWidget {
       );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Event saved')),
+          SnackBar(content: Text(l10n.eventSaved)),
         );
       }
     } catch (error) {
@@ -48,8 +66,9 @@ class EventDetailPage extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final event = ref.watch(eventDetailProvider(eventId));
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final event = ref.watch(eventDetailProvider(widget.eventId));
     final role = ref.watch(activeUserProvider).valueOrNull?.role;
     final canManage = role == 'MANAGER' || role == 'ADMIN';
 
@@ -57,16 +76,16 @@ class EventDetailPage extends ConsumerWidget {
       appBar: AppBar(
         title: event.maybeWhen(
           data: (item) => Text(item.name),
-          orElse: () => const Text('Event Detail'),
+          orElse: () => Text(l10n.eventDetail),
         ),
         actions: [
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: l10n.refresh,
             onPressed: () {
-              ref.invalidate(eventDetailProvider(eventId));
-              ref.invalidate(eventSchoolsProvider(eventId));
-              ref.invalidate(eventAssignmentsProvider(eventId));
-              ref.invalidate(eventInteractionsProvider(eventId));
+              ref.invalidate(eventDetailProvider(widget.eventId));
+              ref.invalidate(eventSchoolsProvider(widget.eventId));
+              ref.invalidate(eventAssignmentsProvider(widget.eventId));
+              ref.invalidate(eventInteractionsProvider(widget.eventId));
             },
             icon: const Icon(Icons.refresh),
           ),
@@ -76,48 +95,47 @@ class EventDetailPage extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => _ErrorBlock(
           error: error,
-          onRetry: () => ref.invalidate(eventDetailProvider(eventId)),
+          onRetry: () => ref.invalidate(eventDetailProvider(widget.eventId)),
         ),
-        data: (item) => DefaultTabController(
-          length: 4,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: _EventHeader(event: item),
-              ),
-              const TabBar(
-                isScrollable: true,
-                tabs: [
-                  Tab(text: 'Thông tin'),
-                  Tab(text: 'Trường tham gia'),
-                  Tab(text: 'Nhân sự'),
-                  Tab(text: 'Interactions'),
+        data: (item) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: _EventHeader(event: item),
+            ),
+            TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabs: [
+                Tab(text: l10n.thongTin),
+                Tab(text: l10n.truongThamGia),
+                Tab(text: l10n.nhanSu),
+                Tab(text: l10n.interactions),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _EventInfoTab(
+                    event: item,
+                    canManage: canManage,
+                    onEdit: () => _editEvent(item),
+                  ),
+                  _EventSchoolsTab(
+                    eventId: item.id,
+                    canManage: canManage,
+                  ),
+                  _EventEmployeesTab(
+                    eventId: item.id,
+                    canManage: canManage,
+                  ),
+                  EventInteractionsTab(eventId: item.id),
                 ],
               ),
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    _EventInfoTab(
-                      event: item,
-                      canManage: canManage,
-                      onEdit: () => _editEvent(context, ref, item),
-                    ),
-                    _EventSchoolsTab(
-                      eventId: item.id,
-                      canManage: canManage,
-                    ),
-                    _EventEmployeesTab(
-                      eventId: item.id,
-                      canManage: canManage,
-                    ),
-                    EventInteractionsTab(eventId: item.id),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -157,6 +175,7 @@ class _EventInfoTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final hasLocation = event.hasLocation;
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -167,21 +186,21 @@ class _EventInfoTab extends StatelessWidget {
             child: FilledButton.icon(
               onPressed: onEdit,
               icon: const Icon(Icons.edit_outlined),
-              label: const Text('Edit'),
+              label: Text(l10n.edit),
             ),
           ),
           const SizedBox(height: 16),
         ],
-        _InfoRow(label: 'Name', value: event.name),
-        _InfoRow(label: 'Campaign', value: '#${event.campaignId}'),
-        _InfoRow(label: 'Type', value: event.eventType),
-        _InfoRow(label: 'Status', value: event.status),
+        _InfoRow(label: l10n.name, value: event.name),
+        _InfoRow(label: l10n.campaign, value: '#${event.campaignId}'),
+        _InfoRow(label: l10n.type, value: event.eventType),
+        _InfoRow(label: l10n.status, value: event.status),
         const SizedBox(height: 12),
         _TimeCard(event: event),
         if (event.locationLabel.isNotEmpty) ...[
-          _InfoRow(label: 'Location', value: event.locationLabel),
+          _InfoRow(label: l10n.locationLabel, value: event.locationLabel),
         ],
-        _InfoRow(label: 'Note', value: event.note),
+        _InfoRow(label: l10n.note, value: event.note),
         if (hasLocation) ...[
           const SizedBox(height: 16),
           EventMapPreview(
@@ -200,7 +219,7 @@ class _EventInfoTab extends StatelessWidget {
                 );
               },
               icon: const Icon(Icons.open_in_full),
-              label: const Text('View on full map'),
+              label: Text(l10n.viewOnFullMap),
             ),
           ),
         ],
@@ -242,6 +261,7 @@ class _TimeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final duration = _durationLabel();
     return Card(
       child: Padding(
@@ -253,9 +273,9 @@ class _TimeCard extends StatelessWidget {
               children: [
                 const Icon(Icons.schedule, size: 18, color: Colors.black54),
                 const SizedBox(width: 8),
-                const Text(
-                  'Time',
-                  style: TextStyle(
+                Text(
+                  l10n.time,
+                  style: const TextStyle(
                     fontWeight: FontWeight.w600,
                     color: Colors.black54,
                   ),
@@ -269,8 +289,8 @@ class _TimeCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            _InfoRow(label: 'Starts at', value: _format(event.startsAt)),
-            _InfoRow(label: 'Ends at', value: _format(event.endsAt)),
+            _InfoRow(label: l10n.startsAt, value: _format(event.startsAt)),
+            _InfoRow(label: l10n.endsAt, value: _format(event.endsAt)),
           ],
         ),
       ),
@@ -315,21 +335,23 @@ class _EventSchoolsTabState extends ConsumerState<_EventSchoolsTab> {
   }
 
   Future<void> _assign(SchoolModel school) async {
+    final l10n = AppLocalizations.of(context)!;
     await _save(() async {
       await ref.read(campaignRepositoryProvider).assignSchool(
             widget.eventId,
             school.schoolUid,
           );
-    }, 'School assigned');
+    }, l10n.schoolAssigned);
   }
 
   Future<void> _remove(SchoolModel school) async {
+    final l10n = AppLocalizations.of(context)!;
     await _save(() async {
       await ref.read(campaignRepositoryProvider).removeSchool(
             widget.eventId,
             school.schoolUid,
           );
-    }, 'School removed');
+    }, l10n.schoolRemoved);
   }
 
   Future<void> _save(Future<void> Function() action, String message) async {
@@ -351,13 +373,14 @@ class _EventSchoolsTabState extends ConsumerState<_EventSchoolsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final assigned = ref.watch(eventSchoolsProvider(widget.eventId));
     final search = ref.watch(schoolsSearchProvider(_params));
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text('Assigned schools',
+        Text(l10n.assignedSchools,
             style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         assigned.when(
@@ -367,7 +390,7 @@ class _EventSchoolsTabState extends ConsumerState<_EventSchoolsTab> {
             onRetry: () => ref.invalidate(eventSchoolsProvider(widget.eventId)),
           ),
           data: (items) => items.isEmpty
-              ? const Text('No assigned schools')
+              ? Text(l10n.noAssignedSchools)
               : Column(
                   children: [
                     for (final school in items)
@@ -378,7 +401,7 @@ class _EventSchoolsTabState extends ConsumerState<_EventSchoolsTab> {
                               '${school.schoolUid} | ${school.provinceName}'),
                           trailing: widget.canManage
                               ? IconButton(
-                                  tooltip: 'Remove',
+                                  tooltip: l10n.remove,
                                   onPressed:
                                       _saving ? null : () => _remove(school),
                                   icon: const Icon(Icons.delete_outline),
@@ -391,7 +414,7 @@ class _EventSchoolsTabState extends ConsumerState<_EventSchoolsTab> {
         ),
         if (widget.canManage) ...[
           const SizedBox(height: 20),
-          Text('Find schools', style: Theme.of(context).textTheme.titleMedium),
+          Text(l10n.findSchools, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -401,9 +424,9 @@ class _EventSchoolsTabState extends ConsumerState<_EventSchoolsTab> {
                 width: 260,
                 child: TextField(
                   controller: _searchController,
-                  decoration: const InputDecoration(
-                    labelText: 'Search',
-                    prefixIcon: Icon(Icons.search),
+                  decoration: InputDecoration(
+                    labelText: l10n.search,
+                    prefixIcon: const Icon(Icons.search),
                   ),
                   onSubmitted: (_) => _search(),
                 ),
@@ -412,14 +435,14 @@ class _EventSchoolsTabState extends ConsumerState<_EventSchoolsTab> {
                 width: 150,
                 child: TextField(
                   controller: _provinceController,
-                  decoration: const InputDecoration(labelText: 'Province code'),
+                  decoration: InputDecoration(labelText: l10n.provinceCode),
                   onSubmitted: (_) => _search(),
                 ),
               ),
               FilledButton.icon(
                 onPressed: _search,
                 icon: const Icon(Icons.search),
-                label: const Text('Search'),
+                label: Text(l10n.search),
               ),
             ],
           ),
@@ -431,7 +454,7 @@ class _EventSchoolsTabState extends ConsumerState<_EventSchoolsTab> {
               onRetry: () => ref.invalidate(schoolsSearchProvider(_params)),
             ),
             data: (page) => page.items.isEmpty
-                ? const Text('No schools found')
+                ? Text(l10n.noSchoolsFound)
                 : Column(
                     children: [
                       for (final school in page.items)
@@ -444,7 +467,7 @@ class _EventSchoolsTabState extends ConsumerState<_EventSchoolsTab> {
                             trailing: FilledButton(
                               onPressed:
                                   _saving ? null : () => _assign(school),
-                              child: const Text('Assign'),
+                              child: Text(l10n.assign),
                             ),
                           ),
                         ),
@@ -474,21 +497,23 @@ class _EventEmployeesTabState extends ConsumerState<_EventEmployeesTab> {
   bool _saving = false;
 
   Future<void> _assign(EmployeeModel employee) async {
+    final l10n = AppLocalizations.of(context)!;
     await _save(() async {
       await ref.read(campaignRepositoryProvider).assignEmployee(
             widget.eventId,
             employee.id,
           );
-    }, 'Employee assigned');
+    }, l10n.employeeAssigned);
   }
 
   Future<void> _remove(EmployeeModel employee) async {
+    final l10n = AppLocalizations.of(context)!;
     await _save(() async {
       await ref.read(campaignRepositoryProvider).removeEmployee(
             widget.eventId,
             employee.id,
           );
-    }, 'Employee removed');
+    }, l10n.employeeRemoved);
   }
 
   Future<void> _save(Future<void> Function() action, String message) async {
@@ -510,13 +535,14 @@ class _EventEmployeesTabState extends ConsumerState<_EventEmployeesTab> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final assigned = ref.watch(eventAssignmentsProvider(widget.eventId));
     final employees = ref.watch(employeesProvider);
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text('Assigned employees',
+        Text(l10n.assignedEmployees,
             style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         assigned.when(
@@ -527,7 +553,7 @@ class _EventEmployeesTabState extends ConsumerState<_EventEmployeesTab> {
                 ref.invalidate(eventAssignmentsProvider(widget.eventId)),
           ),
           data: (items) => items.isEmpty
-              ? const Text('No assigned employees')
+              ? Text(l10n.noAssignedEmployees)
               : Column(
                   children: [
                     for (final employee in items)
@@ -537,7 +563,7 @@ class _EventEmployeesTabState extends ConsumerState<_EventEmployeesTab> {
                           subtitle: Text(employee.role),
                           trailing: widget.canManage
                               ? IconButton(
-                                  tooltip: 'Remove',
+                                  tooltip: l10n.remove,
                                   onPressed: _saving
                                       ? null
                                       : () => _remove(employee),
@@ -551,7 +577,7 @@ class _EventEmployeesTabState extends ConsumerState<_EventEmployeesTab> {
         ),
         if (widget.canManage) ...[
           const SizedBox(height: 20),
-          Text('Employees', style: Theme.of(context).textTheme.titleMedium),
+          Text(l10n.employees, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           employees.when(
             loading: () => const LinearProgressIndicator(),
@@ -560,7 +586,7 @@ class _EventEmployeesTabState extends ConsumerState<_EventEmployeesTab> {
               onRetry: () => ref.invalidate(employeesProvider),
             ),
             data: (items) => items.isEmpty
-                ? const Text('No employees')
+                ? Text(l10n.noEmployees)
                 : Column(
                     children: [
                       for (final employee in items)
@@ -571,7 +597,7 @@ class _EventEmployeesTabState extends ConsumerState<_EventEmployeesTab> {
                             trailing: FilledButton(
                               onPressed:
                                   _saving ? null : () => _assign(employee),
-                              child: const Text('Assign'),
+                              child: Text(l10n.assign),
                             ),
                           ),
                         ),
@@ -616,12 +642,13 @@ class _InlineError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Card(
       color: Theme.of(context).colorScheme.errorContainer,
       child: ListTile(
         title: Text(error.toString()),
         trailing: IconButton(
-          tooltip: 'Retry',
+          tooltip: l10n.retry,
           onPressed: onRetry,
           icon: const Icon(Icons.refresh),
         ),
@@ -638,6 +665,7 @@ class _ErrorBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Card(
         color: Theme.of(context).colorScheme.errorContainer,
@@ -651,7 +679,7 @@ class _ErrorBlock extends StatelessWidget {
               FilledButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
+                label: Text(l10n.retry),
               ),
             ],
           ),

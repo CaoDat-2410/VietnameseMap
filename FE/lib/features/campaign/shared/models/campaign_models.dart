@@ -270,7 +270,17 @@ class StudentRegistrationModel {
         note: json['note'] as String? ?? '',
         createdAt: json['createdAt'] as String? ?? '',
         updatedAt: json['updatedAt'] as String? ?? '',
-        student: StudentModel.fromJson(json['student'] as Map<String, dynamic>),
-        school: SchoolModel.fromJson(json['school'] as Map<String, dynamic>),
+        student: json['student'] == null
+            ? const StudentModel(
+                id: 0, schoolUid: '', fullName: '', email: '',
+                phone: '', dateOfBirth: '', address: '', grade: '',
+                className: '')
+            : StudentModel.fromJson(json['student'] as Map<String, dynamic>),
+        school: json['school'] == null
+            ? const SchoolModel(
+                schoolUid: '', provinceCode: '', provinceName: '',
+                communeCode: '', communeName: '', schoolCode: '',
+                schoolName: '', address: '', areaType: '')
+            : SchoolModel.fromJson(json['school'] as Map<String, dynamic>),
       );
 }
