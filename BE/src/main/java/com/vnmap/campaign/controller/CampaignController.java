@@ -51,6 +51,44 @@ public class CampaignController {
         ));
     }
 
+    @GetMapping("/schools/coordinates")
+    public ResponseEntity<ApiResponse<List<SchoolCoordinatesDto>>> getSchoolCoordinates(
+            @RequestParam(required = false) String provinceCode,
+            @RequestParam(required = false) String communeCode
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                campaignService.getSchoolCoordinates(provinceCode, communeCode),
+                "School coordinates retrieved successfully"
+        ));
+    }
+
+    @GetMapping("/schools/{schoolUid}/coordinates")
+    public ResponseEntity<ApiResponse<SchoolCoordinatesDto>> getSchoolCoordinate(@PathVariable String schoolUid) {
+        return ResponseEntity.ok(ApiResponse.success(
+                campaignService.getSchoolCoordinate(schoolUid),
+                "School coordinate retrieved successfully"
+        ));
+    }
+
+    @PutMapping("/schools/{schoolUid}/coordinates")
+    public ResponseEntity<ApiResponse<SchoolCoordinatesDto>> updateSchoolCoordinates(
+            @PathVariable String schoolUid,
+            @RequestBody SchoolCoordinatesUpdateRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                campaignService.updateSchoolCoordinates(schoolUid, request.latitude(), request.longitude()),
+                "School coordinates updated successfully"
+        ));
+    }
+
+    @PostMapping("/schools/coordinates/compute")
+    public ResponseEntity<ApiResponse<List<SchoolCoordinatesDto>>> computeApproximateCoordinates() {
+        return ResponseEntity.ok(ApiResponse.success(
+                campaignService.computeApproximateCoordinates(),
+                "Approximate coordinates computed successfully"
+        ));
+    }
+
     @GetMapping("/employees")
     public ResponseEntity<ApiResponse<List<EmployeeDto>>> getEmployees() {
         return ResponseEntity.ok(ApiResponse.success(

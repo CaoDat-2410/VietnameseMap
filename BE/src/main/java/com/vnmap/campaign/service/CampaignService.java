@@ -2,6 +2,7 @@ package com.vnmap.campaign.service;
 
 import com.vnmap.campaign.dto.*;
 import com.vnmap.common.exception.ResourceNotFoundException;
+import com.vnmap.geo.repository.AdministrativeUnitRepository;
 import com.vnmap.common.model.PagedResponse;
 import com.vnmap.common.security.CurrentUser;
 import org.springframework.http.HttpStatus;
@@ -36,6 +37,10 @@ public class CampaignService {
     private static final String CAMPAIGN_ID_COLUMN = "campaign_id";
     private static final String STATUS_COLUMN = "status";
     private static final String ACTIVE_STATUS = "ACTIVE";
+    private static final String GEOCODE_STATUS_FULL = "FULL";
+    private static final String GEOCODE_STATUS_APPROXIMATE = "APPROXIMATE";
+    private static final String GEOCODE_STATUS_PENDING = "PENDING";
+    private static final String KIND_COMMUNE = "commune";
     private static final String INSERT_INTERACTION_SQL = """
             INSERT INTO interactions (
                 campaign_id, event_id, employee_id, school_uid, participant_type,
@@ -57,10 +62,13 @@ public class CampaignService {
 
     private final JdbcTemplate jdbc;
     private final PasswordEncoder passwordEncoder;
+    private final AdministrativeUnitRepository unitRepository;
 
-    public CampaignService(JdbcTemplate jdbc, PasswordEncoder passwordEncoder) {
+    public CampaignService(JdbcTemplate jdbc, PasswordEncoder passwordEncoder,
+                          AdministrativeUnitRepository unitRepository) {
         this.jdbc = jdbc;
         this.passwordEncoder = passwordEncoder;
+        this.unitRepository = unitRepository;
     }
 
     private long generatedId(KeyHolder keyHolder) {
@@ -105,6 +113,153 @@ public class CampaignService {
         );
 
         return PagedResponse.of(items, safePage, safeLimit, total == null ? 0 : total);
+    }
+
+    public List<SchoolCoordinatesDto> getSchoolCoordinates(String provinceCode, String communeCode) {
+        List<Object> params = new ArrayList<>();
+        List<String> filters = new ArrayList<>();
+        
+        if (provinceCode != null && !provinceCode.isBlank()) {
+            filters.add("province_code = ?");
+            params.add(provinceCode);
+        }
+        if (communeCode != null && !communeCode.isBlank()) {
+            filters.add("commune_code = ?");
+            params.add(communeCode);
+        }
+        
+        String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
+        
+        return jdbc.query(
+                """
+                SELECT school_uid, school_name, province_name, commune_name, address,
+                       latitude, longitude, geocode_status, geocode_note
+                FROM schools
+                %s
+                ORDER BY province_name, school_name
+                """.formatted(where),
+                (rs, rowNum) -> mapSchoolCoordinates(rs),
+                params.toArray()
+        );
+    }
+
+    public SchoolCoordinatesDto getSchoolCoordinate(String schoolUid) {
+        return jdbc.query(
+                """
+                SELECT school_uid, school_name, province_name, commune_name, address,
+                       latitude, longitude, geocode_status, geocode_note
+                FROM schools
+                WHERE school_uid = ?
+                """,
+                (rs, rowNum) -> mapSchoolCoordinates(rs),
+                schoolUid
+        ).stream().findFirst().orElseThrow(() -> new ResourceNotFoundException("School", "schoolUid", schoolUid));
+    }
+
+    @Transactional
+    public SchoolCoordinatesDto updateSchoolCoordinates(String schoolUid, Double latitude, Double longitude) {
+        getSchool(schoolUid);
+        
+        String geocodeStatus;
+        String geocodeNote;
+        
+        if (latitude != null && longitude != null) {
+            geocodeStatus = GEOCODE_STATUS_FULL;
+            geocodeNote = null;
+        } else {
+            geocodeStatus = GEOCODE_STATUS_PENDING;
+            geocodeNote = "Chưa có tọa độ";
+        }
+        
+        jdbc.update(
+                """
+                UPDATE schools
+                SET latitude = ?, longitude = ?, geocode_status = ?, geocode_note = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE school_uid = ?
+                """,
+                latitude, longitude, geocodeStatus, geocodeNote, schoolUid
+        );
+        
+        return getSchoolCoordinate(schoolUid);
+    }
+
+    @Transactional
+    public List<SchoolCoordinatesDto> computeApproximateCoordinates() {
+        List<SchoolCoordinatesDto> results = new ArrayList<>();
+        
+        List<Map<String, Object>> schoolsWithoutCoords = jdbc.queryForList(
+                """
+                SELECT school_uid, province_code, commune_code, school_name, province_name, commune_name, address
+                FROM schools
+                WHERE latitude IS NULL OR longitude IS NULL
+                """,
+                new Object[]{}
+        );
+        
+        for (Map<String, Object> school : schoolsWithoutCoords) {
+            String schoolUid = (String) school.get("school_uid");
+            String communeCode = (String) school.get("commune_code");
+            String schoolName = (String) school.get("school_name");
+            String provinceName = (String) school.get("province_name");
+            String communeName = (String) school.get("commune_name");
+            String address = (String) school.get("address");
+            
+            String geocodeStatus;
+            String geocodeNote;
+            Double lat = null;
+            Double lng = null;
+            
+            if (communeCode != null && !communeCode.isBlank()) {
+                var centroid = unitRepository.findCentroidByCode(communeCode, KIND_COMMUNE);
+                if (centroid.isPresent()) {
+                    lat = (Double) centroid.get()[1];
+                    lng = (Double) centroid.get()[0];
+                    geocodeStatus = GEOCODE_STATUS_APPROXIMATE;
+                    geocodeNote = "Tọa độ ước lượng từ cấp xã";
+                } else {
+                    geocodeStatus = GEOCODE_STATUS_PENDING;
+                    geocodeNote = "Không tìm thấy centroid của xã";
+                }
+            } else {
+                geocodeStatus = GEOCODE_STATUS_PENDING;
+                geocodeNote = "Thiếu thông tin xã";
+            }
+            
+            jdbc.update(
+                    """
+                    UPDATE schools
+                    SET latitude = ?, longitude = ?, geocode_status = ?, geocode_note = ?,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE school_uid = ?
+                    """,
+                    lat, lng, geocodeStatus, geocodeNote, schoolUid
+            );
+            
+            results.add(new SchoolCoordinatesDto(
+                    schoolUid, schoolName, provinceName, communeName, address,
+                    lat, lng, geocodeStatus, geocodeNote
+            ));
+        }
+        
+        return results;
+    }
+
+    private SchoolCoordinatesDto mapSchoolCoordinates(java.sql.ResultSet rs) throws java.sql.SQLException {
+        String geocodeStatus = rs.getString("geocode_status");
+        String geocodeNote = rs.getString("geocode_note");
+        
+        return new SchoolCoordinatesDto(
+                rs.getString(SCHOOL_UID_COLUMN),
+                rs.getString(SCHOOL_NAME_COLUMN),
+                rs.getString(PROVINCE_NAME_COLUMN),
+                rs.getString("commune_name"),
+                rs.getString("address"),
+                rs.getObject("latitude", Double.class),
+                rs.getObject("longitude", Double.class),
+                geocodeStatus != null ? geocodeStatus : GEOCODE_STATUS_PENDING,
+                geocodeNote
+        );
     }
 
     public SchoolDetailDto getSchoolDetail(String schoolUid) {

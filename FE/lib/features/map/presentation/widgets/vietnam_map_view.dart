@@ -19,7 +19,9 @@ import '../../../weather/presentation/providers/weather_provider.dart'
         selectedWeatherLocationProvider,
         selectedWeatherProvider;
 import '../../../weather/presentation/widgets/weather_summary_row.dart';
+import '../../../school/shared/repositories/schools_repository.dart';
 import 'boundary_label_widget.dart';
+import 'school_info_sheet.dart';
 
 class VietnamMapView extends ConsumerStatefulWidget {
   const VietnamMapView({
@@ -55,12 +57,44 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
   LatLng? _tappedLocation;
   List<Polygon> _selectedPolygons = [];
   bool _isLoadingBoundary = false;
-  double _currentZoom = _initialZoom;
+  bool _isLoadingCommuneBoundaries = false;
+
+  // Use a ValueNotifier for zoom so we can rebuild only the label layer
+  // (and other zoom-dependent widgets) without forcing a full FlutterMap rebuild.
+  final ValueNotifier<double> _zoomNotifier =
+      ValueNotifier<double>(_initialZoom);
 
   List<_ProvinceBoundaryEntry> _provinceBoundaryEntries = [];
+
+  // Cached visible polygons — built once per change of boundary entries, not per frame.
+  // Avoids allocating 63+ new Polygon objects on every zoom/keyboard tap.
+  List<Polygon> _cachedVisibleBoundaries = const [];
+  List<({String code, String name, List<Polygon> polygons})>
+      _cachedCommuneEntries = const [];
+  Map<String, LatLng> _cachedCommuneCentroids = const {};
+  List<({String code, String name, List<Polygon> polygons})>?
+      _lastSeenCommuneEntries;
+  Map<String, LatLng>? _lastSeenCommuneCentroids;
+
+  // Cache for commune PolygonLayer; keyed by (entries identity, tapped code).
+  // Avoids re-allocating hundreds of Polygon objects on every widget rebuild.
+  String? _communePolygonsCacheKey;
+  List<Polygon> _cachedCommunePolygons = const [];
+
   bool _pendingCameraMove = false;
   _EventFocus? _eventFocus;
   bool _focusCameraApplied = false;
+
+  // School markers state
+  List<SchoolCoordinates> _schoolCoordinates = [];
+  SchoolCoordinates? _selectedSchool;
+  bool _isLoadingSchools = false;
+
+  @override
+  void dispose() {
+    _zoomNotifier.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -81,6 +115,39 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
       if (!mounted) return;
       _mapController.move(LatLng(focus.lat, focus.lng), _focusZoom);
     });
+  }
+
+  Future<void> _loadSchoolCoordinates({String? provinceCode, String? communeCode}) async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingSchools = true;
+    });
+
+    try {
+      final repo = ref.read(schoolsRepositoryProvider);
+      final coords = await repo.getSchoolCoordinates(
+        provinceCode: provinceCode,
+        communeCode: communeCode,
+      );
+      if (!mounted) return;
+      setState(() {
+        _schoolCoordinates = coords.where((s) => s.hasCoordinates).toList();
+        _isLoadingSchools = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingSchools = false;
+      });
+      debugPrint('Error loading school coordinates: $e');
+    }
+  }
+
+  void _handleSchoolMarkerTap(SchoolCoordinates school) {
+    setState(() {
+      _selectedSchool = school;
+    });
+    showSchoolInfoSheet(context, school);
   }
 
   Future<void> _getCurrentLocation() async {
@@ -145,53 +212,51 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
 
   void _buildBoundaryEntries(List<ProvincePolygonEntry> entries) {
     _provinceBoundaryEntries = entries.map((e) {
-      final polygons = <Polygon>[];
-      for (final ring in e.rings) {
-        if (ring.isEmpty) continue;
-        final outer = ring.map((p) => LatLng(p['lat']!, p['lng']!)).toList();
-        final holes = e.rings
-            .skip(1)
-            .map(
-              (h) => h.map((p) => LatLng(p['lat']!, p['lng']!)).toList(),
-            )
-            .toList();
-        polygons.add(Polygon(
-          points: outer,
-          holePointsList: holes.isEmpty ? null : holes,
-          color: const Color(0x0A1565C0),
-          borderColor: const Color(0x99607D8B),
-          borderStrokeWidth: 1.2,
-        ));
+      // GeoJSON Polygon: rings[0] = outer, rings[1..] = holes.
+      // Our extractRings() flattens both single Polygon and MultiPolygon into
+      // a flat list, so we cannot easily group holes back to their outer ring
+      // here. We treat rings[0] as outer and rings[1..] as its holes — which
+      // is correct for the single-Polygon features emitted by the backend.
+      if (e.rings.isEmpty) {
+        return _ProvinceBoundaryEntry(
+          code: e.code,
+          name: e.name,
+          polygons: const [],
+          centroid: null,
+        );
       }
+
+      final outer = e.rings.first
+          .map((p) => LatLng(p['lat']!, p['lng']!))
+          .toList(growable: false);
+      final holePointsList = e.rings
+          .skip(1)
+          .map(
+            (h) => h.map((p) => LatLng(p['lat']!, p['lng']!)).toList(
+              growable: false,
+            ),
+          )
+          .toList(growable: false);
+      final polygon = Polygon(
+        points: outer,
+        holePointsList: holePointsList.isEmpty ? null : holePointsList,
+        color: const Color(0x0A1565C0),
+        borderColor: const Color(0x99607D8B),
+        borderStrokeWidth: 1.2,
+      );
       final centroid = e.centroid != null
           ? LatLng(e.centroid!['lat']!, e.centroid!['lng']!)
           : null;
       return _ProvinceBoundaryEntry(
         code: e.code,
         name: e.name,
-        polygons: polygons,
+        polygons: [polygon],
         centroid: centroid,
       );
     }).toList();
 
-    _computeVietnamBoundsFromEntries(_provinceBoundaryEntries);
-  }
-
-  void _computeVietnamBoundsFromEntries(List<_ProvinceBoundaryEntry> entries) {
-    double minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
-    for (final entry in entries) {
-      for (final polygon in entry.polygons) {
-        for (final point in polygon.points) {
-          if (point.latitude < minLat) minLat = point.latitude;
-          if (point.latitude > maxLat) maxLat = point.latitude;
-          if (point.longitude < minLng) minLng = point.longitude;
-          if (point.longitude > maxLng) maxLng = point.longitude;
-        }
-      }
-    }
-    if (minLat != 90) {
-      // Vietnam bounds computed
-    }
+    // Build the visible-polygons cache once. Subsequent rebuilds reuse it.
+    _cachedVisibleBoundaries = _buildVisibleBoundaries();
   }
 
   Future<void> _handleMapTap(TapPosition tapPosition, LatLng point) async {
@@ -474,18 +539,15 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
     );
   }
 
-  List<Polygon> _getVisibleBoundaryPolygons() {
-    double fillOpacity = 0.22;
-    double borderOpacity = 0.95;
-    double borderStrokeWidth = 2.2;
-
-    if (_currentZoom > 7) {
-      fillOpacity = 0.10;
-      borderOpacity = 0.75;
-      borderStrokeWidth = 2.4;
-    }
-
+  /// Builds the polygon list used by the province PolygonLayer.
+  /// Cached after `_buildBoundaryEntries`; do not call per-frame.
+  List<Polygon> _buildVisibleBoundaries() {
     const baseColor = Color(0xFF1565C0);
+    const fillOpacity = 0.22;
+    const borderOpacity = 0.95;
+    const borderStrokeWidth = 2.2;
+    final fillColor = baseColor.withValues(alpha: fillOpacity);
+    final borderColor = baseColor.withValues(alpha: borderOpacity);
 
     final allPolygons = <Polygon>[];
     for (final entry in _provinceBoundaryEntries) {
@@ -494,105 +556,29 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
           Polygon(
             points: polygon.points,
             holePointsList: polygon.holePointsList,
-            color: baseColor.withValues(alpha: fillOpacity),
-            borderColor: baseColor.withValues(alpha: borderOpacity),
+            color: fillColor,
+            borderColor: borderColor,
             borderStrokeWidth: borderStrokeWidth,
           ),
         );
       }
     }
-
     return allPolygons;
   }
 
-  @override
-  Widget build(BuildContext context) {
-    _maybeApplyFocusCamera();
-    ref.listen(selectedProvinceProvider, (previous, next) {
-      if (next != null && (previous == null || previous.code != next.code)) {
-        _loadBoundary(next.code);
-        ref.read(selectedCommuneProvider.notifier).state = null;
-      }
-    });
-
-    final asyncPolygonEntries = ref.watch(provincePolygonEntriesProvider);
-    asyncPolygonEntries.whenData((entries) {
-      if (_provinceBoundaryEntries.isEmpty) {
-        _buildBoundaryEntries(entries);
-        setState(() {});
-      }
-    });
-
-    final visibleBoundaries = _getVisibleBoundaryPolygons();
-
-    final selectedProvince = ref.watch(selectedProvinceProvider);
-    final selectedCommune = ref.watch(selectedCommuneProvider);
-
-    // Load commune boundaries when province is selected
-    final asyncCommuneBoundaries = selectedProvince != null
-        ? ref.watch(communeBoundariesProvider(selectedProvince.code))
-        : null;
-
-    final communeEntries =
-        <({String code, String name, List<Polygon> polygons})>[];
-    asyncCommuneBoundaries?.whenData((entries) {
-      for (final entry in entries) {
-        communeEntries.add(entry);
-      }
-    });
-
-    // Commune centroids for labels
-    final communeCentroidsAsync = selectedProvince != null
-        ? ref.watch(communeCentroidsProvider(selectedProvince.code))
-        : null;
-    final communeCentroids = <String, LatLng>{};
-    communeCentroidsAsync?.whenData((m) {
-      for (final e in m.entries) {
-        communeCentroids[e.key] = e.value;
-      }
-    });
-
-    final provinceLabels = <BoundaryLabel>[];
-    if (_currentZoom >= 7.5) {
-      for (final entry in _provinceBoundaryEntries) {
-        final centroid = entry.centroid;
-        if (centroid != null) {
-          provinceLabels.add(BoundaryLabel(
-            text: entry.name,
-            position: centroid,
-            maxWidth: 130,
-            fontSize: _currentZoom >= 8 ? 12 : 10,
-          ));
-        }
-      }
-    }
-
-    final communeLabels = <BoundaryLabel>[];
-    if (_currentZoom >= 9) {
-      for (final entry in communeEntries) {
-        final centroid = communeCentroids[entry.code] ??
-            (entry.polygons.isNotEmpty
-                ? GeoJsonUtils.computePolygonCentroid(
-                    entry.polygons.first.points)
-                : null);
-        if (centroid != null) {
-          communeLabels.add(BoundaryLabel(
-            text: entry.name,
-            position: centroid,
-            maxWidth: 110,
-            fontSize: _currentZoom >= 11 ? 10 : 9,
-            fontWeight: FontWeight.w400,
-            backgroundColor: const Color(0xCC004D40),
-          ));
-        }
-      }
-    }
-
-    final communePolygons = <Polygon>[];
-    for (final entry in communeEntries) {
+  /// Builds (or returns cached) commune polygons. Cached by (entries, tapped)
+  /// so the PolygonLayer isn't re-allocated on every zoom-induced build.
+  List<Polygon> _buildCommunePolygons(
+    List<({String code, String name, List<Polygon> polygons})> entries,
+    String? tappedCode,
+  ) {
+    final key = '${identityHashCode(entries)}|$tappedCode';
+    if (key == _communePolygonsCacheKey) return _cachedCommunePolygons;
+    final polygons = <Polygon>[];
+    for (final entry in entries) {
+      final tapped = tappedCode == entry.code;
       for (final polygon in entry.polygons) {
-        final tapped = selectedCommune?.code == entry.code;
-        communePolygons.add(Polygon(
+        polygons.add(Polygon(
           points: polygon.points,
           holePointsList: polygon.holePointsList,
           color: tapped ? const Color(0x4D4CAF50) : const Color(0x1A4CAF50),
@@ -602,6 +588,142 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
         ));
       }
     }
+    _communePolygonsCacheKey = key;
+    _cachedCommunePolygons = polygons;
+    return polygons;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _maybeApplyFocusCamera();
+    ref.listen(selectedProvinceProvider, (previous, next) {
+      if (next != null && (previous == null || previous.code != next.code)) {
+        _loadBoundary(next.code);
+        ref.read(selectedCommuneProvider.notifier).state = null;
+        // Reset loading states
+        setState(() {
+          _isLoadingCommuneBoundaries = false;
+        });
+        // Drop cached commune data for the previous province so the next build
+        // doesn't show stale polygons/labels while the new ones load.
+        _cachedCommuneEntries = const [];
+        _cachedCommuneCentroids = const {};
+        _lastSeenCommuneEntries = null;
+        _lastSeenCommuneCentroids = null;
+        _communePolygonsCacheKey = null;
+        _cachedCommunePolygons = const [];
+      }
+    });
+
+    final asyncPolygonEntries = ref.watch(provincePolygonEntriesProvider);
+
+    // Build boundary entries once when provider first resolves. No setState needed —
+    // we already cache the result; this only runs when entries first arrive.
+    if (_provinceBoundaryEntries.isEmpty) {
+      asyncPolygonEntries.whenData((entries) {
+        if (_provinceBoundaryEntries.isNotEmpty) return;
+        _buildBoundaryEntries(entries);
+        // We must rebuild at least once to mount the cached layer, but
+        // we don't read _cachedVisibleBoundaries inside an `if` that needs
+        // a build pass. Schedule a single setState via post-frame.
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) setState(() {});
+        });
+      });
+    }
+
+    final selectedProvince = ref.watch(selectedProvinceProvider);
+    final selectedCommune = ref.watch(selectedCommuneProvider);
+
+    // Load commune boundaries when province is selected
+    final asyncCommuneBoundaries = selectedProvince != null
+        ? ref.watch(communeBoundariesProvider(selectedProvince.code))
+        : null;
+
+    // Track loading state for commune boundaries
+    final bool isCommuneLoading = asyncCommuneBoundaries?.isLoading ?? false;
+    
+    // Update loading state
+    if (isCommuneLoading != _isLoadingCommuneBoundaries) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _isLoadingCommuneBoundaries = isCommuneLoading;
+          });
+        }
+      });
+    }
+
+    // Cache commune entries — only recompute when async value changes.
+    final communeEntries = _cachedCommuneEntries;
+    asyncCommuneBoundaries?.whenData((entries) {
+      if (!identical(entries, _lastSeenCommuneEntries)) {
+        _lastSeenCommuneEntries = entries;
+        _cachedCommuneEntries = entries;
+      }
+    });
+
+    // Commune centroids for labels
+    final communeCentroidsAsync = selectedProvince != null
+        ? ref.watch(communeCentroidsProvider(selectedProvince.code))
+        : null;
+    final communeCentroids = _cachedCommuneCentroids;
+    communeCentroidsAsync?.whenData((m) {
+      if (!identical(m, _lastSeenCommuneCentroids)) {
+        _lastSeenCommuneCentroids = m;
+        _cachedCommuneCentroids = m;
+      }
+    });
+
+    // Province + commune labels — rebuilt only when zoom changes (via ValueListenableBuilder).
+    List<BoundaryLabel> buildProvinceLabels(double zoom) {
+      if (zoom < 7.5) return const [];
+      final labels = <BoundaryLabel>[];
+      for (final entry in _provinceBoundaryEntries) {
+        final centroid = entry.centroid;
+        if (centroid != null) {
+          labels.add(BoundaryLabel(
+            text: entry.name,
+            position: centroid,
+            maxWidth: 130,
+            fontSize: zoom >= 8 ? 12 : 10,
+          ));
+        }
+      }
+      return labels;
+    }
+
+    List<BoundaryLabel> buildCommuneLabels(
+        double zoom,
+        List<({String code, String name, List<Polygon> polygons})> entries,
+        Map<String, LatLng> centroids) {
+      if (zoom < 9) return const [];
+      final labels = <BoundaryLabel>[];
+      for (final entry in entries) {
+        final centroid = centroids[entry.code] ??
+            (entry.polygons.isNotEmpty
+                ? GeoJsonUtils.computePolygonCentroid(
+                    entry.polygons.first.points)
+                : null);
+        if (centroid != null) {
+          labels.add(BoundaryLabel(
+            text: entry.name,
+            position: centroid,
+            maxWidth: 110,
+            fontSize: zoom >= 11 ? 10 : 9,
+            fontWeight: FontWeight.w400,
+            backgroundColor: const Color(0xCC004D40),
+          ));
+        }
+      }
+      return labels;
+    }
+
+    // Commune polygons — cache by (selectedCommune, entries) tuple.
+    // Each province has hundreds of polygons; rebuilding the full list every
+    // tap (e.g. zoom change) used to thrash the PolygonLayer.
+    final tappedCode = selectedCommune?.code;
+    final communePolygons = _buildCommunePolygons(communeEntries, tappedCode);
 
     return Stack(
       children: [
@@ -615,10 +737,10 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
             minZoom: 5.5,
             maxZoom: 18.0,
             onPositionChanged: (position, hasGesture) {
-              if (position.zoom != _currentZoom) {
-                setState(() {
-                  _currentZoom = position.zoom;
-                });
+              // Update the zoom notifier WITHOUT calling setState on this widget,
+              // so only the label layer rebuilds — not the whole map tree.
+              if (position.zoom != _zoomNotifier.value) {
+                _zoomNotifier.value = position.zoom;
               }
             },
             onTap: (tapPos, point) {
@@ -633,9 +755,9 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
               userAgentPackageName: 'com.example.vietnamese_map',
             ),
 
-            // Province base boundaries
-            if (visibleBoundaries.isNotEmpty)
-              PolygonLayer(polygons: visibleBoundaries),
+            // Province base boundaries — uses cached list, not rebuilt per frame.
+            if (_cachedVisibleBoundaries.isNotEmpty)
+              PolygonLayer(polygons: _cachedVisibleBoundaries),
 
             // Commune boundaries
             if (communePolygons.isNotEmpty)
@@ -645,13 +767,27 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
             if (_selectedPolygons.isNotEmpty)
               PolygonLayer(polygons: _selectedPolygons),
 
-            // Province labels
-            if (provinceLabels.isNotEmpty)
-              BoundaryLabelLayer(labels: provinceLabels),
-
-            // Commune labels
-            if (communeLabels.isNotEmpty)
-              BoundaryLabelLayer(labels: communeLabels),
+            // Province + commune labels — rebuild ONLY when zoom changes.
+            ValueListenableBuilder<double>(
+              valueListenable: _zoomNotifier,
+              builder: (context, zoom, _) {
+                final provinceLabels = buildProvinceLabels(zoom);
+                final communeLabels = buildCommuneLabels(
+                    zoom, communeEntries, communeCentroids);
+                return Stack(
+                  children: [
+                    if (provinceLabels.isNotEmpty)
+                      BoundaryLabelLayer(
+                          key: const ValueKey('province_labels'),
+                          labels: provinceLabels),
+                    if (communeLabels.isNotEmpty)
+                      BoundaryLabelLayer(
+                          key: const ValueKey('commune_labels'),
+                          labels: communeLabels),
+                  ],
+                );
+              },
+            ),
 
             // Markers
             MarkerLayer(
@@ -785,16 +921,149 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                       ],
                     ),
                   ),
+                // School markers
+                if (_schoolCoordinates.isNotEmpty)
+                  ..._schoolCoordinates.map((school) {
+                    final isSelected = _selectedSchool?.schoolUid == school.schoolUid;
+                    return Marker(
+                      point: LatLng(school.latitude!, school.longitude!),
+                      width: isSelected ? 50 : 40,
+                      height: isSelected ? 60 : 50,
+                      alignment: Alignment.topCenter,
+                      child: _SchoolMarkerWidget(
+                        marker: school,
+                        isSelected: isSelected,
+                        onTap: () => _handleSchoolMarkerTap(school),
+                      ),
+                    );
+                  }),
               ],
             ),
           ],
         ),
+
+        // School loading indicator
+        if (_isLoadingSchools)
+          Positioned(
+            top: 80,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black87,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Đang tải vị trí trường học...',
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+        // School count badge
+        if (_schoolCoordinates.isNotEmpty && !_isLoadingSchools)
+          Positioned(
+            top: 80,
+            left: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.school, size: 16, color: Colors.blue),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${_schoolCoordinates.length} trường',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
 
         // Boundary loading overlay
         if (_isLoadingBoundary)
           Container(
             color: const Color(0x80FFFFFF),
             child: const Center(child: CircularProgressIndicator()),
+          ),
+
+        // Commune boundaries loading modal
+        if (_isLoadingCommuneBoundaries)
+          Container(
+            color: const Color(0x60000000),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: CircularProgressIndicator(strokeWidth: 3),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Đang tải ranh giới xã/phường...',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Vui lòng chờ trong giây lát',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
 
         // Boundaries loading indicator
@@ -879,6 +1148,14 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (_schoolCoordinates.isEmpty)
+                FloatingActionButton.small(
+                  heroTag: 'load_schools',
+                  onPressed: () => _loadSchoolCoordinates(),
+                  tooltip: 'Tải vị trí trường',
+                  child: const Icon(Icons.school),
+                ),
+              const SizedBox(height: 8),
               FloatingActionButton.small(
                 heroTag: 'zoom_in',
                 onPressed: () {
@@ -908,6 +1185,8 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                   setState(() {
                     _selectedPolygons = [];
                     _tappedLocation = null;
+                    _schoolCoordinates = [];
+                    _selectedSchool = null;
                   });
                   ref.read(selectedProvinceProvider.notifier).state = null;
                   ref.read(selectedCommuneProvider.notifier).state = null;
@@ -944,4 +1223,66 @@ class _ProvinceBoundaryEntry {
   final String name;
   final List<Polygon> polygons;
   final LatLng? centroid;
+}
+
+class _SchoolMarkerWidget extends StatelessWidget {
+  const _SchoolMarkerWidget({
+    required this.marker,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final SchoolCoordinates marker;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  Color get _markerColor {
+    if (isSelected) return Colors.blue;
+    if (marker.isFull) return Colors.green;
+    if (marker.isApproximate) return Colors.orange;
+    return Colors.grey;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Tooltip(
+        message: marker.schoolName,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (marker.isApproximate && !isSelected)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade100,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.warning_amber, size: 12, color: Colors.orange.shade700),
+                    const SizedBox(width: 2),
+                    Text(
+                      '~',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            Icon(
+              Icons.school,
+              color: _markerColor,
+              size: isSelected ? 40 : 32,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

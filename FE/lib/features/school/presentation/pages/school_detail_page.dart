@@ -1,56 +1,87 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../../shared/models/school_model.dart';
 import '../../shared/providers/schools_provider.dart';
 
-class SchoolDetailPage extends ConsumerWidget {
+class SchoolDetailPage extends ConsumerStatefulWidget {
   const SchoolDetailPage({super.key, required this.schoolUid});
 
   final String schoolUid;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final detail = ref.watch(schoolDetailProvider(schoolUid));
+  ConsumerState<SchoolDetailPage> createState() => _SchoolDetailPageState();
+}
+
+class _SchoolDetailPageState extends ConsumerState<SchoolDetailPage>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final detail = ref.watch(schoolDetailProvider(widget.schoolUid));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('School Detail')),
+      appBar: AppBar(
+        title: Text(l10n.schoolDetail),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.map),
+            tooltip: 'Show on Map',
+            onPressed: () => context.go('/map?school=${widget.schoolUid}'),
+          ),
+        ],
+      ),
       body: detail.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => _ErrorBlock(
           error: error,
-          onRetry: () => ref.invalidate(schoolDetailProvider(schoolUid)),
+          onRetry: () => ref.invalidate(schoolDetailProvider(widget.schoolUid)),
         ),
-        data: (data) => DefaultTabController(
-          length: 4,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: _SchoolHeader(school: data.school),
-              ),
-              const TabBar(
-                isScrollable: true,
-                tabs: [
-                  Tab(text: 'Tổng quan'),
-                  Tab(text: 'Học sinh'),
-                  Tab(text: 'GV/BGH'),
-                  Tab(text: 'Người thân'),
+        data: (data) => Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: _SchoolHeader(school: data.school),
+            ),
+            TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabs: [
+                Tab(text: l10n.tongQuan),
+                Tab(text: l10n.hocSinh),
+                Tab(text: l10n.gvBgh),
+                Tab(text: l10n.nguoiThan),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _OverviewTab(school: data.school),
+                  _StudentsTab(students: data.students, l10n: l10n),
+                  _PersonsTab(persons: data.persons, l10n: l10n),
+                  _RelativesTab(relatives: data.relatives, l10n: l10n),
                 ],
               ),
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    _OverviewTab(school: data.school),
-                    _StudentsTab(students: data.students),
-                    _PersonsTab(persons: data.persons),
-                    _RelativesTab(relatives: data.relatives),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -91,28 +122,62 @@ class _OverviewTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _InfoRow(label: 'Province', value: school.provinceName),
-        _InfoRow(label: 'Province code', value: school.provinceCode),
-        _InfoRow(label: 'Commune', value: school.communeName),
-        _InfoRow(label: 'Commune code', value: school.communeCode),
-        _InfoRow(label: 'School code', value: school.schoolCode),
-        _InfoRow(label: 'Address', value: school.address),
+        _InfoRow(label: l10n.province, value: school.provinceName),
+        _InfoRow(label: l10n.provinceCode, value: school.provinceCode),
+        _InfoRow(label: l10n.commune, value: school.communeName),
+        _InfoRow(label: l10n.communeCode, value: school.communeCode),
+        _InfoRow(label: l10n.schoolCode, value: school.schoolCode),
+        _InfoRow(label: l10n.address, value: school.address),
+        if (school.hasCoordinates)
+          _InfoRow(
+            label: 'Tọa độ',
+            value: '${school.latitude!.toStringAsFixed(5)}, ${school.longitude!.toStringAsFixed(5)}',
+          ),
+        if (school.geocodeStatus != null)
+          _InfoRow(
+            label: 'Trạng thái vị trí',
+            value: school.geocodeStatusDisplay,
+          ),
+        if (school.isApproximate && school.geocodeNote != null)
+          Container(
+            margin: const EdgeInsets.only(top: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.orange.shade200),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.warning_amber, color: Colors.orange.shade700, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    school.geocodeNote!,
+                    style: TextStyle(color: Colors.orange.shade800),
+                  ),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }
 }
 
 class _StudentsTab extends StatelessWidget {
-  const _StudentsTab({required this.students});
+  const _StudentsTab({required this.students, required this.l10n});
 
   final List<StudentModel> students;
+  final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context) {
-    if (students.isEmpty) return const _EmptyBlock(message: 'No students');
+    if (students.isEmpty) return _EmptyBlock(message: l10n.noStudents);
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: students.length,
@@ -121,7 +186,7 @@ class _StudentsTab extends StatelessWidget {
         return Card(
           child: ListTile(
             title: Text(item.fullName),
-            subtitle: Text('Grade ${item.grade} | Class ${item.className}'),
+            subtitle: Text('${l10n.grade} ${item.grade} | ${l10n.classLabel} ${item.className}'),
             trailing: Text('#${item.id}'),
           ),
         );
@@ -131,14 +196,15 @@ class _StudentsTab extends StatelessWidget {
 }
 
 class _PersonsTab extends StatelessWidget {
-  const _PersonsTab({required this.persons});
+  const _PersonsTab({required this.persons, required this.l10n});
 
   final List<PersonModel> persons;
+  final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context) {
     if (persons.isEmpty) {
-      return const _EmptyBlock(message: 'No teachers/persons');
+      return _EmptyBlock(message: l10n.noTeachersPersons);
     }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -158,13 +224,14 @@ class _PersonsTab extends StatelessWidget {
 }
 
 class _RelativesTab extends StatelessWidget {
-  const _RelativesTab({required this.relatives});
+  const _RelativesTab({required this.relatives, required this.l10n});
 
   final List<StudentRelativeModel> relatives;
+  final AppLocalizations l10n;
 
   @override
   Widget build(BuildContext context) {
-    if (relatives.isEmpty) return const _EmptyBlock(message: 'No relatives');
+    if (relatives.isEmpty) return _EmptyBlock(message: l10n.noRelatives);
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: relatives.length,
@@ -214,6 +281,7 @@ class _ErrorBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Card(
         color: Theme.of(context).colorScheme.errorContainer,
@@ -227,7 +295,7 @@ class _ErrorBlock extends StatelessWidget {
               FilledButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
+                label: Text(l10n.retry),
               ),
             ],
           ),

@@ -159,7 +159,89 @@
       "status": "completed",
       "evidence": "flutter analyze - 37 info hints (no errors), flutter build web --release succeeded",
       "files": []
+    },
+    {
+      "id": "feat-020",
+      "name": "Dashboard Charts",
+      "description": "Added fl_chart package and created chart widgets: OutcomeDonutChart, ProvinceBarChart, TopSchoolsBarChart for dashboard visualization",
+      "dependencies": ["feat-019"],
+      "status": "completed",
+      "evidence": "flutter build web --release succeeded",
+      "files": ["FE/pubspec.yaml", "FE/lib/features/campaign/dashboard/widgets/outcome_donut_chart.dart", "FE/lib/features/campaign/dashboard/widgets/province_bar_chart.dart", "FE/lib/features/campaign/dashboard/widgets/top_schools_bar_chart.dart", "FE/lib/features/campaign/dashboard/pages/campaign_dashboard_page.dart"]
+    },
+    {
+      "id": "feat-021",
+      "name": "Admin Users Full CRUD UI",
+      "description": "Complete user management UI: create/edit/delete user dialog, role chips, status toggle (active/inactive), confirmation dialogs",
+      "dependencies": ["feat-020"],
+      "status": "completed",
+      "evidence": "flutter build web --release succeeded",
+      "files": ["FE/lib/features/admin/presentation/pages/admin_users_page.dart", "FE/lib/features/admin/presentation/widgets/user_form_dialog.dart", "FE/lib/features/campaign/shared/repositories/campaign_repository.dart"]
+    },
+    {
+      "id": "feat-022",
+      "name": "Event List DateTime Formatting",
+      "description": "Fixed raw datetime display in event list - now shows formatted date like dd/MM/yyyy HH:mm",
+      "dependencies": ["feat-021"],
+      "status": "completed",
+      "evidence": "flutter build web --release succeeded",
+      "files": ["FE/lib/features/campaign/events/pages/campaign_events_page.dart"]
+    },
+    {
+      "id": "feat-023",
+      "name": "Event Detail Tab Bar Fix",
+      "description": "Fixed tab bar label truncation - added tabAlignment: TabAlignment.start and explicit background container",
+      "dependencies": ["feat-022"],
+      "status": "completed",
+      "evidence": "flutter build web --release succeeded",
+      "files": ["FE/lib/features/campaign/events/pages/event_detail_page.dart"]
+    },
+    {
+      "id": "feat-024",
+      "name": "Dark Mode Color Palette Improvement",
+      "description": "Improved dark mode with proper iOS-inspired surfaces (black background, dark grey containers, better contrast)",
+      "dependencies": ["feat-023"],
+      "status": "completed",
+      "evidence": "flutter build web --release succeeded",
+      "files": ["FE/lib/main.dart"]
+    },
+{
+  "id": "feat-025",
+  "name": "Wide Layout Map Optimization",
+  "description": "Map pane now only shows on map page and school pages in wide layout - reduces unnecessary map rendering",
+  "dependencies": ["feat-024"],
+  "status": "completed",
+  "evidence": "flutter build web --release succeeded",
+  "files": ["FE/lib/app/router.dart"]
+    },
+    {
+      "id": "feat-026",
+      "name": "OSM School Markers with Geocoding",
+      "description": "Implemented OpenStreetMap school markers on Vietnam map. Features: backend geocoding API with commune centroid fallback, APPROXIMATE/PENDING status for schools without exact coordinates, school markers with color-coded status, info bottom sheet with warning for approximate locations, Show on Map buttons in school list and detail pages",
+      "dependencies": ["feat-025"],
+      "status": "completed",
+      "evidence": "flutter analyze - 59 info hints (no errors)",
+      "files": [
+        "BE/postgres/campaign-module.sql",
+        "BE/src/main/java/com/vnmap/campaign/dto/SchoolCoordinatesDto.java",
+        "BE/src/main/java/com/vnmap/campaign/dto/SchoolCoordinatesUpdateRequest.java",
+        "BE/src/main/java/com/vnmap/campaign/service/CampaignService.java",
+        "BE/src/main/java/com/vnmap/campaign/controller/CampaignController.java",
+        "FE/lib/features/school/shared/models/school_model.dart",
+        "FE/lib/features/school/shared/repositories/schools_repository.dart",
+        "FE/lib/features/map/presentation/providers/map_provider.dart",
+        "FE/lib/features/map/presentation/widgets/vietnam_map_view.dart",
+        "FE/lib/features/map/presentation/widgets/school_info_sheet.dart",
+        "FE/lib/features/school/presentation/pages/school_list_page.dart",
+        "FE/lib/features/school/presentation/pages/school_detail_page.dart"
+      ]
     }
   ],
-  "knownIssues": []
+  "knownIssues": [
+    {
+      "issue": "Auto-grading suggestion provided to user - not implemented yet",
+      "priority": "low",
+      "note": "User asked about auto-grading approach based on interaction/outcome data"
+    }
+  ]
 }

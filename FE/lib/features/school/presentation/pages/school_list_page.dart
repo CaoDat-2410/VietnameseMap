@@ -78,9 +78,25 @@ class _SchoolListPageState extends ConsumerState<SchoolListPage> {
             data: (page) => Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'Showing ${page.items.length} of ${page.totalItems} schools',
-                  style: Theme.of(context).textTheme.titleMedium,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Showing ${page.items.length} of ${page.totalItems} schools',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    TextButton.icon(
+                      onPressed: () {
+                        final params = _params;
+                        final query = Uri.encodeComponent(
+                          'province=${params.provinceCode ?? ''}&commune=${params.communeCode ?? ''}'
+                        );
+                        context.go('/map?schools=true&$query');
+                      },
+                      icon: const Icon(Icons.map),
+                      label: const Text('Show on Map'),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 if (page.items.isEmpty)

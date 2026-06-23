@@ -19,6 +19,15 @@ CREATE INDEX IF NOT EXISTS idx_schools_commune ON schools(commune_code);
 CREATE INDEX IF NOT EXISTS idx_schools_area ON schools(area_type);
 CREATE INDEX IF NOT EXISTS idx_schools_name ON schools(school_name);
 
+-- School coordinates for map display
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS geocode_status VARCHAR(20) DEFAULT 'PENDING';
+ALTER TABLE schools ADD COLUMN IF NOT EXISTS geocode_note TEXT;
+
+CREATE INDEX IF NOT EXISTS idx_schools_geocode_status ON schools(geocode_status);
+CREATE INDEX IF NOT EXISTS idx_schools_lat_lng ON schools(latitude, longitude) WHERE latitude IS NOT NULL AND longitude IS NOT NULL;
+
 CREATE TABLE IF NOT EXISTS employees (
     id BIGSERIAL PRIMARY KEY,
     full_name VARCHAR(255) NOT NULL,
