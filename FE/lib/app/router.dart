@@ -278,13 +278,18 @@ class _AppShell extends ConsumerWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth > 600) {
+        final isMapPage = location == '/map' ||
+            location.startsWith('/schools') ||
+            location.contains('lat=');
+        final showMapPane = constraints.maxWidth > 600 && isMapPage;
+
+        if (showMapPane) {
           return Scaffold(
             body: Row(
               children: [
-                const Expanded(
+                Expanded(
                   flex: 6,
-                  child: VietnamMapView(),
+                  child: const VietnamMapView(),
                 ),
                 Container(
                   width: 1,
@@ -331,43 +336,43 @@ class _AppShell extends ConsumerWidget {
               ],
             ),
           );
-        } else {
-          return Scaffold(
-            appBar: AppBar(
-              automaticallyImplyLeading: false,
-              actions: [
-                IconButton(
-                  icon: Text(
-                    locale.languageCode.toUpperCase(),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                  tooltip: 'Change language',
-                  onPressed: () {
-                    ref.read(localeProvider.notifier).toggleLocale();
-                  },
-                ),
-                IconButton(
-                  icon: Icon(
-                    themeMode == ThemeMode.dark
-                        ? Icons.light_mode
-                        : Icons.dark_mode,
-                  ),
-                  tooltip: themeMode == ThemeMode.dark
-                      ? 'Light mode'
-                      : 'Dark mode',
-                  onPressed: () {
-                    ref.read(themeModeProvider.notifier).toggleTheme();
-                  },
-                ),
-              ],
-            ),
-            body: child,
-            bottomNavigationBar: navBar,
-          );
         }
+
+        return Scaffold(
+          appBar: AppBar(
+            automaticallyImplyLeading: false,
+            actions: [
+              IconButton(
+                icon: Text(
+                  locale.languageCode.toUpperCase(),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                tooltip: 'Change language',
+                onPressed: () {
+                  ref.read(localeProvider.notifier).toggleLocale();
+                },
+              ),
+              IconButton(
+                icon: Icon(
+                  themeMode == ThemeMode.dark
+                      ? Icons.light_mode
+                      : Icons.dark_mode,
+                ),
+                tooltip: themeMode == ThemeMode.dark
+                    ? 'Light mode'
+                    : 'Dark mode',
+                onPressed: () {
+                  ref.read(themeModeProvider.notifier).toggleTheme();
+                },
+              ),
+            ],
+          ),
+          body: child,
+          bottomNavigationBar: navBar,
+        );
       },
     );
   }

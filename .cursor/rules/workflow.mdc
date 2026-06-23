@@ -1,0 +1,29 @@
+---
+description:
+Development workflow
+alwaysApply: true
+---
+
+Workflow:
+
+Read
+
+↓
+
+Summarize
+
+↓
+
+Plan
+
+↓
+
+Implement
+
+↓
+
+Verify
+
+↓
+
+Stop

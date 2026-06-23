@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/current_weather.dart';
 
 class WeatherCard extends StatelessWidget {
@@ -39,6 +40,8 @@ class _MainWeatherCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
@@ -139,7 +142,7 @@ class _MainWeatherCard extends StatelessWidget {
           ),
 
           Text(
-            'Cảm giác như ${weather.feelsLike.toStringAsFixed(1)}°C',
+            l10n.feelsLike(weather.feelsLike.toStringAsFixed(1)),
             style: const TextStyle(color: Colors.white60, fontSize: 13),
           ),
 
@@ -190,27 +193,29 @@ class _DetailsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     final items = [
       _Detail(
           icon: Icons.water_drop_outlined,
-          label: 'Độ ẩm',
+          label: l10n.humidity,
           value: '${weather.humidity}%',
           color: const Color(0xFF29B6F6)),
       _Detail(
           icon: Icons.air,
-          label: 'Gió',
+          label: l10n.wind,
           value: '${weather.windSpeed.toStringAsFixed(1)} m/s',
           color: const Color(0xFF66BB6A)),
       if (weather.pressure != null)
         _Detail(
             icon: Icons.compress,
-            label: 'Áp suất',
+            label: l10n.pressure,
             value: '${weather.pressure} hPa',
             color: const Color(0xFFFF7043)),
       if (weather.visibility != null)
         _Detail(
             icon: Icons.visibility_outlined,
-            label: 'Tầm nhìn',
+            label: l10n.visibility,
             value: '${(weather.visibility! / 1000).toStringAsFixed(1)} km',
             color: const Color(0xFFAB47BC)),
     ];
@@ -296,6 +301,8 @@ class _DetailCard extends StatelessWidget {
 class _CachedBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Center(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -308,7 +315,7 @@ class _CachedBadge extends StatelessWidget {
           children: [
             Icon(Icons.cached, size: 14, color: Colors.grey.shade500),
             const SizedBox(width: 4),
-            Text('Dữ liệu cache',
+            Text(l10n.cachedData,
                 style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
           ],
         ),

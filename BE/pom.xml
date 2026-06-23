@@ -202,6 +202,16 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>${jacoco.version}</version>
+                <configuration>
+                    <excludes>
+                        <exclude>**/config/**</exclude>
+                        <exclude>**/dto/**</exclude>
+                        <exclude>**/*Application.class</exclude>
+                        <exclude>**/enums/**</exclude>
+                        <exclude>**/exception/*Exception.class</exclude>
+                        <exclude>**/mapper/**</exclude>
+                    </excludes>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>
@@ -220,7 +230,7 @@
                         <goals>
                             <goal>check</goal>
                         </goals>
-                        <phase>none</phase>
+                        <phase>verify</phase>
                         <configuration>
                             <rules>
                                 <rule>
@@ -234,7 +244,7 @@
                                         <limit>
                                             <counter>BRANCH</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.70</minimum>
+                                            <minimum>0.60</minimum>
                                         </limit>
                                     </limits>
                                 </rule>

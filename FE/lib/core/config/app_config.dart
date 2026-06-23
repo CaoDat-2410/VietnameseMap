@@ -3,6 +3,22 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class AppConfig {
   AppConfig._();
 
+  /// Environment mode: 'development', 'staging', or 'production'
+  static String get envMode {
+    return dotenv.env['ENV_MODE'] ?? 'development';
+  }
+
+  /// Check if running in development mode
+  static bool get isDevelopment => envMode == 'development';
+
+  /// Check if running in production mode
+  static bool get isProduction => envMode == 'production';
+
+  /// Backend API base URL
+  /// Can be set via:
+  /// 1. Environment variable: flutter run --dart-define=API_BASE_URL=http://...
+  /// 2. .env file: API_BASE_URL=http://...
+  /// 3. Falls back to localhost:8080 for development
   static String get baseUrl {
     const apiBaseUrl = String.fromEnvironment('API_BASE_URL');
     if (apiBaseUrl.isNotEmpty) return apiBaseUrl;

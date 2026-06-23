@@ -49,6 +49,10 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-maven-
 
+      - name: Initialize campaign test schema
+        run: psql -h localhost -U vnmap -d vnmapdb -f postgres/campaign-module.sql
+        env:
+          PGPASSWORD: test123
       - name: Run tests with JaCoCo
         run: mvn clean verify jacoco:report
         env:
@@ -58,6 +62,9 @@ jobs:
           DB_USERNAME: vnmap
           DB_PASSWORD: test123
           OWM_API_KEY: ${{ secrets.OWM_API_KEY }}
+          CAMPAIGN_TEST_JDBC_URL: jdbc:postgresql://localhost:5432/vnmapdb
+          CAMPAIGN_TEST_DB_USER: vnmap
+          CAMPAIGN_TEST_DB_PASSWORD: test123
 
       - name: Upload coverage to Codecov
         if: always()
@@ -71,6 +78,21 @@ jobs:
   sonarcloud:
     needs: build-and-test
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_DB: vnmapdb
+          POSTGRES_USER: vnmap
+          POSTGRES_PASSWORD: test123
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
     # Skip for forked PRs (they don't have access to SONAR_TOKEN secret)
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
 
@@ -103,8 +125,12 @@ jobs:
           DB_USERNAME: vnmap
           DB_PASSWORD: test123
 
+      - name: Initialize campaign test schema
+        run: psql -h localhost -U vnmap -d vnmapdb -f postgres/campaign-module.sql
+        env:
+          PGPASSWORD: test123
       - name: Run tests (generates JaCoCo report)
-        run: mvn test jacoco:report -B
+        run: mvn clean verify -B
         env:
           DB_HOST: localhost
           DB_PORT: 5432
@@ -112,12 +138,15 @@ jobs:
           DB_USERNAME: vnmap
           DB_PASSWORD: test123
           OWM_API_KEY: ${{ secrets.OWM_API_KEY }}
+          CAMPAIGN_TEST_JDBC_URL: jdbc:postgresql://localhost:5432/vnmapdb
+          CAMPAIGN_TEST_DB_USER: vnmap
+          CAMPAIGN_TEST_DB_PASSWORD: test123
 
       - name: SonarQube Scan
         uses: sonarsource/sonarcloud-github-action@v2
         with:
           args: >
-            -Dsonar.projectKey=vn-map-backend
+            -Dsonar.projectKey=vnm-backend
             -Dsonar.projectName="VN Map Backend"
             -Dsonar.sourceEncoding=UTF-8
             -Dsonar.scm.disabled=true

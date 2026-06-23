@@ -334,6 +334,36 @@ class CampaignRepository {
     );
   }
 
+  Future<Map<String, dynamic>> createUser(Map<String, dynamic> data) async {
+    final res = await _client.post<Map<String, dynamic>>(
+      '/api/v1/users',
+      data: data,
+    );
+    final api = ApiResponse.fromJson(
+      res.data!,
+      (json) => Map<String, dynamic>.from(json as Map),
+    );
+    _assertSuccess(api);
+    return api.data!;
+  }
+
+  Future<Map<String, dynamic>> updateUser(int userId, Map<String, dynamic> data) async {
+    final res = await _client.put<Map<String, dynamic>>(
+      '/api/v1/users/$userId',
+      data: data,
+    );
+    final api = ApiResponse.fromJson(
+      res.data!,
+      (json) => Map<String, dynamic>.from(json as Map),
+    );
+    _assertSuccess(api);
+    return api.data!;
+  }
+
+  Future<void> deleteUser(int userId) async {
+    await _client.delete<Map<String, dynamic>>('/api/v1/users/$userId');
+  }
+
   void _assertSuccess(ApiResponse api) {
     if (!api.success) {
       throw ApiException(message: api.message);

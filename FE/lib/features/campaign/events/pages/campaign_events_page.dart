@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/shared/providers/auth_provider.dart';
@@ -130,6 +131,16 @@ class CampaignEventsPage extends ConsumerWidget {
   }
 }
 
+String _formatDateTime(String iso) {
+  if (iso.isEmpty) return '-';
+  try {
+    final dt = DateTime.parse(iso);
+    return DateFormat('dd/MM/yyyy HH:mm').format(dt);
+  } catch (_) {
+    return iso;
+  }
+}
+
 class _EventCard extends StatelessWidget {
   const _EventCard({
     required this.event,
@@ -152,8 +163,7 @@ class _EventCard extends StatelessWidget {
         title: Text(event.name),
         subtitle: Text(
           '${event.eventType} | ${event.status}\n'
-          '${event.startsAt.isEmpty ? '-' : event.startsAt} - '
-          '${event.endsAt.isEmpty ? '-' : event.endsAt}\n'
+          '${_formatDateTime(event.startsAt)} - ${_formatDateTime(event.endsAt)}\n'
           '${event.note.isEmpty ? '-' : event.note}',
         ),
         trailing: Row(

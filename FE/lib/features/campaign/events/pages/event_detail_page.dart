@@ -104,15 +104,19 @@ class _EventDetailPageState extends ConsumerState<EventDetailPage>
               padding: const EdgeInsets.all(16),
               child: _EventHeader(event: item),
             ),
-            TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              tabs: [
-                Tab(text: l10n.thongTin),
-                Tab(text: l10n.truongThamGia),
-                Tab(text: l10n.nhanSu),
-                Tab(text: l10n.interactions),
-              ],
+            Container(
+              color: Theme.of(context).colorScheme.surface,
+              child: TabBar(
+                controller: _tabController,
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                tabs: [
+                  Tab(text: l10n.thongTin),
+                  Tab(text: l10n.truongThamGia),
+                  Tab(text: l10n.nhanSu),
+                  const Tab(text: 'Tương tác'),
+                ],
+              ),
             ),
             Expanded(
               child: TabBarView(

@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/shared/providers/auth_provider.dart';
 import '../../shared/models/campaign_models.dart';
 import '../../shared/providers/campaign_provider.dart';
+import '../widgets/outcome_donut_chart.dart';
+import '../widgets/province_bar_chart.dart';
+import '../widgets/top_schools_bar_chart.dart';
 
 class CampaignDashboardPage extends ConsumerWidget {
   const CampaignDashboardPage({super.key, required this.campaignId});
@@ -49,11 +52,11 @@ class CampaignDashboardPage extends ConsumerWidget {
               const SizedBox(height: 16),
               _KpiGrid(dashboard: dashboardData),
               const SizedBox(height: 16),
-              _OutcomeTable(outcomes: dashboardData.interactionsByOutcome),
+              _OutcomeChart(outcomes: dashboardData.interactionsByOutcome),
               const SizedBox(height: 16),
-              _ProvinceTable(items: dashboardData.interactionsByProvince),
+              _ProvinceChart(items: dashboardData.interactionsByProvince),
               const SizedBox(height: 16),
-              _TopSchoolsTable(items: dashboardData.topSchools),
+              _TopSchoolsChart(items: dashboardData.topSchools),
               const SizedBox(height: 16),
               _RegistrationsSection(campaignId: campaignId),
             ],
@@ -151,111 +154,44 @@ class _KpiGrid extends StatelessWidget {
   }
 }
 
-class _OutcomeTable extends StatelessWidget {
-  const _OutcomeTable({required this.outcomes});
+class _OutcomeChart extends StatelessWidget {
+  const _OutcomeChart({required this.outcomes});
 
   final Map<String, int> outcomes;
 
   @override
   Widget build(BuildContext context) {
     return _Section(
-      title: 'Interactions by Outcome',
-      child: DataTable(
-        columns: const [
-          DataColumn(label: Text('Outcome')),
-          DataColumn(label: Text('Total')),
-        ],
-        rows: outcomes.entries
-            .map(
-              (entry) => DataRow(
-                cells: [
-                  DataCell(Text(entry.key)),
-                  DataCell(Text('${entry.value}')),
-                ],
-              ),
-            )
-            .toList(),
-      ),
+      title: 'Tương tác theo kết quả',
+      child: OutcomeDonutChart(outcomes: outcomes),
     );
   }
 }
 
-class _ProvinceTable extends StatelessWidget {
-  const _ProvinceTable({required this.items});
+class _ProvinceChart extends StatelessWidget {
+  const _ProvinceChart({required this.items});
 
   final List<ProvinceInteractionModel> items;
 
   @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) {
-      return const _Section(
-        title: 'Interactions by Province',
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Text('No province data'),
-        ),
-      );
-    }
     return _Section(
-      title: 'Interactions by Province',
-      child: DataTable(
-        columns: const [
-          DataColumn(label: Text('Province')),
-          DataColumn(label: Text('Code')),
-          DataColumn(label: Text('Total')),
-        ],
-        rows: items
-            .map(
-              (item) => DataRow(
-                cells: [
-                  DataCell(Text(item.provinceName)),
-                  DataCell(Text(item.provinceCode)),
-                  DataCell(Text('${item.totalInteractions}')),
-                ],
-              ),
-            )
-            .toList(),
-      ),
+      title: 'Tương tác theo tỉnh/thành',
+      child: ProvinceBarChart(items: items),
     );
   }
 }
 
-class _TopSchoolsTable extends StatelessWidget {
-  const _TopSchoolsTable({required this.items});
+class _TopSchoolsChart extends StatelessWidget {
+  const _TopSchoolsChart({required this.items});
 
   final List<TopSchoolModel> items;
 
   @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) {
-      return const _Section(
-        title: 'Top Schools',
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: Text('No school data'),
-        ),
-      );
-    }
     return _Section(
-      title: 'Top Schools',
-      child: DataTable(
-        columns: const [
-          DataColumn(label: Text('School')),
-          DataColumn(label: Text('UID')),
-          DataColumn(label: Text('Total')),
-        ],
-        rows: items
-            .map(
-              (item) => DataRow(
-                cells: [
-                  DataCell(Text(item.schoolName)),
-                  DataCell(Text(item.schoolUid)),
-                  DataCell(Text('${item.totalInteractions}')),
-                ],
-              ),
-            )
-            .toList(),
-      ),
+      title: 'Top trường',
+      child: TopSchoolsBarChart(items: items),
     );
   }
 }

@@ -214,28 +214,201 @@
   "evidence": "flutter build web --release succeeded",
   "files": ["FE/lib/app/router.dart"]
     },
-    {
-      "id": "feat-026",
-      "name": "OSM School Markers with Geocoding",
-      "description": "Implemented OpenStreetMap school markers on Vietnam map. Features: backend geocoding API with commune centroid fallback, APPROXIMATE/PENDING status for schools without exact coordinates, school markers with color-coded status, info bottom sheet with warning for approximate locations, Show on Map buttons in school list and detail pages",
-      "dependencies": ["feat-025"],
-      "status": "completed",
-      "evidence": "flutter analyze - 59 info hints (no errors)",
-      "files": [
-        "BE/postgres/campaign-module.sql",
-        "BE/src/main/java/com/vnmap/campaign/dto/SchoolCoordinatesDto.java",
-        "BE/src/main/java/com/vnmap/campaign/dto/SchoolCoordinatesUpdateRequest.java",
-        "BE/src/main/java/com/vnmap/campaign/service/CampaignService.java",
-        "BE/src/main/java/com/vnmap/campaign/controller/CampaignController.java",
-        "FE/lib/features/school/shared/models/school_model.dart",
-        "FE/lib/features/school/shared/repositories/schools_repository.dart",
-        "FE/lib/features/map/presentation/providers/map_provider.dart",
-        "FE/lib/features/map/presentation/widgets/vietnam_map_view.dart",
-        "FE/lib/features/map/presentation/widgets/school_info_sheet.dart",
-        "FE/lib/features/school/presentation/pages/school_list_page.dart",
-        "FE/lib/features/school/presentation/pages/school_detail_page.dart"
-      ]
-    }
+{
+  "id": "feat-026",
+  "name": "OSM School Markers with Geocoding",
+  "description": "Implemented OpenStreetMap school markers on Vietnam map. Features: backend geocoding API with commune centroid fallback, APPROXIMATE/PENDING status for schools without exact coordinates, school markers with color-coded status, info bottom sheet with warning for approximate locations, Show on Map buttons in school list and detail pages",
+  "dependencies": ["feat-025"],
+  "status": "completed",
+  "evidence": "flutter analyze - 59 info hints (no errors)",
+  "files": [
+    "BE/postgres/campaign-module.sql",
+    "BE/src/main/java/com/vnmap/campaign/dto/SchoolCoordinatesDto.java",
+    "BE/src/main/java/com/vnmap/campaign/dto/SchoolCoordinatesUpdateRequest.java",
+    "BE/src/main/java/com/vnmap/campaign/service/CampaignService.java",
+    "BE/src/main/java/com/vnmap/campaign/controller/CampaignController.java",
+    "FE/lib/features/school/shared/models/school_model.dart",
+    "FE/lib/features/school/shared/repositories/schools_repository.dart",
+    "FE/lib/features/map/presentation/providers/map_provider.dart",
+    "FE/lib/features/map/presentation/widgets/vietnam_map_view.dart",
+    "FE/lib/features/map/presentation/widgets/school_info_sheet.dart",
+    "FE/lib/features/school/presentation/pages/school_list_page.dart",
+    "FE/lib/features/school/presentation/pages/school_detail_page.dart"
+  ]
+},
+{
+  "id": "feat-027",
+  "name": "UI Refresh - Design System Foundation",
+  "description": "Create design system with Soft Minimalism + Bento Cards style: colors, spacing, typography, shadows for both light/dark modes",
+  "dependencies": ["feat-026"],
+  "status": "completed",
+  "evidence": "flutter analyze - 0 errors | flutter build web --release succeeded",
+  "files": [
+    "FE/lib/core/theme/app_theme.dart",
+    "FE/lib/core/theme/app_colors.dart",
+    "FE/lib/core/theme/app_spacing.dart",
+    "FE/lib/core/theme/app_typography.dart",
+    "FE/lib/core/theme/app_shadows.dart",
+    "FE/lib/main.dart (updated to use design system)"
+  ]
+},
+{
+  "id": "feat-028",
+  "name": "UI Refresh - Bento Card Components",
+  "description": "Implement Bento card system for dashboard: KPI cards, chart containers, responsive grid layouts, StatusChip",
+  "dependencies": ["feat-027"],
+  "status": "completed",
+  "evidence": "flutter analyze - 0 errors in bento_card.dart",
+  "files": [
+    "FE/lib/core/widgets/bento_card.dart"
+  ]
+},
+{
+  "id": "feat-029",
+  "name": "UI Refresh - Map Optimization & Sample Data",
+  "description": "Map performance: progressive loading, marker clustering, tile caching, simplified geometry. Sample data generation script",
+  "dependencies": ["feat-028"],
+  "status": "completed",
+  "evidence": "flutter analyze - 0 errors | BE sample_data.sql created",
+  "files": [
+    "FE/lib/features/map/presentation/providers/map_optimization_provider.dart",
+    "BE/scripts/sample_data.sql"
+  ]
+},
+{
+  "id": "feat-030",
+  "name": "UI Refresh - Map Glassmorphism UI",
+  "description": "Modern map UI: glass sidebar, modern bottom sheets, responsive layout for mobile/tablet/desktop, light/dark tile switching",
+  "dependencies": ["feat-029"],
+  "status": "completed",
+  "evidence": "flutter analyze - 0 errors in glass_widgets.dart and modern_bottom_sheet.dart",
+  "files": [
+    "FE/lib/core/widgets/glass_widgets.dart",
+    "FE/lib/core/widgets/modern_bottom_sheet.dart"
+  ]
+},
+{
+  "id": "feat-031",
+  "name": "UI Refresh - Responsive Design System",
+  "description": "Add responsive breakpoints and helpers: mobile (<600), tablet (600-900), desktop (900+) layouts, responsive navigation",
+  "dependencies": ["feat-030"],
+  "status": "completed",
+  "evidence": "flutter analyze - 0 errors in responsive.dart",
+  "files": [
+    "FE/lib/core/utils/responsive.dart"
+  ]
+},
+{
+  "id": "feat-032",
+  "name": "UI Refresh - Shimmer Loading States",
+  "description": "Enhanced shimmer/skeleton loading for all pages: list shimmer, card shimmer, dashboard section skeletons (already exists)",
+  "dependencies": ["feat-031"],
+  "status": "completed",
+  "evidence": "flutter analyze - existing shimmer_loading.dart verified",
+  "files": [
+    "FE/lib/core/widgets/shimmer_loading.dart"
+  ]
+},
+{
+  "id": "feat-033",
+  "name": "UI Refresh - Performance Audit & Optimization",
+  "description": "Performance optimizations: API debounce, pagination, widget rebuild optimization, performance utilities",
+  "dependencies": ["feat-032"],
+  "status": "completed",
+  "evidence": "flutter build web --release succeeded",
+  "files": [
+    "FE/lib/core/utils/performance_utils.dart"
+  ]
+},
+{
+  "id": "feat-034",
+  "name": "Testing - Setup Test Infrastructure (FE + BE)",
+  "description": "Setup test infrastructure for both FE and BE: create test directories, configure coverage, add sonar-project.properties, setup CI/CD pipeline, add JUnit 5/Mockito dependencies",
+  "dependencies": ["feat-033"],
+  "status": "pending",
+  "evidence": "",
+  "files": [
+    "FE/test/",
+    "FE/sonar-project.properties",
+    "FE/.github/workflows/test.yml",
+    "BE/src/test/java/com/vnmap/campaign/",
+    "BE/sonar-project.properties",
+    "BE/pom.xml (jacoco config)"
+  ]
+},
+{
+  "id": "feat-035",
+  "name": "Testing - Write FE Unit Tests",
+  "description": "Write unit tests for all FE providers, repositories, utils. Target: 35% coverage from unit tests",
+  "dependencies": ["feat-034"],
+  "status": "pending",
+  "evidence": "",
+  "files": [
+    "FE/test/core/",
+    "FE/test/features/"
+  ]
+},
+{
+  "id": "feat-036",
+  "name": "Testing - Write BE Unit Tests (Services)",
+  "description": "Write unit tests for all BE services: CampaignService, EventService, SchoolService, UserService, InteractionService, GeocodingService. Target: 40% coverage",
+  "dependencies": ["feat-034"],
+  "status": "pending",
+  "evidence": "",
+  "files": [
+    "BE/src/test/java/com/vnmap/campaign/service/"
+  ]
+},
+{
+  "id": "feat-037",
+  "name": "Testing - Write BE Controller Tests",
+  "description": "Write WebMvcTest tests for all BE controllers with validation, auth, and error handling",
+  "dependencies": ["feat-036"],
+  "status": "pending",
+  "evidence": "",
+  "files": [
+    "BE/src/test/java/com/vnmap/campaign/controller/"
+  ]
+},
+{
+  "id": "feat-038",
+  "name": "Testing - Write Widget & Integration Tests",
+  "description": "Write widget tests for BentoCard, Shimmer, and integration tests for user flows",
+  "dependencies": ["feat-035"],
+  "status": "pending",
+  "evidence": "",
+  "files": [
+    "FE/test/widgets/",
+    "FE/integration_test/"
+  ]
+},
+{
+  "id": "feat-039",
+  "name": "Testing - SonarQube Integration",
+  "description": "Setup SonarQube Docker, configure quality gate (min 86% coverage), run baseline scan, verify both FE and BE projects",
+  "dependencies": ["feat-038"],
+  "status": "pending",
+  "evidence": "",
+  "files": []
+},
+{
+  "id": "feat-040",
+  "name": "Build - Android APK Release",
+  "description": "Build and verify Android APK: debug APK, release APK, app bundle. Target APK size <30MB",
+  "dependencies": ["feat-039"],
+  "status": "pending",
+  "evidence": "",
+  "files": []
+},
+{
+  "id": "feat-041",
+  "name": "Build - Web & Final Verification",
+  "description": "Final web build, mobile performance verification on physical device, release notes",
+  "dependencies": ["feat-040"],
+  "status": "pending",
+  "evidence": "",
+  "files": []
+}
   ],
   "knownIssues": [
     {
