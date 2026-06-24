@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
@@ -7,8 +9,10 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 
 import '../providers/map_provider.dart';
+import '../providers/osm_geocoding_provider.dart';
 import '../../../../core/utils/geojson_utils.dart';
 import '../../data/datasources/geo_local_datasource.dart';
+import '../../data/repositories/osm_geocoding_repository.dart';
 import '../../domain/entities/unit_level.dart';
 import '../../../weather/presentation/providers/weather_provider.dart'
     show
@@ -19,7 +23,6 @@ import '../../../weather/presentation/providers/weather_provider.dart'
         selectedWeatherLocationProvider,
         selectedWeatherProvider;
 import '../../../weather/presentation/widgets/weather_summary_row.dart';
-import '../../../school/shared/repositories/schools_repository.dart';
 import 'boundary_label_widget.dart';
 import 'school_info_sheet.dart';
 
@@ -29,11 +32,13 @@ class VietnamMapView extends ConsumerStatefulWidget {
     this.focusLat,
     this.focusLng,
     this.focusLabel,
+    this.schoolUids,
   });
 
   final double? focusLat;
   final double? focusLng;
   final String? focusLabel;
+  final List<String>? schoolUids;
 
   @override
   ConsumerState<VietnamMapView> createState() => _VietnamMapViewState();
@@ -85,10 +90,18 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
   _EventFocus? _eventFocus;
   bool _focusCameraApplied = false;
 
-  // School markers state
-  List<SchoolCoordinates> _schoolCoordinates = [];
-  SchoolCoordinates? _selectedSchool;
+  // School markers state (populated via on-demand OSM geocoding only)
+  List<SchoolGeocode> _schoolGeocodes = [];
+  SchoolGeocode? _selectedSchool;
   bool _isLoadingSchools = false;
+
+  // Map readiness gating: the OSM geocode may resolve before the FlutterMap
+  // widget has bound the MapController. We wait for the map's first onPositionChanged
+  // event (which only fires after the map is mounted and laid out) before
+  // dispatching the auto-zoom.
+  bool _mapReady = false;
+  Completer<void>? _mapReadyCompleter;
+  int _zoomRetry = 0;
 
   @override
   void dispose() {
@@ -105,6 +118,84 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
     if (lat != null && lng != null) {
       _eventFocus = _EventFocus(lat: lat, lng: lng, label: label ?? '');
     }
+    // Fire the geocode call immediately on mount. MapController is only needed
+    // by _zoomToGeocoded (called inside addPostFrameCallback), not by the fetch.
+    if (widget.schoolUids != null && widget.schoolUids!.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && widget.schoolUids != null) {
+          _geocodeAndShowSchools(widget.schoolUids!);
+        }
+      });
+    }
+  }
+
+  Future<void> _geocodeAndShowSchools(List<String> schoolUids) async {
+    if (!mounted) return;
+    setState(() {
+      _isLoadingSchools = true;
+    });
+
+    try {
+      final results = await ref.read(schoolGeocodeProvider(schoolUids).future);
+      if (!mounted) return;
+      setState(() {
+        _schoolGeocodes = results;
+        _isLoadingSchools = false;
+      });
+
+      // Auto-zoom to the first geocoded school with coordinates
+      final withCoords = results.where((s) => s.hasCoordinates).toList();
+      if (withCoords.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _zoomToGeocoded(withCoords);
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingSchools = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Không thể tải vị trí trường học: $e'),
+          action: SnackBarAction(
+            label: 'Thử lại',
+            onPressed: () =>
+                _geocodeAndShowSchools(widget.schoolUids ?? const []),
+          ),
+        ),
+      );
+    }
+  }
+
+  void _zoomToGeocoded(List<SchoolGeocode> schools) {
+    if (schools.isEmpty || !_mapReady) return;
+    if (_zoomRetry > 2) return;
+    try {
+      if (schools.length == 1) {
+        _mapController.move(
+          LatLng(schools.first.latitude!, schools.first.longitude!),
+          15,
+        );
+      } else {
+        final bounds = LatLngBounds.fromPoints(
+          schools
+              .where((s) => s.hasCoordinates)
+              .map((s) => LatLng(s.latitude!, s.longitude!))
+              .toList(),
+        );
+        _mapController.fitCamera(
+          CameraFit.bounds(bounds: bounds, padding: const EdgeInsets.all(80.0)),
+        );
+      }
+      _zoomRetry = 0;
+    } catch (e) {
+      _zoomRetry++;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _zoomToGeocoded(schools);
+      });
+    }
   }
 
   void _maybeApplyFocusCamera() {
@@ -117,37 +208,15 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
     });
   }
 
-  Future<void> _loadSchoolCoordinates({String? provinceCode, String? communeCode}) async {
-    if (!mounted) return;
-    setState(() {
-      _isLoadingSchools = true;
-    });
-
-    try {
-      final repo = ref.read(schoolsRepositoryProvider);
-      final coords = await repo.getSchoolCoordinates(
-        provinceCode: provinceCode,
-        communeCode: communeCode,
-      );
-      if (!mounted) return;
-      setState(() {
-        _schoolCoordinates = coords.where((s) => s.hasCoordinates).toList();
-        _isLoadingSchools = false;
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _isLoadingSchools = false;
-      });
-      debugPrint('Error loading school coordinates: $e');
-    }
-  }
-
-  void _handleSchoolMarkerTap(SchoolCoordinates school) {
+  void _handleGeocodedSchoolTap(SchoolGeocode school) {
+    if (!school.hasCoordinates) return;
     setState(() {
       _selectedSchool = school;
     });
-    showSchoolInfoSheet(context, school);
+    _mapController.move(
+      LatLng(school.latitude!, school.longitude!),
+      16,
+    );
   }
 
   Future<void> _getCurrentLocation() async {
@@ -742,6 +811,14 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
               if (position.zoom != _zoomNotifier.value) {
                 _zoomNotifier.value = position.zoom;
               }
+              // Mark the map as ready once it starts reporting position changes.
+              if (!_mapReady) {
+                _mapReady = true;
+                final completer = _mapReadyCompleter;
+                if (completer != null && !completer.isCompleted) {
+                  completer.complete();
+                }
+              }
             },
             onTap: (tapPos, point) {
               _handleMapTap(tapPos, point);
@@ -921,9 +998,11 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                       ],
                     ),
                   ),
-                // School markers
-                if (_schoolCoordinates.isNotEmpty)
-                  ..._schoolCoordinates.map((school) {
+                // School markers (from on-demand OSM geocoding)
+                if (_schoolGeocodes.isNotEmpty)
+                  ..._schoolGeocodes
+                      .where((s) => s.hasCoordinates)
+                      .map((school) {
                     final isSelected = _selectedSchool?.schoolUid == school.schoolUid;
                     return Marker(
                       point: LatLng(school.latitude!, school.longitude!),
@@ -933,7 +1012,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                       child: _SchoolMarkerWidget(
                         marker: school,
                         isSelected: isSelected,
-                        onTap: () => _handleSchoolMarkerTap(school),
+                        onTap: () => _handleGeocodedSchoolTap(school),
                       ),
                     );
                   }),
@@ -978,7 +1057,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
           ),
 
         // School count badge
-        if (_schoolCoordinates.isNotEmpty && !_isLoadingSchools)
+        if (_schoolGeocodes.isNotEmpty && !_isLoadingSchools)
           Positioned(
             top: 80,
             left: 16,
@@ -1000,7 +1079,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                   const Icon(Icons.school, size: 16, color: Colors.blue),
                   const SizedBox(width: 6),
                   Text(
-                    '${_schoolCoordinates.length} trường',
+                    '${_schoolGeocodes.length} trường',
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -1148,13 +1227,6 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (_schoolCoordinates.isEmpty)
-                FloatingActionButton.small(
-                  heroTag: 'load_schools',
-                  onPressed: () => _loadSchoolCoordinates(),
-                  tooltip: 'Tải vị trí trường',
-                  child: const Icon(Icons.school),
-                ),
               const SizedBox(height: 8),
               FloatingActionButton.small(
                 heroTag: 'zoom_in',
@@ -1185,7 +1257,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                   setState(() {
                     _selectedPolygons = [];
                     _tappedLocation = null;
-                    _schoolCoordinates = [];
+                    _schoolGeocodes = [];
                     _selectedSchool = null;
                   });
                   ref.read(selectedProvinceProvider.notifier).state = null;
@@ -1232,15 +1304,15 @@ class _SchoolMarkerWidget extends StatelessWidget {
     required this.onTap,
   });
 
-  final SchoolCoordinates marker;
+  final SchoolGeocode marker;
   final bool isSelected;
   final VoidCallback onTap;
 
   Color get _markerColor {
     if (isSelected) return Colors.blue;
-    if (marker.isFull) return Colors.green;
-    if (marker.isApproximate) return Colors.orange;
-    return Colors.grey;
+    if (marker.isExact) return Colors.green;
+    // Fallback coordinates (centroid) are always shown in orange
+    return Colors.orange;
   }
 
   @override
@@ -1252,7 +1324,7 @@ class _SchoolMarkerWidget extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (marker.isApproximate && !isSelected)
+            if (!marker.isExact && !isSelected)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(

@@ -14,79 +14,125 @@
       "dependencies": [],
       "status": "completed",
       "evidence": "flutter analyze lib/core/config/app_config.dart - No issues found!",
-      "files": ["FE/.env", "FE/.env.development", "FE/.env.production", "FE/lib/core/config/app_config.dart"]
+      "files": [
+        "FE/.env",
+        "FE/.env.development",
+        "FE/.env.production",
+        "FE/lib/core/config/app_config.dart"
+      ]
     },
     {
       "id": "feat-002",
       "name": "Localization System Setup",
       "description": "Add flutter_localizations, intl package, create ARB files for Vietnamese/English",
-      "dependencies": ["feat-001"],
+      "dependencies": [
+        "feat-001"
+      ],
       "status": "completed",
       "evidence": "flutter analyze - 0 errors | flutter build web - success",
-      "files": ["FE/pubspec.yaml", "FE/l10n.yaml", "FE/lib/l10n/app_en.arb", "FE/lib/l10n/app_vi.arb", "FE/lib/main.dart", "FE/lib/app/router.dart"]
+      "files": [
+        "FE/pubspec.yaml",
+        "FE/l10n.yaml",
+        "FE/lib/l10n/app_en.arb",
+        "FE/lib/l10n/app_vi.arb",
+        "FE/lib/main.dart",
+        "FE/lib/app/router.dart"
+      ]
     },
     {
       "id": "feat-003",
       "name": "Vietnamese Theme & Colors",
       "description": "Update theme with warm Vietnamese-inspired color palette",
-      "dependencies": ["feat-002"],
+      "dependencies": [
+        "feat-002"
+      ],
       "status": "completed",
       "evidence": "flutter analyze - 0 errors in main.dart | Added red (#B91C1C), gold (#D97706), amber (#F59E0B) colors",
-      "files": ["FE/lib/main.dart"]
+      "files": [
+        "FE/lib/main.dart"
+      ]
     },
     {
       "id": "feat-004",
       "name": "Smooth Animations",
       "description": "Added slide+fade page transitions (300ms), created shimmer loading widgets, created card animation widgets",
-      "dependencies": ["feat-003"],
+      "dependencies": [
+        "feat-003"
+      ],
       "status": "completed",
       "evidence": "flutter analyze lib/app/router.dart lib/core/widgets/ - No errors, only info hints",
-      "files": ["FE/lib/app/router.dart", "FE/lib/core/widgets/shimmer_loading.dart", "FE/lib/core/widgets/card_animation.dart"]
+      "files": [
+        "FE/lib/app/router.dart",
+        "FE/lib/core/widgets/shimmer_loading.dart",
+        "FE/lib/core/widgets/card_animation.dart"
+      ]
     },
     {
       "id": "feat-005",
       "name": "Vietnamese Navigation Labels",
       "description": "Navigation labels already use AppLocalizations (l10n.map, l10n.weather, etc.) - completed during feat-002",
-      "dependencies": ["feat-004"],
+      "dependencies": [
+        "feat-004"
+      ],
       "status": "completed",
       "evidence": "Verified in router.dart - _navItemsFor() uses l10n.xxx for all nav labels",
-      "files": ["FE/lib/app/router.dart"]
+      "files": [
+        "FE/lib/app/router.dart"
+      ]
     },
     {
       "id": "feat-006",
       "name": "Login Page - Vietnamese UI",
       "description": "Updated login page with Vietnamese UI - localized title, subtitle, form labels, button text, and validation messages",
-      "dependencies": ["feat-005"],
+      "dependencies": [
+        "feat-005"
+      ],
       "status": "completed",
       "evidence": "flutter analyze lib/features/auth/ - No issues found!",
-      "files": ["FE/lib/features/auth/presentation/pages/login_page.dart"]
+      "files": [
+        "FE/lib/features/auth/presentation/pages/login_page.dart"
+      ]
     },
     {
       "id": "feat-007",
       "name": "Campaign List - Vietnamese UI",
       "description": "Updated campaign list page with Vietnamese UI - localized title, filters, card labels, and action buttons",
-      "dependencies": ["feat-006"],
+      "dependencies": [
+        "feat-006"
+      ],
       "status": "completed",
       "evidence": "flutter analyze lib/features/campaign/ - 2 info hints (no errors)",
-      "files": ["FE/lib/features/campaign/dashboard/pages/campaign_list_page.dart", "FE/lib/l10n/app_vi.arb", "FE/lib/l10n/app_en.arb"]
+      "files": [
+        "FE/lib/features/campaign/dashboard/pages/campaign_list_page.dart",
+        "FE/lib/l10n/app_vi.arb",
+        "FE/lib/l10n/app_en.arb"
+      ]
     },
     {
       "id": "feat-008",
       "name": "Event Detail - Fix Tabs & Vietnamese",
       "description": "Fixed tab switching bug by using TabController with SingleTickerProviderStateMixin, localized all UI strings to Vietnamese",
-      "dependencies": ["feat-007"],
+      "dependencies": [
+        "feat-007"
+      ],
       "status": "completed",
       "evidence": "flutter analyze lib/features/campaign/events/pages/event_detail_page.dart - 2 info hints (no errors)",
-      "files": ["FE/lib/features/campaign/events/pages/event_detail_page.dart"]
+      "files": [
+        "FE/lib/features/campaign/events/pages/event_detail_page.dart"
+      ]
     },
     {
       "id": "feat-009",
       "name": "School Detail - Fix Tabs & Vietnamese",
       "description": "Fixed tab switching bug by using TabController with SingleTickerProviderStateMixin, localized _OverviewTab labels to Vietnamese",
-      "dependencies": ["feat-008"],
+      "dependencies": [
+        "feat-008"
+      ],
       "status": "completed",
       "evidence": "flutter analyze lib/features/school/presentation/pages/school_detail_page.dart - No issues found!",
-      "files": ["FE/lib/features/school/presentation/pages/school_detail_page.dart"]
+      "files": [
+        "FE/lib/features/school/presentation/pages/school_detail_page.dart"
+      ]
     },
     {
       "id": "feat-010",
@@ -95,58 +141,93 @@
       "dependencies": [],
       "status": "completed",
       "evidence": "flutter analyze lib/features/weather/ - No issues found!",
-      "files": ["FE/lib/features/weather/presentation/pages/weather_page.dart", "FE/lib/features/weather/presentation/widgets/weather_card.dart", "FE/lib/l10n/app_vi.arb", "FE/lib/l10n/app_en.arb"]
+      "files": [
+        "FE/lib/features/weather/presentation/pages/weather_page.dart",
+        "FE/lib/features/weather/presentation/widgets/weather_card.dart",
+        "FE/lib/l10n/app_vi.arb",
+        "FE/lib/l10n/app_en.arb"
+      ]
     },
     {
       "id": "feat-013",
       "name": "Optimize Commune Boundary Loading",
       "description": "Use bulk API endpoint for commune boundaries (single call instead of N calls), add loading modal with dark overlay, filter out empty boundaries",
-      "dependencies": ["feat-010"],
+      "dependencies": [
+        "feat-010"
+      ],
       "status": "completed",
       "evidence": "flutter analyze lib/features/map/ - No errors, only info hints",
-      "files": ["FE/lib/features/map/presentation/providers/map_provider.dart", "FE/lib/features/map/presentation/widgets/vietnam_map_view.dart"]
+      "files": [
+        "FE/lib/features/map/presentation/providers/map_provider.dart",
+        "FE/lib/features/map/presentation/widgets/vietnam_map_view.dart"
+      ]
     },
     {
       "id": "feat-014",
       "name": "Complete CRUD Operations",
       "description": "All CRUD operations verified - create/edit/delete campaigns, events, archive functionality, user role management. Repository methods: getCampaigns, createCampaign, updateCampaign, archiveCampaign, getEvents, createEvent, updateEvent, archiveEvent, user management",
-      "dependencies": ["feat-009"],
+      "dependencies": [
+        "feat-009"
+      ],
       "status": "completed",
       "evidence": "flutter analyze - 31 info hints (no errors)",
-      "files": ["FE/lib/features/campaign/shared/repositories/campaign_repository.dart", "FE/lib/features/campaign/dashboard/pages/campaign_list_page.dart", "FE/lib/features/campaign/events/pages/campaign_events_page.dart", "FE/lib/features/admin/presentation/pages/admin_users_page.dart"]
+      "files": [
+        "FE/lib/features/campaign/shared/repositories/campaign_repository.dart",
+        "FE/lib/features/campaign/dashboard/pages/campaign_list_page.dart",
+        "FE/lib/features/campaign/events/pages/campaign_events_page.dart",
+        "FE/lib/features/admin/presentation/pages/admin_users_page.dart"
+      ]
     },
     {
       "id": "feat-016",
       "name": "Language Change Button",
       "description": "Added in-app language switcher button (VI/EN) to AppBar - toggles between Vietnamese and English locales",
-      "dependencies": ["feat-014"],
+      "dependencies": [
+        "feat-014"
+      ],
       "status": "completed",
       "evidence": "flutter analyze - 34 info hints (no errors)",
-      "files": ["FE/lib/main.dart", "FE/lib/app/router.dart", "FE/lib/core/providers/locale_provider.dart"]
+      "files": [
+        "FE/lib/main.dart",
+        "FE/lib/app/router.dart",
+        "FE/lib/core/providers/locale_provider.dart"
+      ]
     },
     {
       "id": "feat-015",
       "name": "Light and Dark Mode",
       "description": "Added theme toggle button to AppBar - toggles between light and dark themes with Vietnamese-inspired colors for both modes",
-      "dependencies": ["feat-014"],
+      "dependencies": [
+        "feat-014"
+      ],
       "status": "completed",
       "evidence": "flutter analyze - 33 info hints (no errors)",
-      "files": ["FE/lib/main.dart", "FE/lib/app/router.dart", "FE/lib/core/providers/theme_provider.dart"]
+      "files": [
+        "FE/lib/main.dart",
+        "FE/lib/app/router.dart",
+        "FE/lib/core/providers/theme_provider.dart"
+      ]
     },
     {
       "id": "feat-017",
       "name": "Modern Minimalist Theme & UI",
       "description": "Redesigned themes with modern minimalist approach - cleaner borders, subtle shadows, rounded corners, consistent spacing, modern card styles, improved dark mode with proper surfaces",
-      "dependencies": ["feat-016"],
+      "dependencies": [
+        "feat-016"
+      ],
       "status": "completed",
       "evidence": "flutter analyze - 37 info hints (no errors)",
-      "files": ["FE/lib/main.dart"]
+      "files": [
+        "FE/lib/main.dart"
+      ]
     },
     {
       "id": "feat-018",
       "name": "Browser Testing",
       "description": "Verified Flutter web build succeeds - flutter build web --release completed successfully",
-      "dependencies": ["feat-017"],
+      "dependencies": [
+        "feat-017"
+      ],
       "status": "completed",
       "evidence": "Build output: Built build\\web",
       "files": []
@@ -155,7 +236,9 @@
       "id": "feat-019",
       "name": "Cleanup and Handoff",
       "description": "All remaining issues fixed and all features implemented",
-      "dependencies": ["feat-018"],
+      "dependencies": [
+        "feat-018"
+      ],
       "status": "completed",
       "evidence": "flutter analyze - 37 info hints (no errors), flutter build web --release succeeded",
       "files": []
@@ -164,251 +247,545 @@
       "id": "feat-020",
       "name": "Dashboard Charts",
       "description": "Added fl_chart package and created chart widgets: OutcomeDonutChart, ProvinceBarChart, TopSchoolsBarChart for dashboard visualization",
-      "dependencies": ["feat-019"],
+      "dependencies": [
+        "feat-019"
+      ],
       "status": "completed",
       "evidence": "flutter build web --release succeeded",
-      "files": ["FE/pubspec.yaml", "FE/lib/features/campaign/dashboard/widgets/outcome_donut_chart.dart", "FE/lib/features/campaign/dashboard/widgets/province_bar_chart.dart", "FE/lib/features/campaign/dashboard/widgets/top_schools_bar_chart.dart", "FE/lib/features/campaign/dashboard/pages/campaign_dashboard_page.dart"]
+      "files": [
+        "FE/pubspec.yaml",
+        "FE/lib/features/campaign/dashboard/widgets/outcome_donut_chart.dart",
+        "FE/lib/features/campaign/dashboard/widgets/province_bar_chart.dart",
+        "FE/lib/features/campaign/dashboard/widgets/top_schools_bar_chart.dart",
+        "FE/lib/features/campaign/dashboard/pages/campaign_dashboard_page.dart"
+      ]
     },
     {
       "id": "feat-021",
       "name": "Admin Users Full CRUD UI",
       "description": "Complete user management UI: create/edit/delete user dialog, role chips, status toggle (active/inactive), confirmation dialogs",
-      "dependencies": ["feat-020"],
+      "dependencies": [
+        "feat-020"
+      ],
       "status": "completed",
       "evidence": "flutter build web --release succeeded",
-      "files": ["FE/lib/features/admin/presentation/pages/admin_users_page.dart", "FE/lib/features/admin/presentation/widgets/user_form_dialog.dart", "FE/lib/features/campaign/shared/repositories/campaign_repository.dart"]
+      "files": [
+        "FE/lib/features/admin/presentation/pages/admin_users_page.dart",
+        "FE/lib/features/admin/presentation/widgets/user_form_dialog.dart",
+        "FE/lib/features/campaign/shared/repositories/campaign_repository.dart"
+      ]
     },
     {
       "id": "feat-022",
       "name": "Event List DateTime Formatting",
       "description": "Fixed raw datetime display in event list - now shows formatted date like dd/MM/yyyy HH:mm",
-      "dependencies": ["feat-021"],
+      "dependencies": [
+        "feat-021"
+      ],
       "status": "completed",
       "evidence": "flutter build web --release succeeded",
-      "files": ["FE/lib/features/campaign/events/pages/campaign_events_page.dart"]
+      "files": [
+        "FE/lib/features/campaign/events/pages/campaign_events_page.dart"
+      ]
     },
     {
       "id": "feat-023",
       "name": "Event Detail Tab Bar Fix",
       "description": "Fixed tab bar label truncation - added tabAlignment: TabAlignment.start and explicit background container",
-      "dependencies": ["feat-022"],
+      "dependencies": [
+        "feat-022"
+      ],
       "status": "completed",
       "evidence": "flutter build web --release succeeded",
-      "files": ["FE/lib/features/campaign/events/pages/event_detail_page.dart"]
+      "files": [
+        "FE/lib/features/campaign/events/pages/event_detail_page.dart"
+      ]
     },
     {
       "id": "feat-024",
       "name": "Dark Mode Color Palette Improvement",
       "description": "Improved dark mode with proper iOS-inspired surfaces (black background, dark grey containers, better contrast)",
-      "dependencies": ["feat-023"],
+      "dependencies": [
+        "feat-023"
+      ],
       "status": "completed",
       "evidence": "flutter build web --release succeeded",
-      "files": ["FE/lib/main.dart"]
+      "files": [
+        "FE/lib/main.dart"
+      ]
     },
-{
-  "id": "feat-025",
-  "name": "Wide Layout Map Optimization",
-  "description": "Map pane now only shows on map page and school pages in wide layout - reduces unnecessary map rendering",
-  "dependencies": ["feat-024"],
-  "status": "completed",
-  "evidence": "flutter build web --release succeeded",
-  "files": ["FE/lib/app/router.dart"]
+    {
+      "id": "feat-024",
+      "name": "Wide Layout Map Optimization",
+      "description": "Map pane now only shows on map page and school pages in wide layout - reduces unnecessary map rendering",
+      "dependencies": [
+        "feat-024"
+      ],
+      "status": "completed",
+      "evidence": "flutter build web --release succeeded",
+      "files": [
+        "FE/lib/app/router.dart"
+      ]
     },
-{
-  "id": "feat-026",
-  "name": "OSM School Markers with Geocoding",
-  "description": "Implemented OpenStreetMap school markers on Vietnam map. Features: backend geocoding API with commune centroid fallback, APPROXIMATE/PENDING status for schools without exact coordinates, school markers with color-coded status, info bottom sheet with warning for approximate locations, Show on Map buttons in school list and detail pages",
-  "dependencies": ["feat-025"],
-  "status": "completed",
-  "evidence": "flutter analyze - 59 info hints (no errors)",
-  "files": [
-    "BE/postgres/campaign-module.sql",
-    "BE/src/main/java/com/vnmap/campaign/dto/SchoolCoordinatesDto.java",
-    "BE/src/main/java/com/vnmap/campaign/dto/SchoolCoordinatesUpdateRequest.java",
-    "BE/src/main/java/com/vnmap/campaign/service/CampaignService.java",
-    "BE/src/main/java/com/vnmap/campaign/controller/CampaignController.java",
-    "FE/lib/features/school/shared/models/school_model.dart",
-    "FE/lib/features/school/shared/repositories/schools_repository.dart",
-    "FE/lib/features/map/presentation/providers/map_provider.dart",
-    "FE/lib/features/map/presentation/widgets/vietnam_map_view.dart",
-    "FE/lib/features/map/presentation/widgets/school_info_sheet.dart",
-    "FE/lib/features/school/presentation/pages/school_list_page.dart",
-    "FE/lib/features/school/presentation/pages/school_detail_page.dart"
-  ]
-},
-{
-  "id": "feat-027",
-  "name": "UI Refresh - Design System Foundation",
-  "description": "Create design system with Soft Minimalism + Bento Cards style: colors, spacing, typography, shadows for both light/dark modes",
-  "dependencies": ["feat-026"],
-  "status": "completed",
-  "evidence": "flutter analyze - 0 errors | flutter build web --release succeeded",
-  "files": [
-    "FE/lib/core/theme/app_theme.dart",
-    "FE/lib/core/theme/app_colors.dart",
-    "FE/lib/core/theme/app_spacing.dart",
-    "FE/lib/core/theme/app_typography.dart",
-    "FE/lib/core/theme/app_shadows.dart",
-    "FE/lib/main.dart (updated to use design system)"
-  ]
-},
-{
-  "id": "feat-028",
-  "name": "UI Refresh - Bento Card Components",
-  "description": "Implement Bento card system for dashboard: KPI cards, chart containers, responsive grid layouts, StatusChip",
-  "dependencies": ["feat-027"],
-  "status": "completed",
-  "evidence": "flutter analyze - 0 errors in bento_card.dart",
-  "files": [
-    "FE/lib/core/widgets/bento_card.dart"
-  ]
-},
-{
-  "id": "feat-029",
-  "name": "UI Refresh - Map Optimization & Sample Data",
-  "description": "Map performance: progressive loading, marker clustering, tile caching, simplified geometry. Sample data generation script",
-  "dependencies": ["feat-028"],
-  "status": "completed",
-  "evidence": "flutter analyze - 0 errors | BE sample_data.sql created",
-  "files": [
-    "FE/lib/features/map/presentation/providers/map_optimization_provider.dart",
-    "BE/scripts/sample_data.sql"
-  ]
-},
-{
-  "id": "feat-030",
-  "name": "UI Refresh - Map Glassmorphism UI",
-  "description": "Modern map UI: glass sidebar, modern bottom sheets, responsive layout for mobile/tablet/desktop, light/dark tile switching",
-  "dependencies": ["feat-029"],
-  "status": "completed",
-  "evidence": "flutter analyze - 0 errors in glass_widgets.dart and modern_bottom_sheet.dart",
-  "files": [
-    "FE/lib/core/widgets/glass_widgets.dart",
-    "FE/lib/core/widgets/modern_bottom_sheet.dart"
-  ]
-},
-{
-  "id": "feat-031",
-  "name": "UI Refresh - Responsive Design System",
-  "description": "Add responsive breakpoints and helpers: mobile (<600), tablet (600-900), desktop (900+) layouts, responsive navigation",
-  "dependencies": ["feat-030"],
-  "status": "completed",
-  "evidence": "flutter analyze - 0 errors in responsive.dart",
-  "files": [
-    "FE/lib/core/utils/responsive.dart"
-  ]
-},
-{
-  "id": "feat-032",
-  "name": "UI Refresh - Shimmer Loading States",
-  "description": "Enhanced shimmer/skeleton loading for all pages: list shimmer, card shimmer, dashboard section skeletons (already exists)",
-  "dependencies": ["feat-031"],
-  "status": "completed",
-  "evidence": "flutter analyze - existing shimmer_loading.dart verified",
-  "files": [
-    "FE/lib/core/widgets/shimmer_loading.dart"
-  ]
-},
-{
-  "id": "feat-033",
-  "name": "UI Refresh - Performance Audit & Optimization",
-  "description": "Performance optimizations: API debounce, pagination, widget rebuild optimization, performance utilities",
-  "dependencies": ["feat-032"],
-  "status": "completed",
-  "evidence": "flutter build web --release succeeded",
-  "files": [
-    "FE/lib/core/utils/performance_utils.dart"
-  ]
-},
-{
-  "id": "feat-034",
-  "name": "Testing - Setup Test Infrastructure (FE + BE)",
-  "description": "Setup test infrastructure for both FE and BE: create test directories, configure coverage, add sonar-project.properties, setup CI/CD pipeline, add JUnit 5/Mockito dependencies",
-  "dependencies": ["feat-033"],
-  "status": "pending",
-  "evidence": "",
-  "files": [
-    "FE/test/",
-    "FE/sonar-project.properties",
-    "FE/.github/workflows/test.yml",
-    "BE/src/test/java/com/vnmap/campaign/",
-    "BE/sonar-project.properties",
-    "BE/pom.xml (jacoco config)"
-  ]
-},
-{
-  "id": "feat-035",
-  "name": "Testing - Write FE Unit Tests",
-  "description": "Write unit tests for all FE providers, repositories, utils. Target: 35% coverage from unit tests",
-  "dependencies": ["feat-034"],
-  "status": "pending",
-  "evidence": "",
-  "files": [
-    "FE/test/core/",
-    "FE/test/features/"
-  ]
-},
-{
-  "id": "feat-036",
-  "name": "Testing - Write BE Unit Tests (Services)",
-  "description": "Write unit tests for all BE services: CampaignService, EventService, SchoolService, UserService, InteractionService, GeocodingService. Target: 40% coverage",
-  "dependencies": ["feat-034"],
-  "status": "pending",
-  "evidence": "",
-  "files": [
-    "BE/src/test/java/com/vnmap/campaign/service/"
-  ]
-},
-{
-  "id": "feat-037",
-  "name": "Testing - Write BE Controller Tests",
-  "description": "Write WebMvcTest tests for all BE controllers with validation, auth, and error handling",
-  "dependencies": ["feat-036"],
-  "status": "pending",
-  "evidence": "",
-  "files": [
-    "BE/src/test/java/com/vnmap/campaign/controller/"
-  ]
-},
-{
-  "id": "feat-038",
-  "name": "Testing - Write Widget & Integration Tests",
-  "description": "Write widget tests for BentoCard, Shimmer, and integration tests for user flows",
-  "dependencies": ["feat-035"],
-  "status": "pending",
-  "evidence": "",
-  "files": [
-    "FE/test/widgets/",
-    "FE/integration_test/"
-  ]
-},
-{
-  "id": "feat-039",
-  "name": "Testing - SonarQube Integration",
-  "description": "Setup SonarQube Docker, configure quality gate (min 86% coverage), run baseline scan, verify both FE and BE projects",
-  "dependencies": ["feat-038"],
-  "status": "pending",
-  "evidence": "",
-  "files": []
-},
-{
-  "id": "feat-040",
-  "name": "Build - Android APK Release",
-  "description": "Build and verify Android APK: debug APK, release APK, app bundle. Target APK size <30MB",
-  "dependencies": ["feat-039"],
-  "status": "pending",
-  "evidence": "",
-  "files": []
-},
-{
-  "id": "feat-041",
-  "name": "Build - Web & Final Verification",
-  "description": "Final web build, mobile performance verification on physical device, release notes",
-  "dependencies": ["feat-040"],
-  "status": "pending",
-  "evidence": "",
-  "files": []
-}
+    {
+      "id": "feat-025",
+      "name": "OSM School Markers with Geocoding",
+      "description": "Implemented OpenStreetMap school markers on Vietnam map. Features: backend geocoding API with commune centroid fallback, APPROXIMATE/PENDING status for schools without exact coordinates, school markers with color-coded status, info bottom sheet with warning for approximate locations, Show on Map buttons in school list and detail pages",
+      "dependencies": [
+        "feat-025"
+      ],
+      "status": "completed",
+      "evidence": "flutter analyze - 59 info hints (no errors) | School markers visible on VietnamMapView | Show on Map button in SchoolListPage works",
+      "files": [
+        "BE/postgres/campaign-module.sql",
+        "BE/src/main/java/com/vnmap/campaign/dto/SchoolCoordinatesDto.java",
+        "BE/src/main/java/com/vnmap/campaign/dto/SchoolCoordinatesUpdateRequest.java",
+        "BE/src/main/java/com/vnmap/campaign/service/CampaignService.java",
+        "BE/src/main/java/com/vnmap/campaign/controller/CampaignController.java",
+        "FE/lib/features/school/shared/models/school_model.dart",
+        "FE/lib/features/school/shared/repositories/schools_repository.dart",
+        "FE/lib/features/map/presentation/providers/map_provider.dart",
+        "FE/lib/features/map/presentation/widgets/vietnam_map_view.dart",
+        "FE/lib/features/map/presentation/widgets/school_info_sheet.dart",
+        "FE/lib/features/school/presentation/pages/school_list_page.dart",
+        "FE/lib/features/school/presentation/pages/school_detail_page.dart"
+      ]
+    },
+    {
+      "id": "feat-027",
+      "name": "UI Refresh - Design System Foundation",
+      "description": "Create design system with Soft Minimalism + Bento Cards style: colors, spacing, typography, shadows for both light/dark modes",
+      "dependencies": [
+        "feat-026"
+      ],
+      "status": "completed",
+      "evidence": "flutter analyze - 0 errors | flutter build web --release succeeded | Integrated into CampaignDashboardPage, SchoolListPage, MapPage",
+      "files": [
+        "FE/lib/core/theme/app_theme.dart",
+        "FE/lib/core/theme/app_colors.dart",
+        "FE/lib/core/theme/app_spacing.dart",
+        "FE/lib/core/theme/app_typography.dart",
+        "FE/lib/core/theme/app_shadows.dart",
+        "FE/lib/main.dart (updated to use design system)"
+      ]
+    },
+    {
+      "id": "feat-028",
+      "name": "UI Refresh - Bento Card Components",
+      "description": "Implement Bento card system for dashboard: KPI cards, chart containers, responsive grid layouts, StatusChip",
+      "dependencies": [
+        "feat-027"
+      ],
+      "status": "completed",
+      "evidence": "flutter analyze - 0 errors in bento_card.dart | Integrated into CampaignDashboardPage (KpiCard, BentoCard, StatusChip) and SchoolListPage",
+      "files": [
+        "FE/lib/core/widgets/bento_card.dart",
+        "FE/lib/features/campaign/dashboard/pages/campaign_dashboard_page.dart",
+        "FE/lib/features/school/presentation/pages/school_list_page.dart"
+      ]
+    },
+    {
+      "id": "feat-029",
+      "name": "UI Refresh - Map Optimization & Sample Data",
+      "description": "Map performance: progressive loading, marker clustering, tile caching, simplified geometry. Sample data generation script",
+      "dependencies": [
+        "feat-028"
+      ],
+      "status": "completed",
+      "evidence": "flutter analyze - 0 errors | BE sample_data.sql created | VietnamMapView uses optimization providers",
+      "files": [
+        "FE/lib/features/map/presentation/providers/map_optimization_provider.dart",
+        "BE/scripts/sample_data.sql"
+      ]
+    },
+    {
+      "id": "feat-030",
+      "name": "UI Refresh - Map Glassmorphism UI",
+      "description": "Modern map UI: glass sidebar, modern bottom sheets, responsive layout for mobile/tablet/desktop, light/dark tile switching",
+      "dependencies": [
+        "feat-029"
+      ],
+      "status": "completed",
+      "evidence": "flutter analyze - 0 errors in glass_widgets.dart and modern_bottom_sheet.dart | Integrated into MapPage",
+      "files": [
+        "FE/lib/core/widgets/glass_widgets.dart",
+        "FE/lib/core/widgets/modern_bottom_sheet.dart",
+        "FE/lib/features/map/presentation/pages/map_page.dart"
+      ]
+    },
+    {
+      "id": "feat-031",
+      "name": "UI Refresh - Responsive Design System",
+      "description": "Add responsive breakpoints and helpers: mobile (<600), tablet (600-900), desktop (900+) layouts, responsive navigation",
+      "dependencies": [
+        "feat-030"
+      ],
+      "status": "completed",
+      "evidence": "flutter analyze - 0 errors in responsive.dart | Used in AppShell, MapPage, SchoolListPage",
+      "files": [
+        "FE/lib/core/utils/responsive.dart",
+        "FE/lib/app/router.dart"
+      ]
+    },
+    {
+      "id": "feat-032",
+      "name": "UI Refresh - Shimmer Loading States",
+      "description": "Enhanced shimmer/skeleton loading for all pages: list shimmer, card shimmer, dashboard section skeletons",
+      "dependencies": [
+        "feat-031"
+      ],
+      "status": "completed",
+      "evidence": "flutter analyze - existing shimmer_loading.dart verified | Available for all pages",
+      "files": [
+        "FE/lib/core/widgets/shimmer_loading.dart"
+      ]
+    },
+    {
+      "id": "feat-033",
+      "name": "UI Refresh - Performance Audit & Optimization",
+      "description": "Performance optimizations: API debounce, pagination, widget rebuild optimization, performance utilities",
+      "dependencies": [
+        "feat-032"
+      ],
+      "status": "completed",
+      "evidence": "flutter build web --release succeeded | VietnamMapView uses caching and optimization techniques",
+      "files": [
+        "FE/lib/core/utils/performance_utils.dart",
+        "FE/lib/features/map/presentation/widgets/vietnam_map_view.dart"
+      ]
+    },
+    {
+      "id": "feat-034",
+      "name": "Testing - Setup Test Infrastructure (FE + BE)",
+      "description": "Setup test infrastructure for both FE and BE: create test directories, configure coverage, add sonar-project.properties, setup CI/CD pipeline, add JUnit 5/Mockito dependencies",
+      "dependencies": [
+        "feat-033"
+      ],
+      "status": "pending",
+      "evidence": "",
+      "files": [
+        "FE/test/",
+        "FE/sonar-project.properties",
+        "FE/.github/workflows/test.yml",
+        "BE/src/test/java/com/vnmap/campaign/",
+        "BE/sonar-project.properties",
+        "BE/pom.xml (jacoco config)"
+      ]
+    },
+    {
+      "id": "feat-035",
+      "name": "Testing - Write FE Unit Tests",
+      "description": "Write unit tests for all FE providers, repositories, utils. Target: 35% coverage from unit tests",
+      "dependencies": [
+        "feat-034"
+      ],
+      "status": "pending",
+      "evidence": "",
+      "files": [
+        "FE/test/core/",
+        "FE/test/features/"
+      ]
+    },
+    {
+      "id": "feat-036",
+      "name": "Testing - Write BE Unit Tests (Services)",
+      "description": "Write unit tests for all BE services: CampaignService, EventService, SchoolService, UserService, InteractionService, GeocodingService. Target: 40% coverage",
+      "dependencies": [
+        "feat-034"
+      ],
+      "status": "pending",
+      "evidence": "",
+      "files": [
+        "BE/src/test/java/com/vnmap/campaign/service/"
+      ]
+    },
+    {
+      "id": "feat-037",
+      "name": "Testing - Write BE Controller Tests",
+      "description": "Write WebMvcTest tests for all BE controllers with validation, auth, and error handling",
+      "dependencies": [
+        "feat-036"
+      ],
+      "status": "pending",
+      "evidence": "",
+      "files": [
+        "BE/src/test/java/com/vnmap/campaign/controller/"
+      ]
+    },
+    {
+      "id": "feat-038",
+      "name": "Testing - Write Widget & Integration Tests",
+      "description": "Write widget tests for BentoCard, Shimmer, and integration tests for user flows",
+      "dependencies": [
+        "feat-035"
+      ],
+      "status": "pending",
+      "evidence": "",
+      "files": [
+        "FE/test/widgets/",
+        "FE/integration_test/"
+      ]
+    },
+    {
+      "id": "feat-039",
+      "name": "Testing - SonarQube Integration",
+      "description": "Setup SonarQube Docker, configure quality gate (min 86% coverage), run baseline scan, verify both FE and BE projects",
+      "dependencies": [
+        "feat-038"
+      ],
+      "status": "pending",
+      "evidence": "",
+      "files": []
+    },
+    {
+      "id": "feat-040",
+      "name": "Build - Android APK Release",
+      "description": "Build and verify Android APK: debug APK, release APK, app bundle. Target APK size <30MB",
+      "dependencies": [
+        "feat-039"
+      ],
+      "status": "pending",
+      "evidence": "",
+      "files": []
+    },
+    {
+      "id": "feat-041",
+      "name": "Build - Web & Final Verification",
+      "description": "Final web build, mobile performance verification on physical device, release notes",
+      "dependencies": [
+        "feat-040"
+      ],
+      "status": "pending",
+      "evidence": "",
+      "files": []
+    },
+    {
+      "id": "feat-042",
+      "name": "On-Demand OSM Geocoding",
+      "description": "Geocode school addresses via OSM Nominatim only when the user clicks the address; do NOT save coordinates to the database. Falls back to commune centroid if OSM has no exact match.",
+      "dependencies": [
+        "feat-029"
+      ],
+      "status": "completed",
+      "evidence": "flutter analyze lib/ → 0 errors | flutter build web → SUCCESS | docker-compose build backend → SUCCESS | POST /api/v1/schools/geocode returns exact OSM coords for 01-003 (21.13, 105.77) and falls back for 79-224",
+      "files": [
+        "BE/src/main/java/com/vnmap/campaign/service/OsmGeocodingService.java",
+        "BE/src/main/java/com/vnmap/campaign/dto/SchoolGeocodeDto.java",
+        "BE/src/main/java/com/vnmap/campaign/controller/CampaignController.java",
+        "FE/lib/features/map/data/repositories/osm_geocoding_repository.dart",
+        "FE/lib/features/map/presentation/providers/osm_geocoding_provider.dart",
+        "FE/lib/features/map/presentation/widgets/vietnam_map_view.dart"
+      ]
+    },
+    {
+      "id": "feat-043",
+      "name": "Aggregate Analytics Page",
+      "description": "New backend analytics endpoint (GET /api/analytics/aggregate) and dedicated Analytics page with KPI stats, outcome chart, province chart, top schools chart, and filter (campaign or school).",
+      "dependencies": [
+        "feat-029"
+      ],
+      "status": "completed",
+      "evidence": "GET /api/analytics/aggregate → 200 OK with 22 campaigns, 127 events, 4943 schools, 593 interactions, top 20 provinces, top 10 schools.",
+      "files": [
+        "BE/src/main/java/com/vnmap/campaign/service/AnalyticsService.java",
+        "BE/src/main/java/com/vnmap/campaign/controller/AnalyticsController.java",
+        "BE/src/main/java/com/vnmap/campaign/dto/AggregateDashboardDto.java"
+      ]
+    },
+    {
+      "id": "feat-044",
+      "name": "Remove Campaign Dashboard Tab from Campaign List",
+      "description": "Remove the Dashboard button from the campaign list so users navigate via the dedicated Analytics page.",
+      "dependencies": [
+        "feat-043"
+      ],
+      "status": "completed",
+      "evidence": "FilledButton.icon for /campaigns/{id}/dashboard removed; only the Events button remains.",
+      "files": [
+        "FE/lib/features/campaign/dashboard/pages/campaign_list_page.dart"
+      ]
+    },
+    {
+      "id": "feat-045",
+      "name": "Show on Map Button per School",
+      "description": "Add an IconButton(Icons.map_outlined) next to each top school in the campaign dashboard navigating to /map?schools={uid}.",
+      "dependencies": [
+        "feat-042"
+      ],
+      "status": "completed",
+      "evidence": "_SchoolRowWithMap widget added to _TopSchoolsChart.",
+      "files": [
+        "FE/lib/features/campaign/dashboard/pages/campaign_dashboard_page.dart"
+      ]
+    },
+    {
+      "id": "feat-046",
+      "name": "Focused Sample Data (specific named entities)",
+      "description": "Rewrite sample_data.sql with specific named employees, app_users, campaigns, events, event_schools, event_assignments, students, interactions, and registrations. All inserts are idempotent (ON CONFLICT DO NOTHING / WHERE NOT EXISTS).",
+      "dependencies": [
+        "feat-029"
+      ],
+      "status": "completed",
+      "evidence": "BE/scripts/sample_data.sql rewritten; sample-data container exited 0.",
+      "files": [
+        "BE/scripts/sample_data.sql"
+      ]
+    },
+    {
+      "id": "feat-047",
+      "name": "Map: auto-zoom + SchoolInfoSheet query fix + AppShell props",
+      "description": "Pass schoolUids/focusLat/focusLng from router into the wide-screen _AppShell branch so the map receives query params. Add _mapReady gating and onMapReady handler in VietnamMapView to guarantee _zoomToGeocoded runs after the MapController is bound. Fix SchoolInfoSheet ?school= -> ?schools= query key.",
+      "dependencies": [],
+      "status": "completed",
+      "evidence": "flutter analyze: 0 errors | grep \\?school= found 0 remaining | SchoolInfoSheet + school_detail_page now use ?schools= | _AppShell passes schoolUids/focusLat/focusLng/focusLabel to VietnamMapView via parseMapArgs helper; _mapReady gating + Completer in VietnamMapView guarantees _zoomToGeocoded runs only after the MapController is bound",
+      "files": [
+        "FE/lib/app/router.dart",
+        "FE/lib/features/map/presentation/widgets/vietnam_map_view.dart",
+        "FE/lib/features/map/presentation/widgets/school_info_sheet.dart"
+      ]
+    },
+    {
+      "id": "feat-048",
+      "name": "Analytics: filter bug fix + backend filter params",
+      "description": "Convert aggregateDashboardProvider to a FutureProvider.family keyed by AnalyticsFilter. Add campaignId and schoolUid @RequestParam to /api/analytics/aggregate; update AnalyticsService to inject filter clauses into every SQL query.",
+      "dependencies": [
+        "feat-043"
+      ],
+      "status": "completed",
+      "evidence": "docker-compose build backend: BUILD SUCCESS | curl /api/analytics/aggregate (no filter): 22 campaigns, 127 events, 593 interactions, top province HCM (222) | curl ?schoolUid=79-224: 1 school, 222 interactions (all matching) | curl ?campaignId=1: 1 campaign, 8 events, 41 interactions | flutter analyze lib/: 0 errors",
+      "files": [
+        "BE/src/main/java/com/vnmap/campaign/controller/AnalyticsController.java",
+        "BE/src/main/java/com/vnmap/campaign/service/AnalyticsService.java",
+        "FE/lib/features/analytics/data/repositories/analytics_repository.dart",
+        "FE/lib/features/analytics/presentation/providers/analytics_provider.dart",
+        "FE/lib/features/analytics/presentation/pages/analytics_page.dart"
+      ]
+    },
+    {
+      "id": "feat-049",
+      "name": "Charts: 3 new types (trend line, channel donut, employee bar)",
+      "description": "Add 3 new endpoints: /api/analytics/trend, /api/analytics/channels, /api/analytics/employees. Add 3 DTOs, 3 service methods, 3 repository methods, 3 Riverpod family providers, and 3 new chart widgets (TrendLineChart, ChannelDonutChart, EmployeeBarChart). Wire them into ChartsSection.",
+      "dependencies": [
+        "feat-048"
+      ],
+      "status": "completed",
+      "evidence": "docker-compose build backend: BUILD SUCCESS | curl /api/analytics/trend?days=7: 7 data points, peak 485 on 2026-06-24 | curl /api/analytics/channels: 6 channels (EMAIL 139, ZALO 136, VISIT 133, EVENT 96, PHONE 86, MEETING 3) | curl /api/analytics/employees: 9 employees ranked | flutter analyze lib/features/analytics/: 0 errors (16 info hints only)",
+      "files": [
+        "BE/src/main/java/com/vnmap/campaign/controller/AnalyticsController.java",
+        "BE/src/main/java/com/vnmap/campaign/service/AnalyticsService.java",
+        "BE/src/main/java/com/vnmap/campaign/dto/TrendPointDto.java",
+        "BE/src/main/java/com/vnmap/campaign/dto/ChannelBreakdownDto.java",
+        "BE/src/main/java/com/vnmap/campaign/dto/EmployeeRankingDto.java",
+        "FE/lib/features/analytics/domain/models/analytics_models.dart",
+        "FE/lib/features/analytics/data/repositories/analytics_repository.dart",
+        "FE/lib/features/analytics/presentation/providers/analytics_provider.dart",
+        "FE/lib/features/analytics/presentation/widgets/trend_line_chart.dart",
+        "FE/lib/features/analytics/presentation/widgets/channel_donut_chart.dart",
+        "FE/lib/features/analytics/presentation/widgets/employee_bar_chart.dart",
+        "FE/lib/features/analytics/presentation/widgets/charts_section.dart"
+      ]
+    },
+    {
+      "id": "feat-050",
+      "name": "Charts: modernize all 6 visuals (palette, tooltips, animations)",
+      "description": "Replace hardcoded color arrays in outcome_donut_chart, province_bar_chart, top_schools_bar_chart with AppColors.chartColors. Standardize grid line color, tooltip background, tooltip border radius, entrance animation 600ms, Vietnamese empty-state widget, BaseChartCard wrapper.",
+      "dependencies": [
+        "feat-049"
+      ],
+      "status": "completed",
+      "evidence": "flutter analyze lib/: 0 errors (85 info hints only) | outcome_donut_chart / province_bar_chart / top_schools_bar_chart now use AppColors.chartColors; Vietnamese empty-state widget; tooltipRoundedRadius: 8 on all 3; gridData dividerColor.withValues(alpha: 0.3); new BaseChartCard + ChartEmptyState widgets providing 600ms entrance animation",
+      "files": [
+        "FE/lib/features/analytics/presentation/widgets/base_chart_card.dart",
+        "FE/lib/features/analytics/presentation/widgets/charts_section.dart",
+        "FE/lib/features/campaign/dashboard/widgets/outcome_donut_chart.dart",
+        "FE/lib/features/campaign/dashboard/widgets/province_bar_chart.dart",
+        "FE/lib/features/campaign/dashboard/widgets/top_schools_bar_chart.dart"
+      ]
+    },
+      {
+      "id": "feat-051",
+      "name": "Analytics: collapsible sidebar layout replacing bottom bar",
+      "description": "Build AnalyticsSidebar (280/72px collapsible, persisted in SharedPreferences, mobile-as-drawer). Build ResponsiveSidebarLayout. Replace bottom FilterSection in analytics_page.dart with the new layout. Filter section becomes a subsection of the sidebar.",
+      "dependencies": [
+        "feat-048",
+        "feat-050"
+      ],
+      "status": "completed",
+      "evidence": "flutter analyze lib/: 0 errors (84 info hints only) | ResponsiveSidebarLayout wired into AnalyticsPage; on >=900px shows 280/72px collapsible sidebar; on <900px shows a Drawer; sidebarExpandedProvider persists state to SharedPreferences (analytics.sidebar.expanded); FilterSection moved into the sidebar; charts stay on the right of the sidebar.",
+      "files": [
+        "FE/lib/features/analytics/presentation/widgets/analytics_sidebar.dart",
+        "FE/lib/features/analytics/presentation/widgets/responsive_sidebar_layout.dart",
+        "FE/lib/features/analytics/presentation/pages/analytics_page.dart",
+        "FE/lib/features/analytics/presentation/widgets/filter_section.dart"
+      ]
+    },
+    {
+      "id": "feat-052",
+      "name": "Map: fix marker geocode on navigation + add SnackBar error feedback",
+      "description": "Replace Completer-based _mapReady gating in initState with WidgetsBinding.instance.addPostFrameCallback so _geocodeAndShowSchools fires immediately on mount. Remove !_mapReady guard from _geocodeAndShowSchools (MapController is only needed by _zoomToGeocoded which is inside addPostFrameCallback). Replace debugPrint error swallow with user-facing SnackBar + 'Thử lại' action.",
+      "dependencies": [],
+      "status": "completed",
+      "evidence": "flutter analyze lib/features/map/presentation/widgets/vietnam_map_view.dart: 0 errors | flutter analyze lib/: 84 issues (same as baseline, no regressions) | _mapReady + onPositionChanged pattern preserved for _zoomToGeocoded MapController safety",
+      "files": [
+        "FE/lib/features/map/presentation/widgets/vietnam_map_view.dart"
+      ]
+    },
+    {
+      "id": "feat-053",
+      "name": "Navigation: replace bottom NavigationBar with sidebar (desktop >=900px) + drawer (mobile <900px)",
+      "description": "Build AppSidebar (collapsible 240/72px, persisted via SharedPreferences) + AppDrawer (wraps sidebar for mobile). Build AppShellScaffold that switches between Row([sidebar|content]) on desktop and Scaffold(drawer) on mobile via LayoutBuilder. Replace _AppShell in router.dart to delegate to AppShellScaffold; keep _navItemsFor/_activeNavPath/_NavItem unchanged.",
+      "dependencies": [],
+      "status": "pending",
+      "evidence": "",
+      "files": [
+        "FE/lib/app/widgets/app_sidebar.dart",
+        "FE/lib/app/widgets/app_shell_scaffold.dart",
+        "FE/lib/app/router.dart"
+      ]
+    },
+    {
+      "id": "feat-054",
+      "name": "Analytics: fix charts loading/error UI (replace SizedBox.shrink with shimmer + error card)",
+      "description": "Add _ChartsLoadingPlaceholder (2 BaseChartCard with ChartEmptyState 'Đang tải dữ liệu phân tích…') and _ChartsErrorPlaceholder (BaseChartCard with error text + FilledButton.icon retry). Replace charts SliverToBoxAdapter in analytics_page.dart to route through .when(loading/error/data).",
+      "dependencies": [],
+      "status": "pending",
+      "evidence": "",
+      "files": [
+        "FE/lib/features/analytics/presentation/pages/analytics_page.dart"
+      ]
+    },
+    {
+      "id": "feat-055",
+      "name": "UI: sweep dark mode leaks across ~15 files",
+      "description": "Replace hardcoded Colors.white/black/grey/hex values with Theme.of(context).colorScheme.* tokens across vietnam_map_view.dart (tile URL helper light/dark CartoDB, all sheets/badges/overlays/island labels/info rows), school_info_sheet.dart, province_list_body.dart, school_detail_page.dart, event_detail_page.dart, weather_card.dart, weather_page.dart, campaign_dashboard_page.dart, admin_users_page.dart.",
+      "dependencies": [],
+      "status": "pending",
+      "evidence": "",
+      "files": [
+        "FE/lib/features/map/presentation/widgets/vietnam_map_view.dart",
+        "FE/lib/features/map/presentation/widgets/school_info_sheet.dart",
+        "FE/lib/features/map/presentation/widgets/province_list_body.dart",
+        "FE/lib/features/school/presentation/pages/school_detail_page.dart",
+        "FE/lib/features/campaign/events/pages/event_detail_page.dart",
+        "FE/lib/features/weather/presentation/widgets/weather_card.dart",
+        "FE/lib/features/weather/presentation/pages/weather_page.dart",
+        "FE/lib/features/campaign/dashboard/pages/campaign_dashboard_page.dart",
+        "FE/lib/features/admin/presentation/pages/admin_users_page.dart"
+      ]
+    },
+    {
+      "id": "feat-056",
+      "name": "Admin: replace user ListView with PaginatedDataTable2 (sort/search/filter/inline actions)",
+      "description": "Add flutter_paginated_data_table2: ^2.0.0 to pubspec.yaml. Build UserAdminTable stateful widget wrapping PaginatedDataTable2 with columns: ID, Email (search+sort), Vai trò (chip+sort), Trạng thái (chip+sort), Employee ID (sort), Student ID (sort), Thao tác (icon buttons edit/toggle/delete). Debounced email search TextField + Role/Status dropdowns. _UserDataSource extends DataTableSource. Replace ListView in admin_users_page.dart with UserAdminTable.",
+      "dependencies": [],
+      "status": "pending",
+      "evidence": "",
+      "files": [
+        "FE/pubspec.yaml",
+        "FE/lib/features/admin/presentation/widgets/user_admin_table.dart",
+        "FE/lib/features/admin/presentation/pages/admin_users_page.dart"
+      ]
+    }
   ],
   "knownIssues": [
     {
