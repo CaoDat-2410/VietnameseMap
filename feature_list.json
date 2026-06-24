@@ -746,10 +746,10 @@
     {
       "id": "feat-054",
       "name": "Analytics: fix charts loading/error UI (replace SizedBox.shrink with shimmer + error card)",
-      "description": "Add _ChartsLoadingPlaceholder (2 BaseChartCard with ChartEmptyState 'Đang tải dữ liệu phân tích…') and _ChartsErrorPlaceholder (BaseChartCard with error text + FilledButton.icon retry). Replace charts SliverToBoxAdapter in analytics_page.dart to route through .when(loading/error/data).",
+      "description": "Add _ChartsLoadingPlaceholder (2 BaseChartCard with ChartEmptyState Đang tải dữ liệu phân tích…) and _ChartsErrorPlaceholder (BaseChartCard with error subtitle + FilledButton.icon retry). Replace charts SliverToBoxAdapter in analytics_page.dart to route through .when(loading/error/data).",
       "dependencies": [],
-      "status": "pending",
-      "evidence": "",
+      "status": "completed",
+      "evidence": "flutter analyze lib/features/analytics/: 0 errors (19 info hints only, all pre-existing) | flutter analyze lib/: 87 issues (baseline 84, +3 from new placeholder widgets; 0 errors)",
       "files": [
         "FE/lib/features/analytics/presentation/pages/analytics_page.dart"
       ]
@@ -759,8 +759,8 @@
       "name": "UI: sweep dark mode leaks across ~15 files",
       "description": "Replace hardcoded Colors.white/black/grey/hex values with Theme.of(context).colorScheme.* tokens across vietnam_map_view.dart (tile URL helper light/dark CartoDB, all sheets/badges/overlays/island labels/info rows), school_info_sheet.dart, province_list_body.dart, school_detail_page.dart, event_detail_page.dart, weather_card.dart, weather_page.dart, campaign_dashboard_page.dart, admin_users_page.dart.",
       "dependencies": [],
-      "status": "pending",
-      "evidence": "",
+      "status": "completed",
+      "evidence": "flutter analyze lib/: 80 issues (baseline 84, net -4; no errors or warnings introduced) | flutter build web --release: exit 0 | 9 files changed, 467 insertions, 250 deletions",
       "files": [
         "FE/lib/features/map/presentation/widgets/vietnam_map_view.dart",
         "FE/lib/features/map/presentation/widgets/school_info_sheet.dart",

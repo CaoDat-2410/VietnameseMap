@@ -4,7 +4,7 @@
 
 **Last Updated:** 2026-06-24 23:51
 **Session ID:** session-20260624-marker-sidebar-analytics-dark-admin
-**Active Feature:** feat-053 (sidebar nav) completed; feat-054 (analytics charts) queued
+**Active Feature:** feat-055 (dark mode sweep) completed; feat-056 (admin table) queued
 
 ## Status: PLAN IMPLEMENTED — feat-047 … feat-051 DONE
 
@@ -304,3 +304,74 @@ unrelated to today's changes. Leave as-is.
 - Default user: `admin@vnmap.local` / `admin123`.
 - OSM geocoding requires network access to nominatim.openstreetmap.org.
 - Fallback path uses `commune_code` from the `schools` table.
+
+---
+
+## feat-053 — Sidebar Navigation (2026-06-24)
+
+### Root Cause
+`_AppShell` used `NavigationBar` with 7 items violating Material Design `bottom-nav-limit` (max 5). No persistent sidebar on desktop.
+
+### Changes Made
+1. **`app_sidebar.dart`**: `AppSidebar` (240px / 72px collapsed, `primaryContainer` highlight) + `AppDrawer` (wraps sidebar for mobile).
+2. **`app_shell_scaffold.dart`**: `AppShellScaffold` uses `LayoutBuilder` — `Row` on desktop >=900px, `Scaffold(drawer)` on mobile. `SidebarExpandedNotifier` persists collapse to `SharedPreferences`.
+3. **`router.dart`**: Replaced `_AppShell.build()` with delegation to `AppShellScaffold`. Removed legacy desktop split-pane (map+content side-by-side); `MapPage` handles its own wide-layout.
+
+### Verification
+- `flutter analyze lib/app/`: **0 errors, 0 warnings** (12 info hints)
+- `flutter analyze lib/`: **85 issues** (baseline 84)
+
+### Files Changed
+- `FE/lib/app/widgets/app_sidebar.dart` (NEW)
+- `FE/lib/app/widgets/app_shell_scaffold.dart` (NEW)
+- `FE/lib/app/router.dart`
+
+---
+
+## feat-054 — Analytics Charts Loading/Error (2026-06-24)
+
+### Root Cause
+`analytics_page.dart` lines 74-77 rendered `SizedBox.shrink()` during loading/error — visible void below KPI section.
+
+### Changes Made
+- Added `_ChartsLoadingPlaceholder`: 2 `BaseChartCard` with `ChartEmptyState` message "Đang tải dữ liệu phân tích…"
+- Added `_ChartsErrorPlaceholder`: `BaseChartCard` with error subtitle + `FilledButton.icon` retry calling `ref.invalidate(analyticsFilterProvider)`
+- Replaced charts `SliverToBoxAdapter` to route through `.when(loading/error/data)`
+
+### Verification
+- `flutter analyze lib/features/analytics/`: **0 errors** (19 info hints)
+- `flutter analyze lib/`: **87 issues** (baseline 84, +3 pre-existing info hints from new widgets)
+
+### Files Changed
+- `FE/lib/features/analytics/presentation/pages/analytics_page.dart`
+
+---
+
+## feat-055 — Dark Mode Sweep (2026-06-24)
+
+### Root Cause
+Hardcoded `Colors.white/black/grey` and hex values across ~15 files broke dark mode visually.
+
+### Changes Made
+| File | Changes |
+|------|---------|
+| `vietnam_map_view.dart` | Dark CartoDB tiles, location sheet bg/icon/button/text, event focus badge, school count badge, loading overlays, island label text+shadow |
+| `school_info_sheet.dart` | Sheet bg, primary button, `_buildInfoRow` icon/label colors |
+| `province_list_body.dart` | Search bar bg, breadcrumb bg, school item bg, all grey hints/icons → `onSurfaceVariant` |
+| `school_detail_page.dart` | `_InfoRow` label → `onSurfaceVariant` |
+| `event_detail_page.dart` | `_InfoRow` label, time icon/text → `onSurfaceVariant` |
+| `weather_card.dart` | Gradient + shadow → slate-900/blue-900 in dark mode |
+| `weather_page.dart` | Refresh icon → `onPrimary` |
+| `campaign_dashboard_page.dart` | KPI hex colors → `AppColors.primary/tertiary/warning/info` |
+| `admin_users_page.dart` | Role chips → `AppColors.error/warning/info/success`; status chips → `AppColors.success/warning` |
+
+### Verification
+- `flutter analyze lib/`: **80 issues** (baseline 84, net -4)
+- `flutter build web --release`: **exit 0**
+
+### Files Changed
+9 files, 467 insertions, 250 deletions
+
+---
+
+## feat-056 — Admin Data Table (pending)

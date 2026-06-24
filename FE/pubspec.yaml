@@ -41,6 +41,9 @@ dependencies:
   # Charts
   fl_chart: ^0.69.0
 
+  # Admin
+  data_table_2: ^2.7.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
