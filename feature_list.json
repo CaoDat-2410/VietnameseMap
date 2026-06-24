@@ -735,8 +735,8 @@
       "name": "Navigation: replace bottom NavigationBar with sidebar (desktop >=900px) + drawer (mobile <900px)",
       "description": "Build AppSidebar (collapsible 240/72px, persisted via SharedPreferences) + AppDrawer (wraps sidebar for mobile). Build AppShellScaffold that switches between Row([sidebar|content]) on desktop and Scaffold(drawer) on mobile via LayoutBuilder. Replace _AppShell in router.dart to delegate to AppShellScaffold; keep _navItemsFor/_activeNavPath/_NavItem unchanged.",
       "dependencies": [],
-      "status": "pending",
-      "evidence": "",
+      "status": "completed",
+      "evidence": "flutter analyze lib/app/: 0 errors, 0 warnings (12 info hints only) | flutter analyze lib/: 85 issues (baseline 84, +1 pre-existing const hint) | AppShellScaffold handles 900px breakpoint; SidebarExpandedNotifier persists collapse to SharedPreferences",
       "files": [
         "FE/lib/app/widgets/app_sidebar.dart",
         "FE/lib/app/widgets/app_shell_scaffold.dart",

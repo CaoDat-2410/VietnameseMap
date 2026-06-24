@@ -4,7 +4,7 @@
 
 **Last Updated:** 2026-06-24 23:51
 **Session ID:** session-20260624-marker-sidebar-analytics-dark-admin
-**Active Feature:** feat-052 (map marker fix) completed; feat-053 (sidebar nav) queued
+**Active Feature:** feat-053 (sidebar nav) completed; feat-054 (analytics charts) queued
 
 ## Status: PLAN IMPLEMENTED — feat-047 … feat-051 DONE
 
@@ -163,7 +163,34 @@
 ### Files Changed
 - `FE/lib/features/map/presentation/widgets/vietnam_map_view.dart`
 
-### Next: feat-053 — Replace bottom NavigationBar with sidebar (desktop) + drawer (mobile)
+## feat-053 — Sidebar Navigation (2026-06-24)
+
+### Root Cause
+`_AppShell` in `router.dart` used `NavigationBar` with 7 items, violating Material Design `bottom-nav-limit` (max 5). No persistent sidebar existed on desktop.
+
+### Changes Made
+
+1. **`app_sidebar.dart`**: `AppSidebar` (240px expanded / 72px collapsed, `primaryContainer` highlight, tooltip on collapse) + `AppDrawer` (wraps sidebar in `Drawer` for mobile).
+2. **`app_shell_scaffold.dart`**: `AppShellScaffold` uses `LayoutBuilder` — `Row([sidebar|content])` on desktop (>=900px), `Scaffold(drawer)` on mobile. `SidebarExpandedNotifier` persists collapse state to `SharedPreferences`.
+3. **`router.dart`**: Replaced `_AppShell.build()` body with delegation to `AppShellScaffold`. Removed unused `theme_provider.dart` and `vietnam_map_view.dart` imports.
+
+### Verification
+- `flutter analyze lib/app/`: **0 errors, 0 warnings** (12 info hints only)
+- `flutter analyze lib/`: **85 issues** (baseline 84; +1 pre-existing const hint)
+- Removed legacy desktop split-pane (map+content side-by-side) — `MapPage` now handles its own wide-layout
+
+### Files Changed
+- `FE/lib/app/widgets/app_sidebar.dart` (NEW)
+- `FE/lib/app/widgets/app_shell_scaffold.dart` (NEW)
+- `FE/lib/app/router.dart`
+
+### Next: feat-054 — Analytics Charts Loading/Error UI
+
+---
+
+## feat-054 — Analytics Charts Loading/Error (pending)
+
+
 
 
 
