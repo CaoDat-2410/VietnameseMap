@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'widgets/app_sidebar.dart';
+import 'widgets/app_shell_scaffold.dart';
 import '../core/providers/locale_provider.dart';
-import '../core/providers/theme_provider.dart';
 import '../features/admin/presentation/pages/admin_users_page.dart';
+import '../features/analytics/presentation/pages/analytics_page.dart';
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/logout_page.dart';
 import '../features/auth/shared/auth_routes.dart';
@@ -17,7 +19,6 @@ import '../features/campaign/dashboard/pages/campaign_list_page.dart';
 import '../features/campaign/events/pages/campaign_events_page.dart';
 import '../features/campaign/events/pages/event_detail_page.dart';
 import '../features/map/presentation/pages/map_page.dart';
-import '../features/map/presentation/widgets/vietnam_map_view.dart';
 import '../features/school/presentation/pages/school_detail_page.dart';
 import '../features/school/presentation/pages/school_list_page.dart';
 import '../features/student/presentation/pages/my_registrations_page.dart';
@@ -53,6 +54,41 @@ CustomTransitionPage<void> _buildPageWithSlideTransition({
         ),
       );
     },
+  );
+}
+
+/// Arguments parsed from a `/map` URL — used by both the narrow-screen
+/// `MapPage` and the wide-screen `_AppShell` so the map receives the same
+/// focus/selection data on every viewport width.
+class MapRouteArgs {
+  const MapRouteArgs({
+    this.focusLat,
+    this.focusLng,
+    this.focusLabel,
+    this.schoolUids,
+  });
+  final double? focusLat;
+  final double? focusLng;
+  final String? focusLabel;
+  final List<String>? schoolUids;
+}
+
+MapRouteArgs parseMapArgs(Uri uri) {
+  final params = uri.queryParameters;
+  final lat = double.tryParse(params['lat'] ?? '');
+  final lng = double.tryParse(params['lng'] ?? '');
+  final label = params['eventName'];
+  final schoolsParam = params['schools'];
+  List<String>? schoolUids;
+  if (schoolsParam != null && schoolsParam.isNotEmpty) {
+    schoolUids =
+        schoolsParam.split(',').where((s) => s.isNotEmpty).toList();
+  }
+  return MapRouteArgs(
+    focusLat: lat,
+    focusLng: lng,
+    focusLabel: (label == null || label.isEmpty) ? null : label,
+    schoolUids: schoolUids,
   );
 }
 
@@ -103,17 +139,15 @@ final router = GoRouter(
         GoRoute(
           path: '/map',
           pageBuilder: (context, state) {
-            final params = state.uri.queryParameters;
-            final lat = double.tryParse(params['lat'] ?? '');
-            final lng = double.tryParse(params['lng'] ?? '');
-            final label = params['eventName'];
+            final args = parseMapArgs(state.uri);
             return _buildPageWithSlideTransition(
               context: context,
               state: state,
               child: MapPage(
-                focusLat: lat,
-                focusLng: lng,
-                focusLabel: (label == null || label.isEmpty) ? null : label,
+                focusLat: args.focusLat,
+                focusLng: args.focusLng,
+                focusLabel: args.focusLabel,
+                schoolUids: args.schoolUids,
               ),
             );
           },
@@ -147,6 +181,17 @@ final router = GoRouter(
               child: CampaignDashboardPage(
                 campaignId: int.parse(state.pathParameters['campaignId']!),
               ),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/analytics',
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
+            child: _RoleGate(
+              allowedRoles: const {'STAFF', 'MANAGER', 'ADMIN'},
+              child: const AnalyticsPage(),
             ),
           ),
         ),
@@ -241,139 +286,17 @@ class _AppShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
-    final themeMode = ref.watch(themeModeProvider);
-    final locale = ref.watch(localeProvider);
     final location = GoRouterState.of(context).uri.path;
     final user = ref.watch(activeUserProvider).valueOrNull;
-    final navItems = _navItemsFor(user?.role, l10n);
+    final rawItems = _navItemsFor(user?.role, l10n);
+    final items = rawItems.map(navItemFrom).toList();
     final activePath = _activeNavPath(location);
-    final index = navItems.indexWhere((item) => item.path == activePath);
-    final selectedIndex = index < 0 ? 0 : index;
 
-    final navBar = Container(
-      decoration: const BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: Color.fromRGBO(0, 0, 0, 0.08),
-            blurRadius: 12,
-            offset: Offset(0, -4),
-          ),
-        ],
-      ),
-      child: NavigationBar(
-        selectedIndex: selectedIndex,
-        onDestinationSelected: (i) {
-          context.go(navItems[i].path);
-        },
-        destinations: [
-          for (final item in navItems)
-            NavigationDestination(
-              icon: Icon(item.icon),
-              selectedIcon: Icon(item.selectedIcon),
-              label: item.label,
-            ),
-        ],
-      ),
-    );
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isMapPage = location == '/map' ||
-            location.startsWith('/schools') ||
-            location.contains('lat=');
-        final showMapPane = constraints.maxWidth > 600 && isMapPage;
-
-        if (showMapPane) {
-          return Scaffold(
-            body: Row(
-              children: [
-                Expanded(
-                  flex: 6,
-                  child: const VietnamMapView(),
-                ),
-                Container(
-                  width: 1,
-                  color: Theme.of(context).dividerColor,
-                ),
-                Expanded(
-                  flex: 4,
-                  child: Scaffold(
-                    appBar: AppBar(
-                      automaticallyImplyLeading: false,
-                      actions: [
-                        IconButton(
-                          icon: Text(
-                            locale.languageCode.toUpperCase(),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                          tooltip: 'Change language',
-                          onPressed: () {
-                            ref.read(localeProvider.notifier).toggleLocale();
-                          },
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            themeMode == ThemeMode.dark
-                                ? Icons.light_mode
-                                : Icons.dark_mode,
-                          ),
-                          tooltip: themeMode == ThemeMode.dark
-                              ? 'Light mode'
-                              : 'Dark mode',
-                          onPressed: () {
-                            ref.read(themeModeProvider.notifier).toggleTheme();
-                          },
-                        ),
-                      ],
-                    ),
-                    body: child,
-                    bottomNavigationBar: navBar,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return Scaffold(
-          appBar: AppBar(
-            automaticallyImplyLeading: false,
-            actions: [
-              IconButton(
-                icon: Text(
-                  locale.languageCode.toUpperCase(),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                tooltip: 'Change language',
-                onPressed: () {
-                  ref.read(localeProvider.notifier).toggleLocale();
-                },
-              ),
-              IconButton(
-                icon: Icon(
-                  themeMode == ThemeMode.dark
-                      ? Icons.light_mode
-                      : Icons.dark_mode,
-                ),
-                tooltip: themeMode == ThemeMode.dark
-                    ? 'Light mode'
-                    : 'Dark mode',
-                onPressed: () {
-                  ref.read(themeModeProvider.notifier).toggleTheme();
-                },
-              ),
-            ],
-          ),
-          body: child,
-          bottomNavigationBar: navBar,
-        );
-      },
+    return AppShellScaffold(
+      items: items,
+      selectedPath: activePath,
+      onSelected: (item) => context.go(item.path),
+      body: child,
     );
   }
 
@@ -412,6 +335,8 @@ class _AppShell extends ConsumerWidget {
     if (role == 'STAFF' || role == 'MANAGER' || role == 'ADMIN') {
       items.add(_NavItem(
           '/campaigns', l10n.campaigns, Icons.campaign_outlined, Icons.campaign));
+      items.add(_NavItem(
+          '/analytics', 'Analytics', Icons.analytics_outlined, Icons.analytics));
       items.add(_NavItem(
           '/schools', l10n.schools, Icons.school_outlined, Icons.school));
     }
