@@ -778,11 +778,12 @@
       "name": "Admin: replace user ListView with PaginatedDataTable2 (sort/search/filter/inline actions)",
       "description": "Add flutter_paginated_data_table2: ^2.0.0 to pubspec.yaml. Build UserAdminTable stateful widget wrapping PaginatedDataTable2 with columns: ID, Email (search+sort), Vai trò (chip+sort), Trạng thái (chip+sort), Employee ID (sort), Student ID (sort), Thao tác (icon buttons edit/toggle/delete). Debounced email search TextField + Role/Status dropdowns. _UserDataSource extends DataTableSource. Replace ListView in admin_users_page.dart with UserAdminTable.",
       "dependencies": [],
-      "status": "pending",
-      "evidence": "",
+      "status": "completed",
+      "evidence": "flutter analyze lib/features/admin/: 0 errors, 0 warnings (5 info hints only) | flutter analyze lib/: 81 issues (baseline 84, no regressions) | flutter build web --release: exit 0 | 6 files changed, 441 insertions, 175 deletions",
       "files": [
         "FE/pubspec.yaml",
         "FE/lib/features/admin/presentation/widgets/user_admin_table.dart",
+        "FE/lib/features/admin/presentation/widgets/user_chips.dart",
         "FE/lib/features/admin/presentation/pages/admin_users_page.dart"
       ]
     }

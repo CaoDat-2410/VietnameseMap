@@ -4,7 +4,7 @@
 
 **Last Updated:** 2026-06-24 23:51
 **Session ID:** session-20260624-marker-sidebar-analytics-dark-admin
-**Active Feature:** feat-055 (dark mode sweep) completed; feat-056 (admin table) queued
+**Active Feature:** feat-056 (admin table) completed — ALL 5 PLAN STEPS DONE
 
 ## Status: PLAN IMPLEMENTED — feat-047 … feat-051 DONE
 
@@ -374,4 +374,29 @@ Hardcoded `Colors.white/black/grey` and hex values across ~15 files broke dark m
 
 ---
 
-## feat-056 — Admin Data Table (pending)
+## feat-056 — Admin Data Table (2026-06-24)
+
+### Root Cause
+`admin_users_page.dart` used `ListView.separated` of `Card`/`ListTile` items with a `PopupMenuButton` — no sort, no search, no filter, no pagination.
+
+### Changes Made
+- Added `data_table_2: ^2.7.2` to `pubspec.yaml`
+- Created `user_chips.dart`: `UserRoleChip` + `UserStatusChip` shared widgets
+- Created `user_admin_table.dart`: `UserAdminTable` stateful widget with `PaginatedDataTable2` — columns for ID, Email (search+sort), Vai trò, Trạng thái, Employee ID, Student ID, Thao tác. Debounced search + Role/Status dropdowns. `_UserDataSource extends DataTableSource`. Inline `IconButton` actions (edit, toggle status, delete).
+- Replaced `ListView` in `admin_users_page.dart` with `UserAdminTable`, delegating actions through `UserAction` enum.
+
+### Verification
+- `flutter analyze lib/features/admin/`: **0 errors, 0 warnings** (5 info hints)
+- `flutter analyze lib/`: **81 issues** (baseline 84)
+- `flutter build web --release`: **exit 0**
+
+### Files Changed
+- `FE/pubspec.yaml`
+- `FE/lib/features/admin/presentation/widgets/user_admin_table.dart` (NEW)
+- `FE/lib/features/admin/presentation/widgets/user_chips.dart` (NEW)
+- `FE/lib/features/admin/presentation/pages/admin_users_page.dart`
+
+---
+
+## ALL 5 PLAN STEPS COMPLETED
+
