@@ -42,17 +42,21 @@ class _MainWeatherCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF1565C0), Color(0xFF42A5F5)],
+          colors: isDark
+              ? const [Color(0xFF0F172A), Color(0xFF1E3A5F)]
+              : const [Color(0xFF1565C0), Color(0xFF42A5F5)],
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1565C0).withValues(alpha: 0.4),
+            color: (isDark ? const Color(0xFF1565C0) : const Color(0xFF1565C0))
+                .withValues(alpha: isDark ? 0.6 : 0.4),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),

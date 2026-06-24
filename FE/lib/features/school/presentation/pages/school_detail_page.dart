@@ -43,7 +43,7 @@ class _SchoolDetailPageState extends ConsumerState<SchoolDetailPage>
           IconButton(
             icon: const Icon(Icons.map),
             tooltip: 'Show on Map',
-            onPressed: () => context.go('/map?school=${widget.schoolUid}'),
+            onPressed: () => context.go('/map?schools=${widget.schoolUid}'),
           ),
         ],
       ),
@@ -264,7 +264,7 @@ class _InfoRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 130,
-            child: Text(label, style: const TextStyle(color: Colors.grey)),
+            child: Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ),
           Expanded(child: Text(value.isEmpty ? '-' : value)),
         ],

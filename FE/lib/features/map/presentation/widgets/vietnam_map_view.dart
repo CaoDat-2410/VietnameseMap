@@ -24,7 +24,6 @@ import '../../../weather/presentation/providers/weather_provider.dart'
         selectedWeatherProvider;
 import '../../../weather/presentation/widgets/weather_summary_row.dart';
 import 'boundary_label_widget.dart';
-import 'school_info_sheet.dart';
 
 class VietnamMapView extends ConsumerStatefulWidget {
   const VietnamMapView({
@@ -413,10 +412,10 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      builder: (ctx) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(ctx).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         padding: const EdgeInsets.all(24),
         child: SingleChildScrollView(
@@ -428,18 +427,21 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(12),
-                    decoration: const BoxDecoration(
-                      color: Color.fromRGBO(33, 150, 243, 0.1),
+                    decoration: BoxDecoration(
+                      color: Theme.of(ctx).colorScheme.primaryContainer,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.location_on, color: Colors.blue),
+                    child: Icon(Icons.location_on, color: Theme.of(ctx).colorScheme.primary),
                   ),
                   const SizedBox(width: 16),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Thông tin khu vực',
-                      style:
-                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(ctx).colorScheme.onSurface,
+                      ),
                     ),
                   ),
                 ],
@@ -463,14 +465,19 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Text('Đang tải thời tiết...'),
+                        Text(
+                          'Đang tải thời tiết...',
+                          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                        ),
                       ],
                     ),
-                    error: (_, __) => const Text('Không tải được thời tiết'),
+                    error: (_, __) => Text('Không tải được thời tiết',
+                        style: TextStyle(color: Theme.of(context).colorScheme.error)),
                     data: (result) => result.when(
                       ok: (snapshot) =>
                           WeatherSummaryRow(weather: snapshot.weather),
-                      err: (_) => const Text('Không tải được thời tiết'),
+                      err: (_) => Text('Không tải được thời tiết',
+                          style: TextStyle(color: Theme.of(context).colorScheme.error)),
                     ),
                   );
                 },
@@ -481,16 +488,17 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                   Navigator.pop(context);
                   context.go('/weather');
                 },
-                icon: const Icon(Icons.cloud_outlined),
-                label: const Text('Xem chi tiết thời tiết'),
+                icon: Icon(Icons.cloud_outlined, color: Theme.of(ctx).colorScheme.primary),
+                label: Text('Xem chi tiết thời tiết',
+                    style: TextStyle(color: Theme.of(ctx).colorScheme.primary)),
               ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
+                    backgroundColor: Theme.of(ctx).colorScheme.primary,
+                    foregroundColor: Theme.of(ctx).colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -498,8 +506,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                   ),
                   onPressed: () => Navigator.pop(context),
                   child: const Text('Đóng',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
@@ -519,7 +526,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
             width: 120,
             child: Text(
               label,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
             ),
           ),
           Expanded(
@@ -826,8 +833,9 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
           ),
           children: [
             TileLayer(
-              urlTemplate:
-                  'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
+              urlTemplate: Theme.of(context).brightness == Brightness.dark
+                  ? 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png'
+                  : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
               tileProvider: CancellableNetworkTileProvider(),
               userAgentPackageName: 'com.example.vietnamese_map',
             ),
@@ -879,49 +887,71 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                     children: [
                       const Icon(Icons.location_on,
                           color: Colors.red, size: 16),
-                      const Text(
+                      Text(
                         'QĐ. Hoàng Sa',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Colors.black87,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black87,
                           fontWeight: FontWeight.w600,
                           fontSize: 10,
                           height: 1.1,
-                          shadows: [Shadow(color: Colors.white, blurRadius: 4)],
+                          shadows: [
+                            Shadow(
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.black54
+                                    : Colors.white,
+                                blurRadius: 4),
+                          ],
                         ),
                       ),
-                      const Text(
+                      Text(
                         '(Đà Nẵng)',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Colors.black54,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white70
+                              : Colors.black54,
                           fontSize: 8,
                           height: 1.1,
-                          shadows: [Shadow(color: Colors.white, blurRadius: 4)],
+                          shadows: [
+                            Shadow(
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.black54
+                                    : Colors.white,
+                                blurRadius: 4),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
-                const Marker(
-                  point: LatLng(9.5, 113.5),
+                Marker(
+                  point: const LatLng(9.5, 113.5),
                   width: 120,
                   height: 52,
                   alignment: Alignment.center,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.location_on, color: Colors.red, size: 16),
+                      const Icon(Icons.location_on, color: Colors.red, size: 16),
                       Text(
                         'QĐ. Trường Sa',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Colors.black87,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black87,
                           fontWeight: FontWeight.w600,
                           fontSize: 10,
                           height: 1.1,
                           shadows: [
-                            Shadow(color: Color(0xFFFFFFFF), blurRadius: 4)
+                            Shadow(
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.black54
+                                    : Colors.white,
+                                blurRadius: 4),
                           ],
                         ),
                       ),
@@ -929,11 +959,17 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                         '(Khánh Hòa)',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: Colors.black54,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white70
+                              : Colors.black54,
                           fontSize: 8,
                           height: 1.1,
                           shadows: [
-                            Shadow(color: Color(0xFFFFFFFF), blurRadius: 4)
+                            Shadow(
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.black54
+                                    : Colors.white,
+                                blurRadius: 4),
                           ],
                         ),
                       ),
@@ -976,11 +1012,11 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: Theme.of(context).colorScheme.inverseSurface,
                               borderRadius: BorderRadius.circular(4),
-                              boxShadow: const [
+                              boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black26,
+                                  color: Colors.black.withValues(alpha: 0.15),
                                   blurRadius: 2,
                                 ),
                               ],
@@ -1048,7 +1084,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                     const SizedBox(width: 8),
                     Text(
                       'Đang tải vị trí trường học...',
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                      style: TextStyle(color: Theme.of(context).colorScheme.onPrimary, fontSize: 12),
                     ),
                   ],
                 ),
@@ -1064,11 +1100,11 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.inverseSurface,
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
-                    color: Colors.black26,
+                    color: Colors.black.withValues(alpha: 0.15),
                     blurRadius: 4,
                   ),
                 ],
@@ -1076,7 +1112,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.school, size: 16, color: Colors.blue),
+                  Icon(Icons.school, size: 16, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(width: 6),
                   Text(
                     '${_schoolGeocodes.length} trường',
@@ -1093,7 +1129,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
         // Boundary loading overlay
         if (_isLoadingBoundary)
           Container(
-            color: const Color(0x80FFFFFF),
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
             child: const Center(child: CircularProgressIndicator()),
           ),
 
@@ -1102,10 +1138,10 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
           Container(
             color: const Color(0x60000000),
             child: Center(
-              child: Container(
+                child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
@@ -1136,7 +1172,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                       'Vui lòng chờ trong giây lát',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey.shade600,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],

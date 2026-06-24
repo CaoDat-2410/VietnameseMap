@@ -14,10 +14,11 @@ class SchoolInfoSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -44,9 +45,10 @@ class SchoolInfoSheet extends ConsumerWidget {
                   children: [
                     Text(
                       school.schoolName,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -56,7 +58,7 @@ class SchoolInfoSheet extends ConsumerWidget {
               ),
               IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close),
+                icon: Icon(Icons.close, color: colorScheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -102,11 +104,11 @@ class SchoolInfoSheet extends ConsumerWidget {
           ],
 
           const SizedBox(height: 20),
-          _buildInfoRow(Icons.location_on_outlined, 'Địa chỉ', school.fullAddress),
+          _buildInfoRow(context, Icons.location_on_outlined, 'Địa chỉ', school.fullAddress),
           if (school.address.isNotEmpty)
-            _buildInfoRow(Icons.home_outlined, 'Địa chỉ chi tiết', school.address),
-          _buildInfoRow(Icons.map_outlined, 'Tọa độ', 
-            school.hasCoordinates 
+            _buildInfoRow(context, Icons.home_outlined, 'Địa chỉ chi tiết', school.address),
+          _buildInfoRow(context, Icons.map_outlined, 'Tọa độ',
+            school.hasCoordinates
               ? '${school.latitude!.toStringAsFixed(5)}, ${school.longitude!.toStringAsFixed(5)}'
               : 'Chưa có'
           ),
@@ -128,12 +130,12 @@ class SchoolInfoSheet extends ConsumerWidget {
               Expanded(
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
                   ),
                   onPressed: () {
                     Navigator.pop(context);
-                    context.go('/map?school=${school.schoolUid}');
+                    context.go('/map?schools=${school.schoolUid}');
                   },
                   icon: const Icon(Icons.map),
                   label: const Text('Chỉ đường'),
@@ -160,10 +162,10 @@ class SchoolInfoSheet extends ConsumerWidget {
 
   Widget _buildStatusBadge(String status) {
     final color = _getStatusColor(status);
-    final label = status == 'FULL' ? 'Chính xác' 
-        : status == 'APPROXIMATE' ? 'Ước lượng' 
+    final label = status == 'FULL' ? 'Chính xác'
+        : status == 'APPROXIMATE' ? 'Ước lượng'
         : 'Chưa xác định';
-    
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
@@ -181,20 +183,21 @@ class SchoolInfoSheet extends ConsumerWidget {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
+  Widget _buildInfoRow(BuildContext context, IconData icon, String label, String value) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: Colors.grey.shade600),
+          Icon(icon, size: 20, color: colorScheme.onSurfaceVariant),
           const SizedBox(width: 12),
           SizedBox(
             width: 100,
             child: Text(
               label,
               style: TextStyle(
-                color: Colors.grey.shade600,
+                color: colorScheme.onSurfaceVariant,
                 fontSize: 14,
               ),
             ),
@@ -202,9 +205,10 @@ class SchoolInfoSheet extends ConsumerWidget {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w500,
                 fontSize: 14,
+                color: colorScheme.onSurface,
               ),
             ),
           ),

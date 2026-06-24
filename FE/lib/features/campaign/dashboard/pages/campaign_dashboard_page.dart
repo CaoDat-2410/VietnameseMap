@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../auth/shared/providers/auth_provider.dart';
+import '../../../../core/widgets/bento_card.dart';
 import '../../shared/models/campaign_models.dart';
 import '../../shared/providers/campaign_provider.dart';
 import '../widgets/outcome_donut_chart.dart';
@@ -45,21 +48,34 @@ class CampaignDashboardPage extends ConsumerWidget {
             onRetry: () =>
                 ref.invalidate(campaignDashboardProvider(campaignId)),
           ),
-          data: (dashboardData) => ListView(
+          data: (dashboardData) => SingleChildScrollView(
             padding: const EdgeInsets.all(16),
-            children: [
-              _Header(campaign: campaignData),
-              const SizedBox(height: 16),
-              _KpiGrid(dashboard: dashboardData),
-              const SizedBox(height: 16),
-              _OutcomeChart(outcomes: dashboardData.interactionsByOutcome),
-              const SizedBox(height: 16),
-              _ProvinceChart(items: dashboardData.interactionsByProvince),
-              const SizedBox(height: 16),
-              _TopSchoolsChart(items: dashboardData.topSchools),
-              const SizedBox(height: 16),
-              _RegistrationsSection(campaignId: campaignId),
-            ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _Header(campaign: campaignData),
+                const SizedBox(height: 16),
+                _KpiGrid(dashboard: dashboardData),
+                const SizedBox(height: 16),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: _OutcomeChart(outcomes: dashboardData.interactionsByOutcome)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _ProvinceChart(items: dashboardData.interactionsByProvince)),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: _TopSchoolsChart(items: dashboardData.topSchools)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _RegistrationsSection(campaignId: campaignId)),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -74,26 +90,64 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                campaign.name,
-                style: Theme.of(context).textTheme.headlineSmall,
+    return BentoCard(
+      size: BentoSize.wide,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  campaign.name,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
               ),
-            ),
-            Chip(label: Text(campaign.status)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Text(campaign.objective.isEmpty ? '-' : campaign.objective),
-        const SizedBox(height: 8),
-        Text('${campaign.startDate} - ${campaign.endDate}'),
-      ],
+              StatusChip(
+                label: campaign.status,
+                status: _getCampaignStatus(campaign.status),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            campaign.objective.isEmpty ? 'Không có mô tả' : campaign.objective,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.calendar_today, size: 16, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 8),
+              Text(
+                '${campaign.startDate} - ${campaign.endDate}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ],
+      ),
     );
+  }
+
+  StatusType _getCampaignStatus(String status) {
+    switch (status.toUpperCase()) {
+      case 'ACTIVE':
+      case 'ONGOING':
+        return StatusType.active;
+      case 'PLANNED':
+      case 'UPCOMING':
+        return StatusType.pending;
+      case 'COMPLETED':
+      case 'FINISHED':
+        return StatusType.done;
+      case 'CANCELLED':
+        return StatusType.error;
+      default:
+        return StatusType.draft;
+    }
   }
 }
 
@@ -105,10 +159,30 @@ class _KpiGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      ('Events', dashboard.totalEvents, Icons.event_outlined),
-      ('Schools', dashboard.totalTargetSchools, Icons.school_outlined),
-      ('Employees', dashboard.totalAssignedEmployees, Icons.people_outline),
-      ('Interactions', dashboard.totalInteractions, Icons.chat_outlined),
+      (
+        title: 'Sự kiện',
+        value: '${dashboard.totalEvents}',
+        icon: Icons.event_outlined,
+        color: AppColors.primary,
+      ),
+      (
+        title: 'Trường học',
+        value: '${dashboard.totalTargetSchools}',
+        icon: Icons.school_outlined,
+        color: AppColors.tertiary,
+      ),
+      (
+        title: 'Nhân viên',
+        value: '${dashboard.totalAssignedEmployees}',
+        icon: Icons.people_outline,
+        color: AppColors.warning,
+      ),
+      (
+        title: 'Tương tác',
+        value: '${dashboard.totalInteractions}',
+        icon: Icons.chat_outlined,
+        color: AppColors.info,
+      ),
     ];
 
     return LayoutBuilder(
@@ -120,34 +194,15 @@ class _KpiGrid extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          childAspectRatio: 2.1,
-          children: [
-            for (final item in items)
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    children: [
-                      Icon(item.$3),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(item.$1),
-                            Text(
-                              '${item.$2}',
-                              style: Theme.of(context).textTheme.headlineSmall,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
+          childAspectRatio: 1.4,
+          children: items.map((item) {
+            return KpiCard(
+              title: item.title,
+              value: item.value,
+              icon: item.icon,
+              accentColor: item.color,
+            );
+          }).toList(),
         );
       },
     );
@@ -161,9 +216,24 @@ class _OutcomeChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Section(
-      title: 'Tương tác theo kết quả',
-      child: OutcomeDonutChart(outcomes: outcomes),
+    return BentoCard(
+      size: BentoSize.wide,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Tương tác theo kết quả',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 220,
+            child: OutcomeDonutChart(outcomes: outcomes),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -175,9 +245,24 @@ class _ProvinceChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Section(
-      title: 'Tương tác theo tỉnh/thành',
-      child: ProvinceBarChart(items: items),
+    return BentoCard(
+      size: BentoSize.large,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Tương tác theo tỉnh/thành',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 220,
+            child: ProvinceBarChart(items: items),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -189,9 +274,87 @@ class _TopSchoolsChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _Section(
-      title: 'Top trường',
-      child: TopSchoolsBarChart(items: items),
+    return BentoCard(
+      size: BentoSize.large,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Top trường',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 220,
+            child: TopSchoolsBarChart(items: items),
+          ),
+          if (items.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 8),
+            Text(
+              'Danh sách',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            ...items.map((school) => _SchoolRowWithMap(item: school)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SchoolRowWithMap extends StatelessWidget {
+  const _SchoolRowWithMap({required this.item});
+
+  final TopSchoolModel item;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          const Icon(Icons.school_outlined, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              item.schoolName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              '${item.totalInteractions}',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.map_outlined),
+            tooltip: 'Xem trên bản đồ',
+            onPressed: () =>
+                GoRouter.of(context).go('/map?schools=${item.schoolUid}'),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -206,48 +369,77 @@ class _RegistrationsSection extends ConsumerWidget {
     final registrations = ref.watch(campaignRegistrationsProvider(campaignId));
     final role = ref.watch(activeUserProvider).valueOrNull?.role;
     final canManage = role == 'MANAGER' || role == 'ADMIN';
-    return _Section(
-      title: 'Student Registrations',
-      child: registrations.when(
-        loading: () => const Padding(
-          padding: EdgeInsets.all(16),
-          child: LinearProgressIndicator(),
-        ),
-        error: (error, _) => Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(error.toString()),
-        ),
-        data: (items) {
-          if (items.isEmpty) {
-            return const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text('No registrations yet'),
-            );
-          }
-          return Column(
-            children: [
-              for (final item in items)
-                ListTile(
-                  title: Text(item.student.fullName),
-                  subtitle: Text(
-                    '${item.school.schoolName}\n${item.student.email} | ${item.student.phone}',
-                  ),
-                  isThreeLine: true,
-                  trailing: canManage
-                      ? Wrap(
-                          spacing: 8,
-                          children: [
-                            _StatusButton(item.id, 'APPROVED', campaignId),
-                            _StatusButton(item.id, 'REJECTED', campaignId),
-                          ],
-                        )
-                      : Chip(label: Text(item.status)),
+
+    return BentoCard(
+      size: BentoSize.xl,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Đăng ký học sinh',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
-            ],
-          );
-        },
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: registrations.when(
+              loading: () => const Center(
+                child: LinearProgressIndicator(),
+              ),
+              error: (error, _) => Center(
+                child: Text(error.toString()),
+              ),
+              data: (items) {
+                if (items.isEmpty) {
+                  return const Center(
+                    child: Text('Chưa có đăng ký nào'),
+                  );
+                }
+                return ListView.builder(
+                  itemCount: items.length,
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return ListTile(
+                      title: Text(item.student.fullName),
+                      subtitle: Text(
+                        '${item.school.schoolName}\n${item.student.email} | ${item.student.phone}',
+                      ),
+                      isThreeLine: true,
+                      trailing: canManage
+                          ? Wrap(
+                              spacing: 8,
+                              children: [
+                                _StatusButton(item.id, 'APPROVED', campaignId),
+                                _StatusButton(item.id, 'REJECTED', campaignId),
+                              ],
+                            )
+                          : StatusChip(
+                              label: item.status,
+                              status: _getStatusType(item.status),
+                            ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  StatusType _getStatusType(String status) {
+    switch (status.toUpperCase()) {
+      case 'APPROVED':
+        return StatusType.active;
+      case 'REJECTED':
+        return StatusType.error;
+      case 'PENDING':
+        return StatusType.pending;
+      default:
+        return StatusType.draft;
+    }
   }
 }
 
@@ -260,7 +452,7 @@ class _StatusButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return TextButton(
+    return FilledButton.tonal(
       onPressed: () async {
         await ref
             .read(campaignRepositoryProvider)
@@ -268,33 +460,6 @@ class _StatusButton extends ConsumerWidget {
         ref.invalidate(campaignRegistrationsProvider(campaignId));
       },
       child: Text(status),
-    );
-  }
-}
-
-class _Section extends StatelessWidget {
-  const _Section({required this.title, required this.child});
-
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: child,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -307,23 +472,30 @@ class _ErrorBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Card(
-        color: Theme.of(context).colorScheme.errorContainer,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(error.toString()),
-              const SizedBox(height: 8),
-              FilledButton.icon(
-                onPressed: onRetry,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
-              ),
-            ],
-          ),
+    return BentoCard(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              error.toString(),
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Thử lại'),
+            ),
+          ],
         ),
       ),
     );

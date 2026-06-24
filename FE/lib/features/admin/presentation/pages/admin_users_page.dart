@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../campaign/shared/providers/campaign_provider.dart';
 import '../widgets/user_form_dialog.dart';
@@ -209,15 +210,15 @@ class _RoleChip extends StatelessWidget {
   Color get _color {
     switch (role) {
       case 'ADMIN':
-        return Colors.red;
+        return AppColors.error;
       case 'MANAGER':
-        return Colors.orange;
+        return AppColors.warning;
       case 'STAFF':
-        return Colors.blue;
+        return AppColors.info;
       case 'STUDENT':
-        return Colors.green;
+        return AppColors.success;
       default:
-        return Colors.grey;
+        return AppColors.textTertiaryLight;
     }
   }
 
@@ -246,12 +247,12 @@ class _StatusChip extends StatelessWidget {
         status,
         style: TextStyle(
           fontSize: 12,
-          color: isActive ? Colors.green.shade700 : Colors.orange.shade700,
+          color: isActive ? AppColors.success : AppColors.warning,
         ),
       ),
       backgroundColor:
-          isActive ? Colors.green.shade50 : Colors.orange.shade50,
-      side: BorderSide(color: isActive ? Colors.green : Colors.orange),
+          isActive ? AppColors.successLight : AppColors.warningLight,
+      side: BorderSide(color: isActive ? AppColors.success : AppColors.warning),
       padding: EdgeInsets.zero,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );

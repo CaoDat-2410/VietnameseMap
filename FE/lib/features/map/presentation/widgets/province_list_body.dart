@@ -127,7 +127,7 @@ class _ProvinceListBodyState extends ConsumerState<ProvinceListBody> {
       padding: const EdgeInsets.all(16.0),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -151,11 +151,11 @@ class _ProvinceListBodyState extends ConsumerState<ProvinceListBody> {
             },
             decoration: InputDecoration(
               hintText: 'Tìm kiếm tỉnh thành...',
-              hintStyle: TextStyle(color: Colors.grey.shade400),
-              prefixIcon: Icon(Icons.search, color: Colors.blue.shade300),
+              hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.primary),
               suffixIcon: query.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.close, color: Colors.grey),
+                      icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       onPressed: () {
                         ref.read(provinceSearchQueryProvider.notifier).state =
                             '';
@@ -201,7 +201,7 @@ class _DrillDownHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -222,7 +222,7 @@ class _DrillDownHeader extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Icon(Icons.chevron_right,
-                  color: Colors.grey.shade400, size: 20),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant, size: 20),
             ),
           ],
           Expanded(
@@ -458,7 +458,7 @@ class _CommuneListView extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.location_off,
-                      size: 48, color: Colors.grey.shade400),
+                      size: 48, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(height: 8),
                   Text('Không có dữ liệu xã/phường',
                       style: TextStyle(color: Colors.grey.shade500)),
@@ -628,7 +628,7 @@ class _UnitCard extends ConsumerWidget {
       curve: Curves.easeOutCubic,
       margin: EdgeInsets.zero,
       decoration: BoxDecoration(
-        color: isSelected ? _color.withValues(alpha: 0.08) : Colors.white,
+        color: isSelected ? _color.withValues(alpha: 0.08) : Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color:
@@ -751,7 +751,7 @@ class _UnitCard extends ConsumerWidget {
                 if (showChevron)
                   Icon(
                     Icons.chevron_right,
-                    color: isSelected ? _color : Colors.grey.shade400,
+                    color: isSelected ? _color : Theme.of(context).colorScheme.onSurfaceVariant,
                     size: 24,
                   ),
               ],

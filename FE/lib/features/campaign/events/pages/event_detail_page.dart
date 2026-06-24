@@ -275,13 +275,13 @@ class _TimeCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.schedule, size: 18, color: Colors.black54),
+                Icon(Icons.schedule, size: 18, color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(width: 8),
                 Text(
                   l10n.time,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: Colors.black54,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const Spacer(),
@@ -629,7 +629,7 @@ class _InfoRow extends StatelessWidget {
         children: [
           SizedBox(
             width: 120,
-            child: Text(label, style: const TextStyle(color: Colors.grey)),
+            child: Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ),
           Expanded(child: Text(value.isEmpty ? '-' : value)),
         ],

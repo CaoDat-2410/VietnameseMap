@@ -31,7 +31,7 @@ class WeatherPage extends ConsumerWidget {
             title: Text(l10n.weatherTitle),
             actions: [
               IconButton(
-                icon: const Icon(Icons.refresh, color: Colors.white),
+                icon: Icon(Icons.refresh, color: Theme.of(context).colorScheme.onPrimary),
                 tooltip: l10n.refresh,
                 onPressed: refreshWeather,
               ),
