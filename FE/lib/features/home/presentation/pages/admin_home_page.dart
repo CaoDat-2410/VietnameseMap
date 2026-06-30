@@ -205,96 +205,80 @@ class _UserRoleCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-              Expanded(
-                child: LayoutBuilder(
-                  builder: (context, c) {
-                    if (total == 0) {
-                      return Center(
-                        child: Text(
-                          'Chưa có dữ liệu',
-                          style: TextStyle(
-                            color: isDark
-                                ? AppColors.textTertiaryDark
-                                : AppColors.textTertiaryLight,
-                          ),
-                        ),
-                      );
-                    }
-                    final chartSize = c.maxWidth < c.maxHeight ? c.maxWidth : c.maxHeight;
-                    return Row(
-                      children: [
-                        SizedBox(
-                          width: chartSize,
-                          height: chartSize,
-                          child: PieChart(
-                            PieChartData(
-                              sectionsSpace: 2,
-                              centerSpaceRadius: chartSize * 0.2,
-                              sections: [
-                                for (int i = 0; i < roles.length; i++)
-                                  PieChartSectionData(
-                                    value: roles[i].$2.toDouble(),
-                                    color: roles[i].$3,
-                                    radius: chartSize * 0.25,
-                                    title: '${((roles[i].$2 / total) * 100).round()}%',
-                                    titleStyle: const TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                              ],
+          SizedBox(
+            height: 160,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 160,
+                  height: 160,
+                  child: PieChart(
+                    PieChartData(
+                      sectionsSpace: 2,
+                      centerSpaceRadius: 24,
+                      sections: [
+                        for (int i = 0; i < roles.length; i++)
+                          PieChartSectionData(
+                            value: roles[i].$2.toDouble(),
+                            color: roles[i].$3,
+                            radius: 28,
+                            title: '${((roles[i].$2 / total) * 100).round()}%',
+                            titleStyle: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (final r in roles)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 3),
+                          child: Row(
                             children: [
-                              for (final r in roles)
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 3),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 10,
-                                        height: 10,
-                                        decoration: BoxDecoration(
-                                          color: r.$3,
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Expanded(
-                                        child: Text(
-                                          r.$1,
-                                          style: const TextStyle(fontSize: 11),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      Text(
-                                        '${r.$2}',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: isDark
-                                              ? AppColors.textSecondaryDark
-                                              : AppColors.textSecondaryLight,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                              Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: r.$3,
+                                  shape: BoxShape.circle,
                                 ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  r.$1,
+                                  style: const TextStyle(fontSize: 11),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Text(
+                                '${r.$2}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark
+                                      ? AppColors.textSecondaryDark
+                                      : AppColors.textSecondaryLight,
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                      ],
-                    );
-                  },
+                    ],
+                  ),
                 ),
-              ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -326,42 +310,40 @@ class _CampaignStatusCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: statuses.map((s) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: s.color,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: statuses.map((s) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: s.color,
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          s.name,
-                          style: const TextStyle(fontSize: 13),
-                        ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        s.name,
+                        style: const TextStyle(fontSize: 13),
                       ),
-                      Text(
-                        '${s.count}',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: s.color,
-                        ),
+                    ),
+                    Text(
+                      '${s.count}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: s.color,
                       ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
           ),
         ],
       ),
