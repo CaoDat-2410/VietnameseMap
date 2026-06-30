@@ -58,26 +58,10 @@ class BentoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    Widget cardContent = Container(
-      padding: padding ?? _defaultPadding,
-      decoration: BoxDecoration(
-        color: isDark
-            ? AppColors.surfaceContainerHighDark
-            : AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        border: Border.all(
-          color: isDark ? AppColors.borderDark : AppColors.borderLight,
-        ),
-        boxShadow: elevation > 0
-            ? AppShadows.forTheme(Theme.of(context).brightness, elevation)
-            : null,
-      ),
-      child: child,
-    );
-
-    // Add accent bar if enabled
-    if (showAccent && accentColor != null) {
-      cardContent = Container(
+    Widget cardContent = ConstrainedBox(
+      constraints: const BoxConstraints.tightForFinite(),
+      child: Container(
+        padding: padding ?? _defaultPadding,
         decoration: BoxDecoration(
           color: isDark
               ? AppColors.surfaceContainerHighDark
@@ -86,26 +70,48 @@ class BentoCard extends StatelessWidget {
           border: Border.all(
             color: isDark ? AppColors.borderDark : AppColors.borderLight,
           ),
+          boxShadow: elevation > 0
+              ? AppShadows.forTheme(Theme.of(context).brightness, elevation)
+              : null,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              height: 4,
-              decoration: BoxDecoration(
-                color: accentColor,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(AppSpacing.radiusLg),
+        child: child,
+      ),
+    );
+
+    // Add accent bar if enabled
+    if (showAccent && accentColor != null) {
+      cardContent = ConstrainedBox(
+        constraints: const BoxConstraints.tightForFinite(),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isDark
+                ? AppColors.surfaceContainerHighDark
+                : AppColors.surfaceLight,
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+            border: Border.all(
+              color: isDark ? AppColors.borderDark : AppColors.borderLight,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                height: 4,
+                decoration: BoxDecoration(
+                  color: accentColor,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(AppSpacing.radiusLg),
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: padding ?? _defaultPadding,
-                child: child,
+              Expanded(
+                child: Padding(
+                  padding: padding ?? _defaultPadding,
+                  child: child,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
     }
