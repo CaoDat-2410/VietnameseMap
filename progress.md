@@ -398,5 +398,57 @@ Hardcoded `Colors.white/black/grey` and hex values across ~15 files broke dark m
 
 ---
 
+## feat-057 — Role-Based Bento Home Pages (2026-06-30)
+
+### Summary
+Built 4 role-specific Bento Grid home pages: Manager, Staff, Student, Admin. Each has KPIs, charts, and role-appropriate content. Reuses existing `BentoCard`, `KpiCard`, `StatusChip`, `TrendLineChart`, `OutcomeDonutChart`, `ProvinceBarChart`, `TopSchoolsBarChart`, `AppShellScaffold` from the existing codebase.
+
+### Architecture
+- `FE/lib/features/home/` — new feature directory
+  - `presentation/widgets/home_grid.dart` — 12-column responsive grid (spans 3/4/6/8/12)
+  - `presentation/widgets/home_page_shell.dart` — reusable shell: title + subtitle + badge + quick actions
+  - `data/providers/` — 4 providers: `manager_home_provider`, `student_home_provider`, `staff_home_provider`, `admin_home_provider`
+  - `presentation/pages/` — 4 pages: `manager_home_page`, `staff_home_page`, `student_home_page`, `admin_home_page`
+- `FE/lib/app/router.dart` — added 4 routes (`/home/manager`, `/home/staff`, `/home/student`, `/home/admin`) + `_RoleGate` guards + sidebar nav items ("Tổng quan")
+- `FE/lib/features/auth/shared/auth_routes.dart` — updated `landingPathForRole` to redirect to `/home/{role}` after login
+
+### What Existed vs What Was Built
+| What | Status |
+|---|---|
+| `BentoCard` + `KpiCard` + `StatusChip` + `BentoGrid` | Already existed in `FE/lib/core/widgets/bento_card.dart` |
+| `AppShellScaffold` + `AppSidebar` | Already existed in `FE/lib/app/widgets/` |
+| `aggregateDashboardProvider` + `trendProvider` | Already existed in `analytics_provider.dart` |
+| `TrendLineChart`, `OutcomeDonutChart`, `ProvinceBarChart`, `TopSchoolsBarChart` | Already existed |
+| `myRegistrationsProvider` | Already existed in `campaign_provider.dart` |
+| Home pages + routes + sidebar wiring | **NEW — built this session** |
+
+### Backend Gaps Noted
+- `GET /api/v1/employees/{id}/stats` — needed for Staff home (currently derived from campaign events)
+- `GET /api/v1/admin/system-stats` — needed for Admin home (currently mocked)
+
+### Verification
+- `flutter analyze lib/`: 0 errors
+- `flutter build web --release`: exit 0
+
+### Files Changed (14 files)
+| File | Action |
+|---|---|
+| `FE/lib/features/home/presentation/widgets/home_grid.dart` | CREATE |
+| `FE/lib/features/home/presentation/widgets/home_page_shell.dart` | CREATE |
+| `FE/lib/features/home/data/providers/manager_home_provider.dart` | CREATE |
+| `FE/lib/features/home/data/providers/student_home_provider.dart` | CREATE |
+| `FE/lib/features/home/data/providers/staff_home_provider.dart` | CREATE |
+| `FE/lib/features/home/data/providers/admin_home_provider.dart` | CREATE |
+| `FE/lib/features/home/presentation/pages/manager_home_page.dart` | CREATE |
+| `FE/lib/features/home/presentation/pages/staff_home_page.dart` | CREATE |
+| `FE/lib/features/home/presentation/pages/student_home_page.dart` | CREATE |
+| `FE/lib/features/home/presentation/pages/admin_home_page.dart` | CREATE |
+| `FE/lib/app/router.dart` | MODIFY — 4 routes + sidebar nav + `_homePathFor` helper |
+| `FE/lib/features/auth/shared/auth_routes.dart` | MODIFY — updated `landingPathForRole` |
+| `feature_list.json` | MODIFY — added feat-057 + backend gaps |
+| `progress.md` | MODIFY — added this session log |
+
+---
+
 ## ALL 5 PLAN STEPS COMPLETED
 

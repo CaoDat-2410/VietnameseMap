@@ -1,8 +1,9 @@
 String landingPathForRole(String? role) {
   return switch (role) {
-    'STUDENT' => '/student/my-registrations',
-    'ADMIN' => '/admin/users',
-    'STAFF' || 'MANAGER' => '/campaigns',
-    _ => '/map',
+    'STUDENT' => '/home/student',
+    'ADMIN'   => '/home/admin',
+    'STAFF'   => '/home/staff',
+    'MANAGER' => '/home/manager',
+    _         => '/map',
   };
 }

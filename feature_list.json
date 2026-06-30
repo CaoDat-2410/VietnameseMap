@@ -786,6 +786,45 @@
         "FE/lib/features/admin/presentation/widgets/user_chips.dart",
         "FE/lib/features/admin/presentation/pages/admin_users_page.dart"
       ]
+    },
+    {
+      "id": "feat-057",
+      "name": "Role-Based Bento Home Pages",
+      "description": "4 role-specific Bento Grid home pages (Manager, Staff, Student, Admin) accessible via sidebar 'Tổng quan' item. Manager: KPIs + trend line + activity feed + outcome donut + province bar + top schools + recent registrations. Staff: KPIs + assigned events + personal trend bar + campaign breakdown + outcome donut. Student: KPIs + registration list + profile card + available campaigns. Admin: 6 KPIs + user role donut + campaign status + recent users + system health panel + pending activations. Map stays at /map. All routes wired via router.dart.",
+      "dependencies": [],
+      "status": "completed",
+      "evidence": "flutter analyze lib/: 0 errors (160 info hints only, pre-existing) | flutter build web --release: Built build\\web exit 0",
+      "files": [
+        "FE/lib/features/home/presentation/widgets/home_grid.dart",
+        "FE/lib/features/home/presentation/widgets/home_page_shell.dart",
+        "FE/lib/features/home/data/providers/manager_home_provider.dart",
+        "FE/lib/features/home/data/providers/student_home_provider.dart",
+        "FE/lib/features/home/data/providers/staff_home_provider.dart",
+        "FE/lib/features/home/data/providers/admin_home_provider.dart",
+        "FE/lib/features/home/presentation/pages/manager_home_page.dart",
+        "FE/lib/features/home/presentation/pages/staff_home_page.dart",
+        "FE/lib/features/home/presentation/pages/student_home_page.dart",
+        "FE/lib/features/home/presentation/pages/admin_home_page.dart",
+        "FE/lib/app/router.dart",
+        "FE/lib/features/auth/shared/auth_routes.dart"
+      ],
+      "backendGaps": [
+        {
+          "endpoint": "GET /api/v1/employees/{id}/stats",
+          "priority": "High",
+          "for": "Staff Home — events joined, interactions logged, schools visited (currently derived from campaign events)"
+        },
+        {
+          "endpoint": "GET /api/v1/admin/system-stats",
+          "priority": "High",
+          "for": "Admin Home — total users by role, system health status (currently from users list + mock)"
+        },
+        {
+          "endpoint": "GET /api/v1/campaigns/active",
+          "priority": "Medium",
+          "for": "Student Home — campaigns currently accepting registrations (filtered client-side)"
+        }
+      ]
     }
   ],
   "knownIssues": [

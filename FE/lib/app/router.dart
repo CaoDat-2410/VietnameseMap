@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 
 import 'widgets/app_sidebar.dart';
 import 'widgets/app_shell_scaffold.dart';
-import '../core/providers/locale_provider.dart';
 import '../features/admin/presentation/pages/admin_users_page.dart';
 import '../features/analytics/presentation/pages/analytics_page.dart';
 import '../features/auth/presentation/pages/login_page.dart';
@@ -18,9 +17,14 @@ import '../features/campaign/dashboard/pages/campaign_dashboard_page.dart';
 import '../features/campaign/dashboard/pages/campaign_list_page.dart';
 import '../features/campaign/events/pages/campaign_events_page.dart';
 import '../features/campaign/events/pages/event_detail_page.dart';
+import '../features/home/presentation/pages/manager_home_page.dart';
+import '../features/home/presentation/pages/staff_home_page.dart';
+import '../features/home/presentation/pages/student_home_page.dart';
+import '../features/home/presentation/pages/admin_home_page.dart';
 import '../features/map/presentation/pages/map_page.dart';
 import '../features/school/presentation/pages/school_detail_page.dart';
 import '../features/school/presentation/pages/school_list_page.dart';
+import '../features/settings/presentation/pages/settings_page.dart';
 import '../features/student/presentation/pages/my_registrations_page.dart';
 import '../features/student/presentation/pages/student_register_page.dart';
 import '../features/weather/presentation/pages/weather_page.dart';
@@ -267,10 +271,63 @@ final router = GoRouter(
             ),
           ),
         ),
+        // Role-specific home pages
+        GoRoute(
+          path: '/home/manager',
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
+            child: _RoleGate(
+              allowedRoles: {'MANAGER', 'ADMIN'},
+              child: const ManagerHomePage(),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/home/staff',
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
+            child: _RoleGate(
+              allowedRoles: {'STAFF', 'MANAGER', 'ADMIN'},
+              child: const StaffHomePage(),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/home/student',
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
+            child: _RoleGate(
+              allowedRoles: {'STUDENT'},
+              child: const StudentHomePage(),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/home/admin',
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
+            child: _RoleGate(
+              allowedRoles: {'ADMIN'},
+              child: const AdminHomePage(),
+            ),
+          ),
+        ),
         GoRoute(
           path: '/logout',
           pageBuilder: (context, state) => const NoTransitionPage(
             child: LogoutPage(),
+          ),
+        ),
+        GoRoute(
+          path: '/settings',
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
+            child: const SettingsPage(),
           ),
         ),
       ],
@@ -303,6 +360,7 @@ class _AppShell extends ConsumerWidget {
   String _activeNavPath(String location) {
     if (location.startsWith('/login')) return '/login';
     if (location.startsWith('/logout')) return '/logout';
+    if (location.startsWith('/settings')) return '/settings';
     if (location.startsWith('/campaigns') || location.startsWith('/events')) {
       return '/campaigns';
     }
@@ -311,27 +369,54 @@ class _AppShell extends ConsumerWidget {
       return '/student/my-registrations';
     }
     if (location.startsWith('/admin/users')) return '/admin/users';
-    if (location.startsWith('/weather')) return '/weather';
+    if (location.startsWith('/home/')) {
+      return location; // Return the actual role-specific path so sidebar highlights correctly
+    }
+    if (location.startsWith('/weather')) return '/map';
     return '/map';
   }
 
+  String _homePathFor(String? role) => switch (role) {
+    'MANAGER' => '/home/manager',
+    'ADMIN'   => '/home/admin',
+    'STAFF'   => '/home/staff',
+    'STUDENT' => '/home/student',
+    _         => '/home/staff',
+  };
+
   List<_NavItem> _navItemsFor(String? role, AppLocalizations l10n) {
-    final items = <_NavItem>[
-      _NavItem('/map', l10n.map, Icons.map_outlined, Icons.map),
-      _NavItem('/weather', l10n.weather, Icons.cloud_outlined, Icons.cloud),
-    ];
+    final items = <_NavItem>[];
+
+    // Home item for logged-in users
+    if (role != null) {
+      items.add(_NavItem(
+        _homePathFor(role),
+        'Tổng quan',
+        Icons.dashboard_outlined,
+        Icons.dashboard,
+      ));
+    }
+
+    items.add(_NavItem('/map', l10n.map, Icons.map_outlined, Icons.map));
+
     if (role == null) {
+      items.add(
+          _NavItem('/settings', l10n.settings, Icons.settings_outlined, Icons.settings));
       items.add(
           _NavItem('/login', l10n.login, Icons.login_outlined, Icons.login));
       return items;
     }
+
     if (role == 'STUDENT') {
       items.add(_NavItem('/student/my-registrations', l10n.mine,
           Icons.assignment_ind_outlined, Icons.assignment_ind));
+      items.add(_NavItem('/settings', l10n.settings,
+          Icons.settings_outlined, Icons.settings));
       items.add(_NavItem(
           '/logout', l10n.logout, Icons.logout_outlined, Icons.logout));
       return items;
     }
+
     if (role == 'STAFF' || role == 'MANAGER' || role == 'ADMIN') {
       items.add(_NavItem(
           '/campaigns', l10n.campaigns, Icons.campaign_outlined, Icons.campaign));
@@ -344,6 +429,8 @@ class _AppShell extends ConsumerWidget {
       items.add(_NavItem('/admin/users', l10n.users,
           Icons.admin_panel_settings_outlined, Icons.admin_panel_settings));
     }
+    items.add(_NavItem('/settings', l10n.settings,
+        Icons.settings_outlined, Icons.settings));
     items.add(_NavItem(
         '/logout', l10n.logout, Icons.logout_outlined, Icons.logout));
     return items;
