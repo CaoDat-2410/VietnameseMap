@@ -26,52 +26,45 @@ class StaffHomePage extends ConsumerWidget {
         onRetry: () => ref.invalidate(staffHomeProvider),
       ),
       data: (model) => Scaffold(
-        body: SingleChildScrollView(
-          child: HomePageShell(
-            title: 'Tổng quan',
-            subtitle: 'Chào buổi sáng, ${user?.email ?? 'Nhân viên'}!',
-            actions: [
-              HomeAction(
-                label: 'Xem sự kiện',
-                icon: Icons.event_outlined,
-                onPressed: () => context.go('/campaigns'),
-              ),
-              HomeAction(
-                label: 'Xem bản đồ',
-                icon: Icons.map_outlined,
-                onPressed: () => context.go('/map'),
-              ),
-            ],
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.base),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Row 1: 3 KPI cards
-                  _KpiRow(model: model),
-                  const SizedBox(height: AppSpacing.base),
-
-                  // Row 2: Assigned events (8) + Personal trend (4)
-                  _HomeGridRow(
-                    spans: const [8, 4],
-                    children: [
-                      _AssignedEventsCard(events: model.assignedEvents),
-                      _PersonalTrendCard(interactions: model.interactionsLogged),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.base),
-
-                  // Row 3: Campaign breakdown + Outcome donut
-                  _HomeGridRow(
-                    spans: const [6, 6],
-                    children: [
-                      _CampaignBreakdownCard(),
-                      _PersonalOutcomeCard(),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.base),
-                ],
-              ),
+        body: HomePageShell(
+          title: 'Tổng quan',
+          subtitle: 'Chào buổi sáng, ${user?.email ?? 'Nhân viên'}!',
+          actions: [
+            HomeAction(
+              label: 'Xem sự kiện',
+              icon: Icons.event_outlined,
+              onPressed: () => context.go('/campaigns'),
+            ),
+            HomeAction(
+              label: 'Xem bản đồ',
+              icon: Icons.map_outlined,
+              onPressed: () => context.go('/map'),
+            ),
+          ],
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.base),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _KpiRow(model: model),
+                const SizedBox(height: AppSpacing.base),
+                _HomeGridRow(
+                  spans: const [8, 4],
+                  children: [
+                    _AssignedEventsCard(events: model.assignedEvents),
+                    _PersonalTrendCard(interactions: model.interactionsLogged),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.base),
+                _HomeGridRow(
+                  spans: const [6, 6],
+                  children: [
+                    _CampaignBreakdownCard(),
+                    _PersonalOutcomeCard(),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.base),
+              ],
             ),
           ),
         ),
@@ -101,7 +94,7 @@ class _HomeGridRow extends StatelessWidget {
           );
         }
         return Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             for (int i = 0; i < children.length; i++) ...[
               if (i > 0) const SizedBox(width: AppSpacing.bentoGap),
@@ -309,9 +302,7 @@ class _PersonalTrendCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Expanded(
-            child: _PersonalTrendBars(),
-          ),
+          Expanded(child: _PersonalTrendBars()),
         ],
       ),
     );
@@ -341,7 +332,7 @@ class _PersonalTrendBars extends StatelessWidget {
                     alignment: Alignment.bottomCenter,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: i == 4 // Friday — highest
+                        color: i == 4
                             ? AppColors.primary
                             : AppColors.primary.withValues(alpha: 0.3),
                         borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
@@ -452,7 +443,6 @@ class _CampaignBreakdownCard extends StatelessWidget {
 class _PersonalOutcomeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    // Mock outcomes for staff personal record
     const outcomes = <String, int>{
       'THÀNH CÔNG': 45,
       'CẦN THEO DÕI': 20,
@@ -503,7 +493,11 @@ class _ErrorView extends StatelessWidget {
               style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13),
             ),
             const SizedBox(height: 16),
-            FilledButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh), label: const Text('Thử lại')),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Thử lại'),
+            ),
           ],
         ),
       ),

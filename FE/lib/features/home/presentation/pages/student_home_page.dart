@@ -7,7 +7,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/bento_card.dart';
 import '../../../auth/shared/providers/auth_provider.dart';
-import '../../../campaign/dashboard/widgets/outcome_donut_chart.dart';
 import '../../data/providers/student_home_provider.dart';
 import '../widgets/home_page_shell.dart';
 
@@ -27,53 +26,46 @@ class StudentHomePage extends ConsumerWidget {
         onRetry: () => ref.invalidate(studentHomeProvider),
       ),
       data: (model) => Scaffold(
-        body: SingleChildScrollView(
-          child: HomePageShell(
-            title: 'Xin chào, ${user?.email ?? 'Sinh viên'}!',
-            subtitle: 'Theo dõi hoạt động đăng ký của bạn',
-            actions: [
-              HomeAction(
-                label: 'Đăng ký chiến dịch',
-                icon: Icons.add,
-                isPrimary: true,
-                onPressed: () => _showCampaignRegistration(context, campaigns),
-              ),
-              HomeAction(
-                label: 'Xem trường học',
-                icon: Icons.school_outlined,
-                onPressed: () => context.go('/schools'),
-              ),
-            ],
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.base),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Row 1: 2 KPI cards
-                  _KpiRow(model: model),
-                  const SizedBox(height: AppSpacing.base),
-
-                  // Row 2: Registrations list (8) + Profile + donut (4)
-                  _HomeGridRow(
-                    spans: const [8, 4],
-                    children: [
-                      _RegistrationsCard(registrations: model.registrations),
-                      _ProfileCard(user: user),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.base),
-
-                  // Row 3: Available campaigns
-                  campaigns.when(
-                    loading: () => const Center(child: CircularProgressIndicator()),
-                    error: (_, __) => const SizedBox.shrink(),
-                    data: (list) => list.isEmpty
-                        ? const SizedBox.shrink()
-                        : _CampaignsCard(campaigns: list),
-                  ),
-                  const SizedBox(height: AppSpacing.base),
-                ],
-              ),
+        body: HomePageShell(
+          title: 'Xin chào, ${user?.email ?? 'Sinh viên'}!',
+          subtitle: 'Theo dõi hoạt động đăng ký của bạn',
+          actions: [
+            HomeAction(
+              label: 'Đăng ký chiến dịch',
+              icon: Icons.add,
+              isPrimary: true,
+              onPressed: () => _showCampaignRegistration(context, campaigns),
+            ),
+            HomeAction(
+              label: 'Xem trường học',
+              icon: Icons.school_outlined,
+              onPressed: () => context.go('/schools'),
+            ),
+          ],
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.base),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _KpiRow(model: model),
+                const SizedBox(height: AppSpacing.base),
+                _HomeGridRow(
+                  spans: const [8, 4],
+                  children: [
+                    _RegistrationsCard(registrations: model.registrations),
+                    _ProfileCard(user: user),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.base),
+                campaigns.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (_, __) => const SizedBox.shrink(),
+                  data: (list) => list.isEmpty
+                      ? const SizedBox.shrink()
+                      : _CampaignsCard(campaigns: list),
+                ),
+                const SizedBox(height: AppSpacing.base),
+              ],
             ),
           ),
         ),
@@ -115,7 +107,7 @@ class _HomeGridRow extends StatelessWidget {
           );
         }
         return Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             for (int i = 0; i < children.length; i++) ...[
               if (i > 0) const SizedBox(width: AppSpacing.bentoGap),
@@ -281,8 +273,6 @@ class _ProfileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return BentoCard(
       size: BentoSize.large,
       child: Column(
@@ -295,7 +285,6 @@ class _ProfileCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          // Avatar
           Center(
             child: CircleAvatar(
               radius: 32,
@@ -455,7 +444,10 @@ class _CampaignsCard extends StatelessWidget {
                                 const SizedBox(width: 4),
                                 Text(
                                   '${c.startDate ?? ''} - ${c.endDate ?? ''}',
-                                  style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.primary),
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
                                 ),
                               ],
                             ),
@@ -497,7 +489,11 @@ class _ErrorView extends StatelessWidget {
               style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13),
             ),
             const SizedBox(height: 16),
-            FilledButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh), label: const Text('Thử lại')),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Thử lại'),
+            ),
           ],
         ),
       ),

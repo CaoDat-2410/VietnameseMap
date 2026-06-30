@@ -23,74 +23,70 @@ class AdminHomePage extends ConsumerWidget {
         onRetry: () => ref.invalidate(adminHomeProvider),
       ),
       data: (model) => Scaffold(
-        body: SingleChildScrollView(
-          child: HomePageShell(
-            title: 'Quản trị hệ thống',
-            subtitle: 'Giám sát toàn bộ hệ thống',
-            badge: model.pendingActivations > 0
-                ? const HomeBadge(
-                    label: 'cảnh báo',
-                    color: AppColors.error,
-                    icon: Icons.warning_amber,
-                  )
-                : const HomeBadge(
-                    label: 'Hệ thống hoạt động tốt',
-                    color: AppColors.success,
-                    icon: Icons.check_circle,
+        body: HomePageShell(
+          title: 'Quản trị hệ thống',
+          subtitle: 'Giám sát toàn bộ hệ thống',
+          badge: model.pendingActivations > 0
+              ? const HomeBadge(
+                  label: 'cảnh báo',
+                  color: AppColors.error,
+                  icon: Icons.warning_amber,
+                )
+              : const HomeBadge(
+                  label: 'Hệ thống hoạt động tốt',
+                  color: AppColors.success,
+                  icon: Icons.check_circle,
+                ),
+          actions: [
+            HomeAction(
+              label: 'Tạo người dùng',
+              icon: Icons.person_add_outlined,
+              isPrimary: true,
+              onPressed: () => context.go('/admin/users'),
+            ),
+            HomeAction(
+              label: 'Tạo chiến dịch',
+              icon: Icons.campaign_outlined,
+              onPressed: () => context.go('/campaigns'),
+            ),
+            HomeAction(
+              label: 'Báo cáo hệ thống',
+              icon: Icons.assessment_outlined,
+              onPressed: () => context.go('/analytics'),
+            ),
+          ],
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.base),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _KpiGrid(model: model),
+                const SizedBox(height: AppSpacing.base),
+                _HomeGridRow(
+                  spans: const [6, 6],
+                  children: [
+                    _UserRoleCard(
+                      usersByRole: model.usersByRole,
+                      total: model.totalUsers,
+                    ),
+                    _CampaignStatusCard(total: model.totalCampaigns),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.base),
+                _HomeGridRow(
+                  spans: const [8, 4],
+                  children: [
+                    _RecentUsersCard(model: model),
+                    _SystemHealthCard(health: model.systemHealth),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.base),
+                if (model.pendingActivations > 0)
+                  _PendingActivationsCard(
+                    pendingCount: model.pendingActivations,
                   ),
-            actions: [
-              HomeAction(
-                label: 'Tạo người dùng',
-                icon: Icons.person_add_outlined,
-                isPrimary: true,
-                onPressed: () => context.go('/admin/users'),
-              ),
-              HomeAction(
-                label: 'Tạo chiến dịch',
-                icon: Icons.campaign_outlined,
-                onPressed: () => context.go('/campaigns'),
-              ),
-              HomeAction(
-                label: 'Báo cáo hệ thống',
-                icon: Icons.assessment_outlined,
-                onPressed: () => context.go('/analytics'),
-              ),
-            ],
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.base),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Row 1: 6 KPI cards (wraps to 2 lines on narrow)
-                  _KpiGrid(model: model),
-                  const SizedBox(height: AppSpacing.base),
-
-                  // Row 2: User donut (6) + Campaign status (6)
-                  _HomeGridRow(
-                    spans: const [6, 6],
-                    children: [
-                      _UserRoleCard(usersByRole: model.usersByRole, total: model.totalUsers),
-                      _CampaignStatusCard(total: model.totalCampaigns),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.base),
-
-                  // Row 3: Recent users (8) + System health (4)
-                  _HomeGridRow(
-                    spans: const [8, 4],
-                    children: [
-                      _RecentUsersCard(model: model),
-                      _SystemHealthCard(health: model.systemHealth),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.base),
-
-                  // Row 4: Pending activations
-                  if (model.pendingActivations > 0)
-                    _PendingActivationsCard(pendingCount: model.pendingActivations),
-                  const SizedBox(height: AppSpacing.base),
-                ],
-              ),
+                const SizedBox(height: AppSpacing.base),
+              ],
             ),
           ),
         ),
@@ -120,7 +116,7 @@ class _HomeGridRow extends StatelessWidget {
           );
         }
         return Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             for (int i = 0; i < children.length; i++) ...[
               if (i > 0) const SizedBox(width: AppSpacing.bentoGap),
@@ -224,7 +220,7 @@ class _UserRoleCard extends StatelessWidget {
                           value: 1.0,
                           strokeWidth: 12,
                           backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                          valueColor: AlwaysStoppedAnimation(AppColors.primary),
+                          valueColor: const AlwaysStoppedAnimation(AppColors.primary),
                         ),
                       ),
                       Column(
@@ -375,7 +371,6 @@ class _RecentUsersCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Use usersProvider for actual data
     final usersAsync = ref.watch(usersProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -667,7 +662,11 @@ class _ErrorView extends StatelessWidget {
               style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13),
             ),
             const SizedBox(height: 16),
-            FilledButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh), label: const Text('Thử lại')),
+            FilledButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Thử lại'),
+            ),
           ],
         ),
       ),

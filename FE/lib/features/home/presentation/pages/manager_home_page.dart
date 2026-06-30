@@ -6,12 +6,10 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/bento_card.dart';
-import '../../../analytics/presentation/providers/analytics_provider.dart';
 import '../../../analytics/presentation/widgets/trend_line_chart.dart';
 import '../../../campaign/dashboard/widgets/outcome_donut_chart.dart';
 import '../../../campaign/dashboard/widgets/province_bar_chart.dart';
 import '../../../campaign/dashboard/widgets/top_schools_bar_chart.dart';
-import '../../../auth/shared/providers/auth_provider.dart';
 import '../../data/providers/manager_home_provider.dart';
 import '../widgets/home_page_shell.dart';
 
@@ -24,79 +22,71 @@ class ManagerHomePage extends ConsumerWidget {
 
     return homeData.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => _ErrorView(error: error, onRetry: () => ref.invalidate(managerHomeProvider)),
+      error: (error, _) => _ErrorView(
+        error: error,
+        onRetry: () => ref.invalidate(managerHomeProvider),
+      ),
       data: (model) => Scaffold(
-        body: SingleChildScrollView(
-          child: HomePageShell(
-            title: 'Bảng điều khiển',
-            subtitle: 'Tổng quan hoạt động chiến dịch',
-            badge: HomeBadge(
-              label: '${model.totalCampaigns} chiến dịch đang hoạt động',
-              color: AppColors.primary,
-              icon: Icons.campaign,
+        body: HomePageShell(
+          title: 'Bảng điều khiển',
+          subtitle: 'Tổng quan hoạt động chiến dịch',
+          badge: HomeBadge(
+            label: '${model.totalCampaigns} chiến dịch đang hoạt động',
+            color: AppColors.primary,
+            icon: Icons.campaign,
+          ),
+          actions: [
+            HomeAction(
+              label: 'Tạo chiến dịch',
+              icon: Icons.add,
+              isPrimary: true,
+              onPressed: () => context.go('/campaigns'),
             ),
-            actions: [
-              HomeAction(
-                label: 'Tạo chiến dịch',
-                icon: Icons.add,
-                isPrimary: true,
-                onPressed: () => context.go('/campaigns'),
-              ),
-              HomeAction(
-                label: 'Xem Analytics',
-                icon: Icons.analytics_outlined,
-                onPressed: () => context.go('/analytics'),
-              ),
-              HomeAction(
-                label: 'Xem bản đồ',
-                icon: Icons.map_outlined,
-                onPressed: () => context.go('/map'),
-              ),
-            ],
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.base),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Row 1: 4 KPI cards
-                  _KpiRow(model: model),
-                  const SizedBox(height: AppSpacing.base),
-
-                  // Row 2: Trend line chart (8) + Activity feed (4)
-                  _HomeGridRow(
-                    spans: const [8, 4],
-                    children: [
-                      _TrendCard(trend: model.trend),
-                      _ActivityFeedCard(),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.base),
-
-                  // Row 3: Outcome donut (6) + Province bar (6)
-                  _HomeGridRow(
-                    spans: const [6, 6],
-                    children: [
-                      _OutcomeCard(outcomes: model.interactionsByOutcome),
-                      _ProvinceCard(provinces: model.interactionsByProvince),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.base),
-
-                  // Row 4: Top schools (8) + Quick links (4)
-                  _HomeGridRow(
-                    spans: const [8, 4],
-                    children: [
-                      _TopSchoolsCard(schools: model.topSchools),
-                      _QuickLinksCard(),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.base),
-
-                  // Row 5: Recent registrations
-                  _RecentRegistrationsCard(registrations: model.recentRegistrations),
-                  const SizedBox(height: AppSpacing.base),
-                ],
-              ),
+            HomeAction(
+              label: 'Xem Analytics',
+              icon: Icons.analytics_outlined,
+              onPressed: () => context.go('/analytics'),
+            ),
+            HomeAction(
+              label: 'Xem bản đồ',
+              icon: Icons.map_outlined,
+              onPressed: () => context.go('/map'),
+            ),
+          ],
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.base),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _KpiRow(model: model),
+                const SizedBox(height: AppSpacing.base),
+                _HomeGridRow(
+                  spans: const [8, 4],
+                  children: [
+                    _TrendCard(trend: model.trend),
+                    _ActivityFeedCard(),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.base),
+                _HomeGridRow(
+                  spans: const [6, 6],
+                  children: [
+                    _OutcomeCard(outcomes: model.interactionsByOutcome),
+                    _ProvinceCard(provinces: model.interactionsByProvince),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.base),
+                _HomeGridRow(
+                  spans: const [8, 4],
+                  children: [
+                    _TopSchoolsCard(schools: model.topSchools),
+                    _QuickLinksCard(),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.base),
+                _RecentRegistrationsCard(registrations: model.recentRegistrations),
+                const SizedBox(height: AppSpacing.base),
+              ],
             ),
           ),
         ),
@@ -126,7 +116,7 @@ class _HomeGridRow extends StatelessWidget {
           );
         }
         return Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             for (int i = 0; i < children.length; i++) ...[
               if (i > 0) const SizedBox(width: AppSpacing.bentoGap),
@@ -219,9 +209,7 @@ class _TrendCard extends StatelessWidget {
           const SizedBox(height: 12),
           SizedBox(
             height: 180,
-            child: TrendLineChart(
-              points: trend.cast(),
-            ),
+            child: TrendLineChart(points: trend.cast()),
           ),
         ],
       ),
@@ -476,8 +464,6 @@ class _RecentRegistrationsCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final role = ref.watch(activeUserProvider).valueOrNull?.role;
-    final canManage = role == 'MANAGER' || role == 'ADMIN';
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return BentoCard(
@@ -577,10 +563,7 @@ class _ErrorView extends StatelessWidget {
           children: [
             Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
             const SizedBox(height: 16),
-            Text(
-              'Không thể tải dữ liệu',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            Text('Không thể tải dữ liệu', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(
               error.toString(),

@@ -452,3 +452,32 @@ Built 4 role-specific Bento Grid home pages: Manager, Staff, Student, Admin. Eac
 
 ## ALL 5 PLAN STEPS COMPLETED
 
+---
+
+## Bug Fixes — 2026-06-30
+
+### Issue 1: RenderFlex Assertion Errors (mouse_tracker)
+
+**Root Cause**: `crossAxisAlignment: CrossAxisAlignment.stretch` on `Row` widgets inside `_HomeGridRow` in all 4 role-based home pages. `Row` with `stretch` tries to make all children match the tallest child's height — but `BentoCard`/`GridView.count` inside `Expanded` children have unbounded intrinsic heights, causing the Flutter assertion:
+`RenderFlex children have non-zero flex but incoming height constraints are unbounded`.
+
+**Fix Applied** (4 files):
+- `admin_home_page.dart` — `_HomeGridRow` Row
+- `manager_home_page.dart` — `_HomeGridRow` Row
+- `staff_home_page.dart` — `_HomeGridRow` Row
+- `student_home_page.dart` — `_HomeGridRow` Row
+
+Changed `crossAxisAlignment: CrossAxisAlignment.stretch` → `crossAxisAlignment: CrossAxisAlignment.start` in all 4 files. The layout still fills available width correctly via `Expanded(flex: spans[i])`.
+
+### Issue 2: Map Hidden on /map Route
+
+**Root Cause**: `MapPage.build()` had two branches:
+- Wide (>600px): Only showed `ProvinceListBody()` — `VietnamMapView` was completely absent.
+- Mobile (<600px): Correctly showed `VietnamMapView` + draggable sheet.
+
+**Fix Applied** (`map_page.dart`):
+Wide-screen now shows: `Row([VietnamMapView (flex:3) | divider | ProvinceListBody (flex:2)])`, respecting dark/light theme. Also fixed mobile sheet background to use `Theme.of(context).brightness` for dark mode.
+
+### Verification
+- `flutter analyze lib/`: **0 errors** (135 info hints — all pre-existing)
+- `flutter build web --release`: **exit 0**

@@ -9,23 +9,42 @@ class MapPage extends StatelessWidget {
     this.focusLat,
     this.focusLng,
     this.focusLabel,
+    this.schoolUids,
   });
 
   final double? focusLat;
   final double? focusLng;
   final String? focusLabel;
+  final List<String>? schoolUids;
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       body: LayoutBuilder(
         builder: (context, constraints) {
           if (constraints.maxWidth > 600) {
-            // Wide Screen: Map is rendered on the left by _AppShell
-            // We just render the list on the right side.
-            return const ColoredBox(
-              color: Colors.white,
-              child: ProvinceListBody(),
+            // Wide Screen: Vietnam map on left + province list on right
+            return Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: VietnamMapView(
+                    focusLat: focusLat,
+                    focusLng: focusLng,
+                    focusLabel: focusLabel,
+                    schoolUids: schoolUids,
+                  ),
+                ),
+                Container(width: 1, color: Theme.of(context).dividerColor),
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                    child: const ProvinceListBody(),
+                  ),
+                ),
+              ],
             );
           } else {
             // Mobile Screen
@@ -35,6 +54,7 @@ class MapPage extends StatelessWidget {
                   focusLat: focusLat,
                   focusLng: focusLng,
                   focusLabel: focusLabel,
+                  schoolUids: schoolUids,
                 ),
                 DraggableScrollableSheet(
                   initialChildSize: 0.4,
@@ -42,8 +62,10 @@ class MapPage extends StatelessWidget {
                   maxChildSize: 0.8,
                   builder: (context, scrollController) {
                     return Container(
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF1E1E1E)
+                            : Colors.white,
                         borderRadius:
                             BorderRadius.vertical(top: Radius.circular(24)),
                         boxShadow: [
