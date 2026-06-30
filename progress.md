@@ -517,6 +517,18 @@ Wide-screen now shows: `Row([VietnamMapView (flex:3) | divider | ProvinceListBod
 
 **Affected files**: `home_grid.dart`, `responsive_sidebar_layout.dart`
 
+### Issue 7: Unbounded chartSize NaN → RenderFlex Cascade
+
+**Root Cause**: `_UserRoleCard` used `LayoutBuilder` to compute `chartSize = c.maxWidth < c.maxHeight ? c.maxWidth : c.maxHeight`. But `_UserRoleCard` was inside `Expanded` in a `Row`, giving unbounded height. So `c.maxHeight = Infinity`, `chartSize = Infinity`, `SizedBox(width: Infinity, height: Infinity)` → NaN → 0. The downstream `Column` with `Expanded(child: chart)` then caused RenderFlex with unbounded height constraints.
+
+`_CampaignStatusCard` had `Expanded(child: Column(...))` inside a `BentoCard` which is inside `Expanded` in `Row` → unbounded height → RenderFlex.
+
+**Fix Applied**:
+- `_UserRoleCard`: replaced unbounded `LayoutBuilder` with a fixed `SizedBox(height: 160)` containing a 160×160 `PieChart` with fixed `centerSpaceRadius: 24` and `radius: 28`. Removed `LayoutBuilder` entirely.
+- `_CampaignStatusCard`: removed the outer `Expanded(` wrapping the inner `Column(...)`.
+
+**Affected files**: `admin_home_page.dart`
+
 ### Verification
 - `flutter analyze lib/`: **0 errors** (135 info hints — all pre-existing)
-- `flutter build web --release`: **exit 0**
+- `flutter run -d chrome` — **no RenderFlex errors, no mouse_tracker errors after 100+ seconds**
