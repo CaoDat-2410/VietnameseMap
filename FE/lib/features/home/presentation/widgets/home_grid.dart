@@ -82,22 +82,18 @@ class HomeGrid extends StatelessWidget {
 
       // Add spacer for remaining space if not filled
       if (spansUsed < 12) {
-        final remaining = 12 - spansUsed;
         rowChildren.add(SizedBox(width: gap));
-        // Flex with spacer
       }
 
       if (columns == 1) {
         rows.add(SizedBox(height: gap));
-        rows.add(Expanded(child: rowChildren.first));
+        rows.add(rowChildren.first);
       } else {
         rows.add(Padding(
           padding: EdgeInsets.only(bottom: gap),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: _buildRowChildren(rowChildren, columns, gap, spansUsed),
-            ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: _buildRowChildren(rowChildren, columns, gap, spansUsed),
           ),
         ));
       }
@@ -186,7 +182,7 @@ class HomeGridRow extends StatelessWidget {
         }
 
         return Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             for (int i = 0; i < children.length; i++) ...[
               if (i > 0) SizedBox(width: gap),
