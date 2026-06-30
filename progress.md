@@ -537,6 +537,21 @@ Wide-screen now shows: `Row([VietnamMapView (flex:3) | divider | ProvinceListBod
 
 **Affected files**: `bento_card.dart`
 
-### Verification
-- `flutter analyze lib/`: **0 errors** (135 info hints — all pre-existing)
-- `flutter run -d chrome` — **no RenderFlex errors, no mouse_tracker errors after 118+ seconds**
+### Issue 9: Column+Expanded(ListView) RenderFlex in All Home Pages
+
+**Root Cause**: All home pages (admin, staff, student, manager) had BentoCard containing a Column with `mainAxisSize: max` (default) and a child widget using `Expanded(child: ListView/Column)`. When BentoCard's Container had no explicit size and the Row passed `(0 <= h <= Infinity)`, the Column with `mainAxisSize: max` tried to fill infinity → RenderFlex fired → box.dart:2251 capped `Infinity → 0` → cascade of MISSING sizes.
+
+**Fix Applied** (all 4 home pages):
+1. Set `mainAxisSize: MainAxisSize.min` on all BentoCard inner Columns
+2. Replaced `Expanded(child: ListView)` with `Flexible(child: SizedBox(height: 220))` — gives the scrollable a fixed bounded height, eliminating the unbounded constraint problem
+3. Replaced `Expanded(child: Column)` with `Flexible(child: SizedBox(height: 160/200))`
+
+**Cards Fixed**:
+- `admin_home_page.dart`: `_RecentUsersCard`
+- `staff_home_page.dart`: `_AssignedEventsCard`, `_CampaignBreakdownCard`, `_PersonalOutcomeCard`
+- `student_home_page.dart`: `_RegistrationsCard`
+- `manager_home_page.dart`: `_RecentActivityCard`
+
+**Verification**:
+- `flutter analyze`: **0 errors** (10 info-level lints)
+- `flutter run -d chrome`: **zero RenderFlex errors, zero box.dart:2251 assertions, zero mouse_tracker errors after 211+ seconds**
