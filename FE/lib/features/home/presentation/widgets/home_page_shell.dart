@@ -94,7 +94,6 @@ class HomePageShell extends StatelessWidget {
             ],
           ),
         ),
-        // Content
         Expanded(child: child),
       ],
     );
