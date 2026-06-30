@@ -490,6 +490,22 @@ Wide-screen now shows: `Row([VietnamMapView (flex:3) | divider | ProvinceListBod
 
 **Affected files**: `admin_home_page.dart`, `manager_home_page.dart`, `staff_home_page.dart`, `student_home_page.dart`, `bento_card.dart`
 
+### Issue 4: Blank Body — Double-Expanded Bug
+
+**Root Cause**: `HomePageShell` wraps its `child` in `Expanded(child: child)`. But `HomePageShell` is already passed as `body` to `AppShellScaffold`, which ALSO wraps `body` in `Expanded(child: body)`. Two `Expanded` widgets in sequence gives the inner `Expanded` zero available space — entire body collapses to zero height, completely blank.
+
+**Fix Applied**: Removed the inner `Expanded(` from `home_page_shell.dart` line 97. The `Expanded` from `AppShellScaffold` is sufficient.
+
+**Affected files**: `home_page_shell.dart`
+
+### Issue 5: Missing Donut Chart
+
+**Root Cause**: `_UserRoleCard` used a placeholder `CircularProgressIndicator(value: 1.0)` instead of real chart data.
+
+**Fix Applied**: Replaced placeholder with `fl_chart` `PieChart` showing actual user role distribution. Added `SingleChildScrollView` wrapping the page content so all sections are scrollable and visible.
+
+**Affected files**: `admin_home_page.dart`
+
 ### Verification
 - `flutter analyze lib/`: **0 errors** (136 info hints — all pre-existing)
 - `flutter build web --release`: **exit 0**
