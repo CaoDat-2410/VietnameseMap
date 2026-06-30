@@ -363,6 +363,7 @@ class _RecentUsersCard extends ConsumerWidget {
     return BentoCard(
       size: BentoSize.wide,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -383,68 +384,71 @@ class _RecentUsersCard extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Expanded(
-            child: usersAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) => Center(
-                child: Text(
-                  'Không thể tải người dùng',
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+          Flexible(
+            child: SizedBox(
+              height: 220,
+              child: usersAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (_, __) => Center(
+                  child: Text(
+                    'Không thể tải người dùng',
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
                 ),
-              ),
-              data: (users) {
-                if (users.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'Chưa có người dùng',
-                      style: TextStyle(
-                        color: isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textSecondaryLight,
-                      ),
-                    ),
-                  );
-                }
-                return ListView.separated(
-                  itemCount: users.length.clamp(0, 8),
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final u = users[index];
-                    final name = (u['email'] as String?) ?? 'N/A';
-                    final role = (u['role'] as String?) ?? 'UNKNOWN';
-                    final status = (u['status'] as String?) ?? 'ACTIVE';
-                    return ListTile(
-                      dense: true,
-                      leading: CircleAvatar(
-                        radius: 16,
-                        backgroundColor: _roleColor(role).withValues(alpha: 0.1),
-                        child: Text(
-                          name.isNotEmpty ? name[0].toUpperCase() : '?',
-                          style: TextStyle(
-                            color: _roleColor(role),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                      title: Text(name, style: const TextStyle(fontSize: 14)),
-                      subtitle: Text(
-                        role,
+                data: (users) {
+                  if (users.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'Chưa có người dùng',
                         style: TextStyle(
-                          fontSize: 12,
                           color: isDark
                               ? AppColors.textSecondaryDark
                               : AppColors.textSecondaryLight,
                         ),
                       ),
-                      trailing: StatusChip(
-                        label: status,
-                        status: _statusType(status),
-                      ),
                     );
-                  },
-                );
-              },
+                  }
+                  return ListView.separated(
+                    itemCount: users.length.clamp(0, 8),
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final u = users[index];
+                      final name = (u['email'] as String?) ?? 'N/A';
+                      final role = (u['role'] as String?) ?? 'UNKNOWN';
+                      final status = (u['status'] as String?) ?? 'ACTIVE';
+                      return ListTile(
+                        dense: true,
+                        leading: CircleAvatar(
+                          radius: 16,
+                          backgroundColor: _roleColor(role).withValues(alpha: 0.1),
+                          child: Text(
+                            name.isNotEmpty ? name[0].toUpperCase() : '?',
+                            style: TextStyle(
+                              color: _roleColor(role),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        title: Text(name, style: const TextStyle(fontSize: 14)),
+                        subtitle: Text(
+                          role,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondaryLight,
+                          ),
+                        ),
+                        trailing: StatusChip(
+                          label: status,
+                          status: _statusType(status),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
             ),
           ),
         ],

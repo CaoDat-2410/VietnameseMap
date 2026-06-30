@@ -230,6 +230,7 @@ class _ActivityFeedCard extends StatelessWidget {
     return BentoCard(
       size: BentoSize.large,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -245,50 +246,53 @@ class _ActivityFeedCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Expanded(
-            child: ListView.separated(
-              itemCount: activities.length,
-              separatorBuilder: (_, __) => const Divider(height: 16),
-              itemBuilder: (context, index) {
-                final (time, text, icon) = activities[index];
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: AppColors.chartColors[4].withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
+          Flexible(
+            child: SizedBox(
+              height: 200,
+              child: ListView.separated(
+                itemCount: activities.length,
+                separatorBuilder: (_, __) => const Divider(height: 16),
+                itemBuilder: (context, index) {
+                  final (time, text, icon) = activities[index];
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppColors.chartColors[4].withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Icon(icon, size: 14, color: AppColors.chartColors[4]),
                       ),
-                      child: Icon(icon, size: 14, color: AppColors.chartColors[4]),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            text,
-                            style: Theme.of(context).textTheme.bodySmall,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            time,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: isDark
-                                  ? AppColors.textTertiaryDark
-                                  : AppColors.textTertiaryLight,
-                              fontSize: 11,
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              text,
+                              style: Theme.of(context).textTheme.bodySmall,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 2),
+                            Text(
+                              time,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: isDark
+                                    ? AppColors.textTertiaryDark
+                                    : AppColors.textTertiaryLight,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                );
-              },
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ],

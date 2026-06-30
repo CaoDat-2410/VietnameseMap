@@ -179,19 +179,21 @@ class _AssignedEventsCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Expanded(
-            child: events.isEmpty
-                ? Center(
-                    child: Text(
-                      'Không có sự kiện nào được phân công',
-                      style: TextStyle(
-                        color: isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textSecondaryLight,
+          Flexible(
+            child: SizedBox(
+              height: 220,
+              child: events.isEmpty
+                  ? Center(
+                      child: Text(
+                        'Không có sự kiện nào được phân công',
+                        style: TextStyle(
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondaryLight,
+                        ),
                       ),
-                    ),
-                  )
-                : ListView.separated(
+                    )
+                  : ListView.separated(
                     itemCount: events.length,
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (context, index) {
@@ -252,6 +254,7 @@ class _AssignedEventsCard extends StatelessWidget {
                       );
                     },
                   ),
+                ),
           ),
         ],
       ),
@@ -379,6 +382,7 @@ class _CampaignBreakdownCard extends StatelessWidget {
     return BentoCard(
       size: BentoSize.large,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
@@ -388,9 +392,12 @@ class _CampaignBreakdownCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Expanded(
-            child: Column(
-              children: campaigns.map((c) {
+          Flexible(
+            child: SizedBox(
+              height: 160,
+              child: SingleChildScrollView(
+                child: Column(
+                  children: campaigns.map((c) {
                 final pct = total > 0 ? c.count / total : 0.0;
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
@@ -431,6 +438,8 @@ class _CampaignBreakdownCard extends StatelessWidget {
                   ),
                 );
               }).toList(),
+                ),
+              ),
             ),
           ),
         ],
@@ -451,6 +460,7 @@ class _PersonalOutcomeCard extends StatelessWidget {
     return BentoCard(
       size: BentoSize.large,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
@@ -460,8 +470,11 @@ class _PersonalOutcomeCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Expanded(
-            child: OutcomeDonutChart(outcomes: outcomes),
+          Flexible(
+            child: SizedBox(
+              height: 200,
+              child: OutcomeDonutChart(outcomes: outcomes),
+            ),
           ),
         ],
       ),

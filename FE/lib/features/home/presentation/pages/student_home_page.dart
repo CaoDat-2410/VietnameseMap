@@ -169,6 +169,7 @@ class _RegistrationsCard extends StatelessWidget {
     return BentoCard(
       size: BentoSize.wide,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -187,68 +188,71 @@ class _RegistrationsCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Expanded(
-            child: registrations.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.assignment_outlined,
-                          size: 48,
-                          color: isDark
-                              ? AppColors.textTertiaryDark
-                              : AppColors.textTertiaryLight,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Bạn chưa đăng ký chiến dịch nào',
-                          style: TextStyle(
+          Flexible(
+            child: SizedBox(
+              height: 220,
+              child: registrations.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.assignment_outlined,
+                            size: 48,
                             color: isDark
-                                ? AppColors.textSecondaryDark
-                                : AppColors.textSecondaryLight,
+                                ? AppColors.textTertiaryDark
+                                : AppColors.textTertiaryLight,
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 12),
+                          Text(
+                            'Bạn chưa đăng ký chiến dịch nào',
+                            style: TextStyle(
+                              color: isDark
+                                  ? AppColors.textSecondaryDark
+                                  : AppColors.textSecondaryLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.separated(
+                      itemCount: registrations.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final r = registrations[index];
+                        final schoolName = r.school?.schoolName ?? 'N/A';
+                        final createdAt = r.createdAt != null
+                            ? DateFormat('d/M/yyyy').format(r.createdAt!)
+                            : 'N/A';
+                        return ListTile(
+                          dense: true,
+                          leading: CircleAvatar(
+                            radius: 16,
+                            backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                            child: Icon(
+                              Icons.school,
+                              size: 16,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          title: Text(schoolName, style: const TextStyle(fontSize: 14)),
+                          subtitle: Text(
+                            'Ngày đăng ký: $createdAt',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark
+                                  ? AppColors.textSecondaryDark
+                                  : AppColors.textSecondaryLight,
+                            ),
+                          ),
+                          trailing: StatusChip(
+                            label: r.status,
+                            status: _statusType(r.status),
+                          ),
+                        );
+                      },
                     ),
-                  )
-                : ListView.separated(
-                    itemCount: registrations.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final r = registrations[index];
-                      final schoolName = r.school?.schoolName ?? 'N/A';
-                      final createdAt = r.createdAt != null
-                          ? DateFormat('d/M/yyyy').format(r.createdAt!)
-                          : 'N/A';
-                      return ListTile(
-                        dense: true,
-                        leading: CircleAvatar(
-                          radius: 16,
-                          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                          child: Icon(
-                            Icons.school,
-                            size: 16,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        title: Text(schoolName, style: const TextStyle(fontSize: 14)),
-                        subtitle: Text(
-                          'Ngày đăng ký: $createdAt',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isDark
-                                ? AppColors.textSecondaryDark
-                                : AppColors.textSecondaryLight,
-                          ),
-                        ),
-                        trailing: StatusChip(
-                          label: r.status,
-                          status: _statusType(r.status),
-                        ),
-                      );
-                    },
-                  ),
+            ),
           ),
         ],
       ),
