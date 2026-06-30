@@ -506,6 +506,17 @@ Wide-screen now shows: `Row([VietnamMapView (flex:3) | divider | ProvinceListBod
 
 **Affected files**: `admin_home_page.dart`
 
+### Issue 6: RenderFlex Assertion — IntrinsicHeight + Row + stretch
+
+**Root Cause**: `home_grid.dart` used `IntrinsicHeight(child: Row(crossAxisAlignment.stretch, children: [Expanded...] ))`. `IntrinsicHeight` asks a `Row` to compute its intrinsic height, but `Row` with `Expanded` children has unbounded height — `CrossAxisAlignment.stretch` then forces all children to fill that unbounded height, triggering:
+`RenderFlex children have non-zero flex but incoming height constraints are unbounded`.
+
+**Fix Applied**:
+- `home_grid.dart`: removed `IntrinsicHeight` wrapper; changed `crossAxisAlignment.stretch` → `crossAxisAlignment.start` on both the `Row` in `_buildRows` and `HomeGridRow`.
+- `responsive_sidebar_layout.dart`: changed `Row(crossAxisAlignment.stretch)` → `Row(crossAxisAlignment.start)` in `_WideLayout`.
+
+**Affected files**: `home_grid.dart`, `responsive_sidebar_layout.dart`
+
 ### Verification
-- `flutter analyze lib/`: **0 errors** (136 info hints — all pre-existing)
+- `flutter analyze lib/`: **0 errors** (135 info hints — all pre-existing)
 - `flutter build web --release`: **exit 0**
