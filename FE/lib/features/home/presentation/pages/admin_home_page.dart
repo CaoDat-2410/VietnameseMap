@@ -1,3 +1,4 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -55,7 +56,7 @@ class AdminHomePage extends ConsumerWidget {
               onPressed: () => context.go('/analytics'),
             ),
           ],
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.base),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -145,28 +146,28 @@ class _KpiGrid extends StatelessWidget {
     ];
 
     return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth > 600;
-        final cardWidth = isWide
-            ? (constraints.maxWidth - AppSpacing.bentoGap * 3) / 4
-            : (constraints.maxWidth - AppSpacing.bentoGap) / 2;
-        return Wrap(
-          spacing: AppSpacing.bentoGap,
-          runSpacing: AppSpacing.bentoGap,
-          children: kpis.map((k) {
-            return SizedBox(
-              width: cardWidth,
-              child: KpiCard(
-                title: k.$1,
-                value: '${k.$2}',
-                icon: k.$3,
-                accentColor: k.$4,
-                subtitle: '',
-              ),
-            );
-          }).toList(),
-        );
-      },
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth > 600;
+          final cardWidth = isWide
+              ? (constraints.maxWidth - AppSpacing.bentoGap * 3) / 4
+              : (constraints.maxWidth - AppSpacing.bentoGap) / 2;
+          return Wrap(
+            spacing: AppSpacing.bentoGap,
+            runSpacing: AppSpacing.bentoGap,
+            children: kpis.map((k) {
+              return SizedBox(
+                width: cardWidth,
+                child: KpiCard(
+                  title: k.$1,
+                  value: '${k.$2}',
+                  icon: k.$3,
+                  accentColor: k.$4,
+                  subtitle: '',
+                ),
+              );
+            }).toList(),
+          );
+        },
     );
   }
 }
@@ -204,91 +205,96 @@ class _UserRoleCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Expanded(
-            child: Column(
-              children: [
-                Expanded(
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      SizedBox(
-                        width: 120,
-                        height: 120,
-                        child: CircularProgressIndicator(
-                          value: 1.0,
-                          strokeWidth: 12,
-                          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                          valueColor: const AlwaysStoppedAnimation(AppColors.primary),
-                        ),
-                      ),
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '$total',
-                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            'Tổng',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isDark
-                                  ? AppColors.textSecondaryDark
-                                  : AppColors.textSecondaryLight,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                ...roles.map((r) {
-                  final pct = total > 0 ? r.$2 / total : 0.0;
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 10,
-                          height: 10,
-                          decoration: BoxDecoration(
-                            color: r.$3,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(r.$1, style: const TextStyle(fontSize: 12)),
-                        const Spacer(),
-                        Text(
-                          '${r.$2}',
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, c) {
+                    if (total == 0) {
+                      return Center(
+                        child: Text(
+                          'Chưa có dữ liệu',
                           style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
                             color: isDark
-                                ? AppColors.textSecondaryDark
-                                : AppColors.textSecondaryLight,
+                                ? AppColors.textTertiaryDark
+                                : AppColors.textTertiaryLight,
                           ),
                         ),
-                        const SizedBox(width: 4),
+                      );
+                    }
+                    final chartSize = c.maxWidth < c.maxHeight ? c.maxWidth : c.maxHeight;
+                    return Row(
+                      children: [
                         SizedBox(
-                          width: 40,
-                          child: LinearProgressIndicator(
-                            value: pct,
-                            backgroundColor: r.$3.withValues(alpha: 0.15),
-                            valueColor: AlwaysStoppedAnimation(r.$3),
-                            borderRadius: BorderRadius.circular(4),
+                          width: chartSize,
+                          height: chartSize,
+                          child: PieChart(
+                            PieChartData(
+                              sectionsSpace: 2,
+                              centerSpaceRadius: chartSize * 0.2,
+                              sections: [
+                                for (int i = 0; i < roles.length; i++)
+                                  PieChartSectionData(
+                                    value: roles[i].$2.toDouble(),
+                                    color: roles[i].$3,
+                                    radius: chartSize * 0.25,
+                                    title: '${((roles[i].$2 / total) * 100).round()}%',
+                                    titleStyle: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              for (final r in roles)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 3),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 10,
+                                        height: 10,
+                                        decoration: BoxDecoration(
+                                          color: r.$3,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          r.$1,
+                                          style: const TextStyle(fontSize: 11),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${r.$2}',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark
+                                              ? AppColors.textSecondaryDark
+                                              : AppColors.textSecondaryLight,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                       ],
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
+                    );
+                  },
+                ),
+              ),
         ],
       ),
     );

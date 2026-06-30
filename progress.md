@@ -478,6 +478,18 @@ Changed `crossAxisAlignment: CrossAxisAlignment.stretch` → `crossAxisAlignment
 **Fix Applied** (`map_page.dart`):
 Wide-screen now shows: `Row([VietnamMapView (flex:3) | divider | ProvinceListBody (flex:2)])`, respecting dark/light theme. Also fixed mobile sheet background to use `Theme.of(context).brightness` for dark mode.
 
+### Issue 3: KPI Card Layout Broken (Admin Home Screenshot Bug)
+
+**Root Cause**: Two compounding bugs:
+1. `KpiCard` used `showAccent: true` which wraps the child in a `Column` with `Expanded(child: child)`. But `GridView.count` constrains children to a fixed aspect-ratio box — `Expanded` inside a bounded box collapses to zero height, making the card body invisible.
+2. `_KpiGrid` in `admin_home_page.dart` used `childAspectRatio: columns >= 4 ? 1.4 : 1.6` but computed `columns` as 6 on wide screens (correct) and 3 on medium — however the 6-column layout on wide screens made cards too narrow.
+
+**Fix Applied**:
+1. `bento_card.dart` — `KpiCard`: removed `showAccent` + `accentColor` prop from `BentoCard`. Added accent as a simple 3×32px colored bar at the top of the card body (inside the `Column`, before the icon row). No more `Expanded` conflict.
+2. All 4 home pages — `_KpiGrid`/`_KpiRow`: replaced `GridView.count` (fixed aspect ratio) with `Wrap` (free height) + `SizedBox(width: cardWidth)` per card. Cards now size to their content.
+
+**Affected files**: `admin_home_page.dart`, `manager_home_page.dart`, `staff_home_page.dart`, `student_home_page.dart`, `bento_card.dart`
+
 ### Verification
-- `flutter analyze lib/`: **0 errors** (135 info hints — all pre-existing)
+- `flutter analyze lib/`: **0 errors** (136 info hints — all pre-existing)
 - `flutter build web --release`: **exit 0**
