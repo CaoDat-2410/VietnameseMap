@@ -529,6 +529,14 @@ Wide-screen now shows: `Row([VietnamMapView (flex:3) | divider | ProvinceListBod
 
 **Affected files**: `admin_home_page.dart`
 
+### Issue 8: BentoCard Container 0-height Collapse → RenderFlex Cascade
+
+**Root Cause**: `BentoCard` used a plain `Container` (no explicit width/height). When placed inside `Expanded` in a `Row`, the `Container` had constraints `(0 <= h <= Infinity)`. The internal `Column` had `mainAxisSize: max`, so it tried to expand to fill the **Infinity** height — triggering RenderFlex with unbounded constraints. Then `SizedBox(BoxConstraints.loose)` at `box.dart:2251` capped `Infinity → 0`, creating NaN cascade.
+
+**Fix Applied**: Wrapped both `Container` variants in `BentoCard` with `ConstrainedBox(constraints: BoxConstraints.tightForFinite())`. This forces the Container to adopt the **allocated** height from its parent (the Row's flexed space), rather than trying to determine its own size. Height is finite (from the Row), width is determined by flex weights — both are now bounded.
+
+**Affected files**: `bento_card.dart`
+
 ### Verification
 - `flutter analyze lib/`: **0 errors** (135 info hints — all pre-existing)
-- `flutter run -d chrome` — **no RenderFlex errors, no mouse_tracker errors after 100+ seconds**
+- `flutter run -d chrome` — **no RenderFlex errors, no mouse_tracker errors after 118+ seconds**
