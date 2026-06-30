@@ -115,14 +115,13 @@ class _KpiRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth > 700 ? 3 : 1;
-        return GridView.count(
-          crossAxisCount: columns,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: AppSpacing.bentoGap,
-          mainAxisSpacing: AppSpacing.bentoGap,
-          childAspectRatio: columns == 3 ? 1.4 : 1.8,
+        final isWide = constraints.maxWidth > 700;
+        final cardWidth = isWide
+            ? (constraints.maxWidth - AppSpacing.bentoGap * 2) / 3
+            : constraints.maxWidth;
+        return Wrap(
+          spacing: AppSpacing.bentoGap,
+          runSpacing: AppSpacing.bentoGap,
           children: [
             KpiCard(
               title: 'Sự kiện đã tham gia',
@@ -147,7 +146,7 @@ class _KpiRow extends StatelessWidget {
               accentColor: AppColors.success,
               subtitle: 'Trường học',
             ),
-          ],
+          ].map((k) => SizedBox(width: cardWidth, child: k)).toList(),
         );
       },
     );

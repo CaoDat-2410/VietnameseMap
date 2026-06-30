@@ -226,13 +226,22 @@ class KpiCard extends StatelessWidget {
 
     return BentoCard(
       onTap: onTap,
-      accentColor: effectiveAccent,
-      showAccent: accentColor != null,
       padding: const EdgeInsets.all(AppSpacing.base),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Accent bar
+          if (effectiveAccent != AppColors.primary)
+            Container(
+              height: 3,
+              width: 32,
+              margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: effectiveAccent,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
           // Header row
           Row(
             children: [

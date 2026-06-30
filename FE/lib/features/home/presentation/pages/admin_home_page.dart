@@ -146,25 +146,23 @@ class _KpiGrid extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth > 900
-            ? 6
-            : constraints.maxWidth > 600
-                ? 3
-                : 2;
-        return GridView.count(
-          crossAxisCount: columns,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: AppSpacing.bentoGap,
-          mainAxisSpacing: AppSpacing.bentoGap,
-          childAspectRatio: columns >= 4 ? 1.4 : 1.6,
+        final isWide = constraints.maxWidth > 600;
+        final cardWidth = isWide
+            ? (constraints.maxWidth - AppSpacing.bentoGap * 3) / 4
+            : (constraints.maxWidth - AppSpacing.bentoGap) / 2;
+        return Wrap(
+          spacing: AppSpacing.bentoGap,
+          runSpacing: AppSpacing.bentoGap,
           children: kpis.map((k) {
-            return KpiCard(
-              title: k.$1,
-              value: '${k.$2}',
-              icon: k.$3,
-              accentColor: k.$4,
-              subtitle: '',
+            return SizedBox(
+              width: cardWidth,
+              child: KpiCard(
+                title: k.$1,
+                value: '${k.$2}',
+                icon: k.$3,
+                accentColor: k.$4,
+                subtitle: '',
+              ),
             );
           }).toList(),
         );
