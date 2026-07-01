@@ -41,7 +41,7 @@ class StaffHomePage extends ConsumerWidget {
               onPressed: () => context.go('/map'),
             ),
           ],
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.base),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -137,7 +137,6 @@ class _KpiRow extends StatelessWidget {
               accentColor: AppColors.chartColors[3],
               subtitle: 'Tương tác',
               trend: '+8%',
-              trendUp: true,
             ),
             KpiCard(
               title: 'Trường đã thăm',
@@ -173,27 +172,26 @@ class _AssignedEventsCard extends StatelessWidget {
               Text(
                 'Sự kiện được phân công',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          Flexible(
-            child: SizedBox(
-              height: 220,
-              child: events.isEmpty
-                  ? Center(
-                      child: Text(
-                        'Không có sự kiện nào được phân công',
-                        style: TextStyle(
-                          color: isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textSecondaryLight,
-                        ),
+          SizedBox(
+            height: 220,
+            child: events.isEmpty
+                ? Center(
+                    child: Text(
+                      'Không có sự kiện nào được phân công',
+                      style: TextStyle(
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondaryLight,
                       ),
-                    )
-                  : ListView.separated(
+                    ),
+                  )
+                : ListView.separated(
                     itemCount: events.length,
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (context, index) {
@@ -215,7 +213,7 @@ class _AssignedEventsCard extends StatelessWidget {
                             children: [
                               Text(
                                 day,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
                                   color: AppColors.primary,
@@ -223,7 +221,7 @@ class _AssignedEventsCard extends StatelessWidget {
                               ),
                               Text(
                                 month,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   fontSize: 10,
                                   color: AppColors.primary,
                                 ),
@@ -254,7 +252,6 @@ class _AssignedEventsCard extends StatelessWidget {
                       );
                     },
                   ),
-                ),
           ),
         ],
       ),
@@ -293,18 +290,19 @@ class _PersonalTrendCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.trending_up, size: 20, color: AppColors.chartColors[0]),
+              Icon(Icons.trending_up,
+                  size: 20, color: AppColors.chartColors[0]),
               const SizedBox(width: 8),
               Text(
                 'Xu hướng cá nhân (7 ngày)',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          Expanded(child: _PersonalTrendBars()),
+          SizedBox(height: 180, child: _PersonalTrendBars()),
         ],
       ),
     );
@@ -337,7 +335,8 @@ class _PersonalTrendBars extends StatelessWidget {
                         color: i == 4
                             ? AppColors.primary
                             : AppColors.primary.withValues(alpha: 0.3),
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(4)),
                       ),
                     ),
                   ),
@@ -373,9 +372,17 @@ class _CampaignBreakdownCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final campaigns = <({String name, int count, Color color})>[
-      (name: 'Chiến dịch mùa xuân 2026', count: 45, color: AppColors.chartColors[0]),
+      (
+        name: 'Chiến dịch mùa xuân 2026',
+        count: 45,
+        color: AppColors.chartColors[0]
+      ),
       (name: 'Chiến dịch hè 2026', count: 28, color: AppColors.chartColors[1]),
-      (name: 'Chiến dịch QTBD 2026', count: 14, color: AppColors.chartColors[2]),
+      (
+        name: 'Chiến dịch QTBD 2026',
+        count: 14,
+        color: AppColors.chartColors[2]
+      ),
     ];
     final total = campaigns.fold<int>(0, (s, c) => s + c.count);
 
@@ -388,57 +395,55 @@ class _CampaignBreakdownCard extends StatelessWidget {
           Text(
             'Phân bổ theo chiến dịch',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+                  fontWeight: FontWeight.w600,
+                ),
           ),
           const SizedBox(height: 12),
-          Flexible(
-            child: SizedBox(
-              height: 160,
-              child: SingleChildScrollView(
-                child: Column(
-                  children: campaigns.map((c) {
-                final pct = total > 0 ? c.count / total : 0.0;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              c.name,
-                              style: const TextStyle(fontSize: 12),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+          SizedBox(
+            height: 160,
+            child: SingleChildScrollView(
+              child: Column(
+                children: campaigns.map((c) {
+                  final pct = total > 0 ? c.count / total : 0.0;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                c.name,
+                                style: const TextStyle(fontSize: 12),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                          ),
-                          Text(
-                            '${c.count} tương tác',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: isDark
-                                  ? AppColors.textSecondaryDark
-                                  : AppColors.textSecondaryLight,
+                            Text(
+                              '${c.count} tương tác',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: isDark
+                                    ? AppColors.textSecondaryDark
+                                    : AppColors.textSecondaryLight,
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      LinearProgressIndicator(
-                        value: pct,
-                        backgroundColor: c.color.withValues(alpha: 0.15),
-                        valueColor: AlwaysStoppedAnimation(c.color),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-                ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        LinearProgressIndicator(
+                          value: pct,
+                          backgroundColor: c.color.withValues(alpha: 0.15),
+                          valueColor: AlwaysStoppedAnimation(c.color),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
               ),
             ),
           ),
@@ -466,15 +471,13 @@ class _PersonalOutcomeCard extends StatelessWidget {
           Text(
             'Kết quả cá nhân',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+                  fontWeight: FontWeight.w600,
+                ),
           ),
           const SizedBox(height: 12),
-          Flexible(
-            child: SizedBox(
-              height: 200,
-              child: OutcomeDonutChart(outcomes: outcomes),
-            ),
+          const SizedBox(
+            height: 200,
+            child: OutcomeDonutChart(outcomes: outcomes),
           ),
         ],
       ),
@@ -495,14 +498,17 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
+            Icon(Icons.error_outline,
+                size: 48, color: Theme.of(context).colorScheme.error),
             const SizedBox(height: 16),
-            Text('Không thể tải dữ liệu', style: Theme.of(context).textTheme.titleMedium),
+            Text('Không thể tải dữ liệu',
+                style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(
               error.toString(),
               textAlign: TextAlign.center,
-              style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.error, fontSize: 13),
             ),
             const SizedBox(height: 16),
             FilledButton.icon(

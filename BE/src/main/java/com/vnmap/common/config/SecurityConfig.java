@@ -63,6 +63,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/campaigns/**", EVENTS_API).hasAnyRole(MANAGER, ADMIN)
                         .requestMatchers("/api/v1/students/**", "/api/v1/persons/**", "/api/v1/student-relatives/**").hasAnyRole(MANAGER, ADMIN)
                         .requestMatchers("/api/v1/geo/**", "/api/v1/weather/**").permitAll()
+                        .requestMatchers("/api/analytics/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

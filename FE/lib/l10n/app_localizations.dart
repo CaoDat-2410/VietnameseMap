@@ -1045,6 +1045,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Confirm Unarchive'**
   String get confirmUnarchive;
+
+  /// No description provided for @settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settings;
 }
 
 class _AppLocalizationsDelegate

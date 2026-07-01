@@ -199,5 +199,6 @@
   "unarchive": "Unarchive",
   "confirmDelete": "Confirm Delete",
   "confirmArchive": "Confirm Archive",
-  "confirmUnarchive": "Confirm Unarchive"
+  "confirmUnarchive": "Confirm Unarchive",
+  "settings": "Settings"
 }

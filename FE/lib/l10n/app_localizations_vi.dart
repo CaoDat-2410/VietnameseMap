@@ -492,4 +492,7 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get confirmUnarchive => 'Xác nhận khôi phục';
+
+  @override
+  String get settings => 'Cài đặt';
 }

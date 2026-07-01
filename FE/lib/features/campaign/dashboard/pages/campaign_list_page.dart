@@ -271,12 +271,6 @@ class _CampaignCard extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                FilledButton.icon(
-                  onPressed: () =>
-                      context.go('/campaigns/${campaign.id}/dashboard'),
-                  icon: const Icon(Icons.dashboard_outlined),
-                  label: Text(l10n.dashboard),
-                ),
                 OutlinedButton.icon(
                   onPressed: () =>
                       context.go('/campaigns/${campaign.id}/events'),

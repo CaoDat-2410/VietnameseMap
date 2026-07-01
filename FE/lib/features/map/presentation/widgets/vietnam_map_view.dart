@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
@@ -102,9 +103,14 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
   Completer<void>? _mapReadyCompleter;
   int _zoomRetry = 0;
 
+  // Performance: debounce zoom updates to reduce rebuild frequency
+  Timer? _zoomDebounceTimer;
+  static const _zoomDebounceMs = 150;
+
   @override
   void dispose() {
     _zoomNotifier.dispose();
+    _zoomDebounceTimer?.cancel();
     super.dispose();
   }
 
@@ -693,20 +699,19 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
 
     final asyncPolygonEntries = ref.watch(provincePolygonEntriesProvider);
 
-    // Build boundary entries once when provider first resolves. No setState needed —
-    // we already cache the result; this only runs when entries first arrive.
-    if (_provinceBoundaryEntries.isEmpty) {
-      asyncPolygonEntries.whenData((entries) {
-        if (_provinceBoundaryEntries.isNotEmpty) return;
-        _buildBoundaryEntries(entries);
-        // We must rebuild at least once to mount the cached layer, but
-        // we don't read _cachedVisibleBoundaries inside an `if` that needs
-        // a build pass. Schedule a single setState via post-frame.
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) setState(() {});
-        });
-      });
-    }
+    // Build boundary entries and trigger rebuild when provider resolves.
+    asyncPolygonEntries.maybeWhen(
+      data: (entries) {
+        if (_provinceBoundaryEntries.isEmpty && entries.isNotEmpty) {
+          _buildBoundaryEntries(entries);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() {});
+          });
+        }
+        return null;
+      },
+      orElse: () {},
+    );
 
     final selectedProvince = ref.watch(selectedProvinceProvider);
     final selectedCommune = ref.watch(selectedCommuneProvider);
@@ -718,7 +723,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
 
     // Track loading state for commune boundaries
     final bool isCommuneLoading = asyncCommuneBoundaries?.isLoading ?? false;
-    
+
     // Update loading state
     if (isCommuneLoading != _isLoadingCommuneBoundaries) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -730,26 +735,38 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
       });
     }
 
-    // Cache commune entries — only recompute when async value changes.
+    // Cache commune entries and trigger rebuild when async value resolves.
     final communeEntries = _cachedCommuneEntries;
-    asyncCommuneBoundaries?.whenData((entries) {
-      if (!identical(entries, _lastSeenCommuneEntries)) {
-        _lastSeenCommuneEntries = entries;
-        _cachedCommuneEntries = entries;
-      }
-    });
+    asyncCommuneBoundaries?.maybeWhen(
+      data: (entries) {
+        if (!identical(entries, _lastSeenCommuneEntries)) {
+          _lastSeenCommuneEntries = entries;
+          _cachedCommuneEntries = entries;
+          _cachedCommunePolygons = _buildCommunePolygons(entries, selectedCommune?.code);
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() {});
+          });
+        }
+        return null;
+      },
+      orElse: () {},
+    );
 
     // Commune centroids for labels
     final communeCentroidsAsync = selectedProvince != null
         ? ref.watch(communeCentroidsProvider(selectedProvince.code))
         : null;
     final communeCentroids = _cachedCommuneCentroids;
-    communeCentroidsAsync?.whenData((m) {
-      if (!identical(m, _lastSeenCommuneCentroids)) {
-        _lastSeenCommuneCentroids = m;
-        _cachedCommuneCentroids = m;
-      }
-    });
+    communeCentroidsAsync?.maybeWhen(
+      data: (m) {
+        if (!identical(m, _lastSeenCommuneCentroids)) {
+          _lastSeenCommuneCentroids = m;
+          _cachedCommuneCentroids = m;
+        }
+        return null;
+      },
+      orElse: () {},
+    );
 
     // Province + commune labels — rebuilt only when zoom changes (via ValueListenableBuilder).
     List<BoundaryLabel> buildProvinceLabels(double zoom) {
@@ -801,23 +818,29 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
     final tappedCode = selectedCommune?.code;
     final communePolygons = _buildCommunePolygons(communeEntries, tappedCode);
 
-    return Stack(
-      children: [
-        FlutterMap(
-          mapController: _mapController,
-          options: MapOptions(
-            initialCenter: _eventFocus != null
-                ? LatLng(_eventFocus!.lat, _eventFocus!.lng)
-                : _vietnamCenter,
-            initialZoom: _eventFocus != null ? _focusZoom : _initialZoom,
-            minZoom: 5.5,
-            maxZoom: 18.0,
-            onPositionChanged: (position, hasGesture) {
-              // Update the zoom notifier WITHOUT calling setState on this widget,
-              // so only the label layer rebuilds — not the whole map tree.
-              if (position.zoom != _zoomNotifier.value) {
-                _zoomNotifier.value = position.zoom;
-              }
+    return RepaintBoundary(
+      child: Stack(
+        children: [
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: _eventFocus != null
+                  ? LatLng(_eventFocus!.lat, _eventFocus!.lng)
+                  : _vietnamCenter,
+              initialZoom: _eventFocus != null ? _focusZoom : _initialZoom,
+              minZoom: 5.5,
+              maxZoom: 18.0,
+              onPositionChanged: (position, hasGesture) {
+                // Performance: debounce zoom updates to reduce rebuild frequency
+                _zoomDebounceTimer?.cancel();
+                _zoomDebounceTimer = Timer(
+                  Duration(milliseconds: _zoomDebounceMs),
+                  () {
+                    if (position.zoom != _zoomNotifier.value) {
+                      _zoomNotifier.value = position.zoom;
+                    }
+                  },
+                );
               // Mark the map as ready once it starts reporting position changes.
               if (!_mapReady) {
                 _mapReady = true;
@@ -838,6 +861,8 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                   : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}.png',
               tileProvider: CancellableNetworkTileProvider(),
               userAgentPackageName: 'com.example.vietnamese_map',
+              maxZoom: 18,
+              minZoom: 5,
             ),
 
             // Province base boundaries — uses cached list, not rebuilt per frame.
@@ -1034,9 +1059,16 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                       ],
                     ),
                   ),
-                // School markers (from on-demand OSM geocoding)
-                if (_schoolGeocodes.isNotEmpty)
-                  ..._schoolGeocodes
+              ],
+            ),
+
+            // School markers (from on-demand OSM geocoding) with clustering
+            if (_schoolGeocodes.isNotEmpty)
+              MarkerClusterLayerWidget(
+                options: MarkerClusterLayerOptions(
+                  maxClusterRadius: 80,
+                  size: const Size(50, 50),
+                  markers: _schoolGeocodes
                       .where((s) => s.hasCoordinates)
                       .map((school) {
                     final isSelected = _selectedSchool?.schoolUid == school.schoolUid;
@@ -1051,9 +1083,34 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
                         onTap: () => _handleGeocodedSchoolTap(school),
                       ),
                     );
-                  }),
-              ],
-            ),
+                  }).toList(),
+                  builder: (context, clusterMarkers) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${clusterMarkers.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
           ],
         ),
 
@@ -1315,6 +1372,7 @@ class _VietnamMapViewState extends ConsumerState<VietnamMapView> {
           ),
         ),
       ],
+    ),
     );
   }
 }

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../core/providers/locale_provider.dart';
-import '../../core/providers/theme_provider.dart';
 import 'app_sidebar.dart';
 
 const _kSidebarPrefKey = 'app.nav.sidebar.expanded';
@@ -47,8 +46,6 @@ class AppShellScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final expanded = ref.watch(sidebarExpandedProvider);
-    final locale = ref.watch(localeProvider);
-    final themeMode = ref.watch(themeModeProvider);
 
     return LayoutBuilder(
       builder: (context, c) {
@@ -80,28 +77,20 @@ class AppShellScaffold extends ConsumerWidget {
         // Mobile: hamburger AppBar + drawer
         return Scaffold(
           appBar: AppBar(
+            leading: Builder(
+              builder: (ctx) => IconButton(
+                tooltip: 'Menu',
+                icon: const Icon(Icons.menu),
+                onPressed: () => Scaffold.of(ctx).openDrawer(),
+              ),
+            ),
             title: Text(_labelFor(selectedPath, items)),
             automaticallyImplyLeading: false,
             actions: [
               IconButton(
-                tooltip: 'Đổi ngôn ngữ',
-                icon: Text(
-                  locale.languageCode.toUpperCase(),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                onPressed: () =>
-                    ref.read(localeProvider.notifier).toggleLocale(),
-              ),
-              IconButton(
-                tooltip:
-                    themeMode == ThemeMode.dark ? 'Chế độ sáng' : 'Chế độ tối',
-                icon: Icon(
-                  themeMode == ThemeMode.dark
-                      ? Icons.light_mode
-                      : Icons.dark_mode,
-                ),
-                onPressed: () =>
-                    ref.read(themeModeProvider.notifier).toggleTheme(),
+                tooltip: 'Cài đặt',
+                icon: const Icon(Icons.settings_outlined),
+                onPressed: () => context.go('/settings'),
               ),
             ],
           ),

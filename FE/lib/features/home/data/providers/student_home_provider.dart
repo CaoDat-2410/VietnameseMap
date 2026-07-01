@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../campaign/shared/models/campaign_models.dart';
 import '../../../campaign/shared/providers/campaign_provider.dart';
-import '../../../auth/shared/providers/auth_provider.dart';
 
 /// Home data for the Student role.
 class StudentHomeModel {
@@ -20,7 +19,6 @@ class StudentHomeModel {
 /// Combines student registrations + available campaigns.
 final studentHomeProvider = FutureProvider<StudentHomeModel>((ref) async {
   final registrations = await ref.watch(myRegistrationsProvider.future);
-  final campaigns = await ref.watch(campaignsProvider.future);
 
   int approvedCount = 0;
   int pendingCount = 0;
@@ -34,18 +32,6 @@ final studentHomeProvider = FutureProvider<StudentHomeModel>((ref) async {
         break;
     }
   }
-
-  // Filter campaigns that are currently accepting registrations
-  final now = DateTime.now();
-  final activeCampaigns = campaigns.where((c) {
-    // Campaigns that haven't ended yet
-    try {
-      final endDate = DateTime.parse(c.endDate);
-      return endDate.isAfter(now);
-    } catch (_) {
-      return true;
-    }
-  }).toList();
 
   return StudentHomeModel(
     registrations: registrations,

@@ -421,15 +421,17 @@ public class CampaignService {
         );
 
         Map<String, Long> byOutcome = new LinkedHashMap<>();
+        byOutcome.put("SUCCESSFUL", 0L);
+        byOutcome.put("FOLLOW_UP", 0L);
+        byOutcome.put("NO_RESPONSE", 0L);
         byOutcome.put("INTERESTED", 0L);
         byOutcome.put("NOT_INTERESTED", 0L);
-        byOutcome.put("FOLLOW_UP", 0L);
         jdbc.queryForList(
-                "SELECT outcome, COUNT(*) total FROM interactions WHERE campaign_id = ? GROUP BY outcome",
+                "SELECT outcome, COUNT(*) as total FROM interactions WHERE campaign_id = ? GROUP BY outcome",
                 campaignId
         ).forEach(row -> byOutcome.put(
                 (String) row.get("outcome"),
-                ((Number) row.get(TOTAL_COLUMN)).longValue()
+                ((Number) row.get("total")).longValue()
         ));
 
         List<ProvinceInteractionDto> byProvince = jdbc.query(

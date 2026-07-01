@@ -2,6 +2,7 @@ package com.vnmap.campaign.controller;
 
 import com.vnmap.campaign.dto.*;
 import com.vnmap.campaign.service.CampaignService;
+import com.vnmap.campaign.service.OsmGeocodingService;
 import com.vnmap.common.model.ApiResponse;
 import com.vnmap.common.model.PagedResponse;
 import com.vnmap.common.security.CurrentUser;
@@ -23,9 +24,14 @@ import java.util.List;
 public class CampaignController {
 
     private final CampaignService campaignService;
+    private final OsmGeocodingService osmGeocodingService;
 
-    public CampaignController(CampaignService campaignService) {
+    public CampaignController(
+            CampaignService campaignService,
+            OsmGeocodingService osmGeocodingService
+    ) {
         this.campaignService = campaignService;
+        this.osmGeocodingService = osmGeocodingService;
     }
 
     @GetMapping("/schools")
@@ -86,6 +92,16 @@ public class CampaignController {
         return ResponseEntity.ok(ApiResponse.success(
                 campaignService.computeApproximateCoordinates(),
                 "Approximate coordinates computed successfully"
+        ));
+    }
+
+    @PostMapping("/schools/geocode")
+    public ResponseEntity<ApiResponse<List<SchoolGeocodeDto>>> geocodeSchools(
+            @RequestBody List<String> schoolUids
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                osmGeocodingService.geocodeSchools(schoolUids),
+                "Schools geocoded successfully"
         ));
     }
 

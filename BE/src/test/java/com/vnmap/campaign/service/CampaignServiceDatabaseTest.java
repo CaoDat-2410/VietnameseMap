@@ -3,12 +3,14 @@ package com.vnmap.campaign.service;
 import com.vnmap.campaign.dto.*;
 import com.vnmap.common.exception.ResourceNotFoundException;
 import com.vnmap.common.security.CurrentUser;
+import com.vnmap.geo.repository.AdministrativeUnitRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.sql.DriverManager;
@@ -41,7 +43,9 @@ class CampaignServiceDatabaseTest {
         assumeTrue(databaseAvailable(), "Campaign compose database is not reachable");
         DriverManagerDataSource dataSource = new DriverManagerDataSource(JDBC_URL, JDBC_USER, JDBC_PASSWORD);
         jdbc = new JdbcTemplate(dataSource);
-        service = new CampaignService(jdbc, new BCryptPasswordEncoder());
+        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+        AdministrativeUnitRepository unitRepository = null; // Not needed for most tests
+        service = new CampaignService(jdbc, passwordEncoder, unitRepository);
         runId = "codex_cov_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
         schoolUid = "99-" + runId.substring(runId.length() - 6);
         secondSchoolUid = "98-" + runId.substring(runId.length() - 6);

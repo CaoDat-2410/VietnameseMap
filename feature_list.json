@@ -702,7 +702,7 @@
         "FE/lib/features/campaign/dashboard/widgets/top_schools_bar_chart.dart"
       ]
     },
-      {
+    {
       "id": "feat-051",
       "name": "Analytics: collapsible sidebar layout replacing bottom bar",
       "description": "Build AnalyticsSidebar (280/72px collapsible, persisted in SharedPreferences, mobile-as-drawer). Build ResponsiveSidebarLayout. Replace bottom FilterSection in analytics_page.dart with the new layout. Filter section becomes a subsection of the sidebar.",
@@ -824,6 +824,67 @@
           "priority": "Medium",
           "for": "Student Home — campaigns currently accepting registrations (filtered client-side)"
         }
+      ]
+    },
+    {
+      "id": "feat-058",
+      "name": "Homepage layout runtime fix",
+      "description": "Fix role homepage blank-body/mouse.dart runtime spam by removing unbounded Flexible/Expanded children from BentoCard content and making Manager, Staff, and Student home bodies scrollable like Admin.",
+      "dependencies": [
+        "feat-057"
+      ],
+      "status": "completed",
+      "evidence": "flutter analyze lib/features/home/presentation/pages: No issues found | flutter build web --release: Built build\\web | release-browser smoke: Manager/Staff/Admin render, mouse+scroll console logs empty; Student correctly access denied for admin token",
+      "files": [
+        "FE/lib/features/home/presentation/pages/admin_home_page.dart",
+        "FE/lib/features/home/presentation/pages/manager_home_page.dart",
+        "FE/lib/features/home/presentation/pages/staff_home_page.dart",
+        "FE/lib/features/home/presentation/pages/student_home_page.dart"
+      ]
+    },
+    {
+      "id": "feat-059",
+      "name": "Analytics mobile filter bar removal",
+      "description": "Remove the Analytics mobile filter drawer and inline horizontal filter bar so the dashboard content is not covered on small viewports.",
+      "dependencies": [
+        "feat-058"
+      ],
+      "status": "completed",
+      "evidence": "flutter analyze analytics_page.dart responsive_sidebar_layout.dart: No issues found | flutter build web --release: Built build\\web | analytics_page.dart no longer references FilterSection; mobile ResponsiveSidebarLayout returns content directly",
+      "files": [
+        "FE/lib/features/analytics/presentation/pages/analytics_page.dart",
+        "FE/lib/features/analytics/presentation/widgets/responsive_sidebar_layout.dart"
+      ]
+    },
+    {
+      "id": "feat-060",
+      "name": "Analytics inline API filter and school filter fix",
+      "description": "Restore a compact inline Analytics filter section below KPI cards and before charts. Fix school filtering by parsing /api/v1/schools PagedResponse.data.items correctly and by sending only the active filter type to analytics endpoints so stale campaignId/schoolUid values cannot be combined accidentally.",
+      "dependencies": [
+        "feat-059"
+      ],
+      "status": "completed",
+      "evidence": "dart format analytics files: success | flutter analyze 4 changed analytics files: No issues found | flutter build web --release: Built build\\web | browser release smoke at http://localhost:3002/?v=cache-bust#/analytics: filter visible, school dropdown populated, school selection refetches KPI/chart data, campaign dropdown still populated",
+      "files": [
+        "FE/lib/features/analytics/presentation/pages/analytics_page.dart",
+        "FE/lib/features/analytics/presentation/widgets/filter_section.dart",
+        "FE/lib/features/analytics/presentation/providers/analytics_provider.dart",
+        "FE/lib/features/analytics/data/repositories/analytics_repository.dart"
+      ]
+    },
+    {
+      "id": "feat-061",
+      "name": "Analytics school picker pagination",
+      "description": "Replace the Analytics school filter dropdown list with an API-backed paginated picker for large school datasets. The picker loads 50 schools per page, shows total count, supports q search, appends additional pages via Load more, and stores the selected school display name while filtering analytics by schoolUid.",
+      "dependencies": [
+        "feat-060"
+      ],
+      "status": "completed",
+      "evidence": "dart format analytics repository/provider/filter files: success | flutter analyze 3 changed analytics files: No issues found | flutter build web --release: Built build\\web | browser release smoke at http://localhost:3002 cache-busted: school picker shows 50/4943, Load more increases to 100/4943, search FPT returns 24/24, selecting a school refetches Analytics by schoolUid",
+      "files": [
+        "FE/lib/features/analytics/data/repositories/analytics_repository.dart",
+        "FE/lib/features/analytics/presentation/providers/analytics_provider.dart",
+        "FE/lib/features/analytics/presentation/widgets/filter_section.dart"
       ]
     }
   ],

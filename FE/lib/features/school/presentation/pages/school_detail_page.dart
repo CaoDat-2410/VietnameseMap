@@ -36,81 +36,46 @@ class _SchoolDetailPageState extends ConsumerState<SchoolDetailPage>
     final l10n = AppLocalizations.of(context)!;
     final detail = ref.watch(schoolDetailProvider(widget.schoolUid));
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.schoolDetail),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.map),
-            tooltip: 'Show on Map',
-            onPressed: () => context.go('/map?schools=${widget.schoolUid}'),
+    return DefaultTabController(
+      length: 4,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.schoolDetail),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.map),
+              tooltip: 'Show on Map',
+              onPressed: () => context.go('/map?schools=${widget.schoolUid}'),
+            ),
+          ],
+          bottom: TabBar(
+            controller: _tabController,
+            isScrollable: true,
+            tabs: [
+              Tab(text: l10n.tongQuan),
+              Tab(text: l10n.hocSinh),
+              Tab(text: l10n.gvBgh),
+              Tab(text: l10n.nguoiThan),
+            ],
           ),
-        ],
-      ),
-      body: detail.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _ErrorBlock(
-          error: error,
-          onRetry: () => ref.invalidate(schoolDetailProvider(widget.schoolUid)),
         ),
-        data: (data) => Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: _SchoolHeader(school: data.school),
-            ),
-            TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              tabs: [
-                Tab(text: l10n.tongQuan),
-                Tab(text: l10n.hocSinh),
-                Tab(text: l10n.gvBgh),
-                Tab(text: l10n.nguoiThan),
-              ],
-            ),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _OverviewTab(school: data.school),
-                  _StudentsTab(students: data.students, l10n: l10n),
-                  _PersonsTab(persons: data.persons, l10n: l10n),
-                  _RelativesTab(relatives: data.relatives, l10n: l10n),
-                ],
-              ),
-            ),
-          ],
+        body: detail.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => _ErrorBlock(
+            error: error,
+            onRetry: () => ref.invalidate(schoolDetailProvider(widget.schoolUid)),
+          ),
+          data: (data) => TabBarView(
+            controller: _tabController,
+            children: [
+              _OverviewTab(school: data.school),
+              _StudentsTab(students: data.students, l10n: l10n),
+              _PersonsTab(persons: data.persons, l10n: l10n),
+              _RelativesTab(relatives: data.relatives, l10n: l10n),
+            ],
+          ),
         ),
       ),
-    );
-  }
-}
-
-class _SchoolHeader extends StatelessWidget {
-  const _SchoolHeader({required this.school});
-
-  final SchoolModel school;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(school.schoolName,
-            style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            Chip(label: Text(school.schoolUid)),
-            Chip(
-                label: Text(school.areaType.isEmpty ? 'N/A' : school.areaType)),
-          ],
-        ),
-      ],
     );
   }
 }
@@ -126,6 +91,21 @@ class _OverviewTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        Text(school.schoolName,
+            style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            Chip(label: Text(school.schoolUid)),
+            Chip(
+                label: Text(school.areaType.isEmpty ? 'N/A' : school.areaType)),
+          ],
+        ),
+        const SizedBox(height: 16),
+        const Divider(),
+        const SizedBox(height: 8),
         _InfoRow(label: l10n.province, value: school.provinceName),
         _InfoRow(label: l10n.provinceCode, value: school.provinceCode),
         _InfoRow(label: l10n.commune, value: school.communeName),

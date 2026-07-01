@@ -42,7 +42,7 @@ class StudentHomePage extends ConsumerWidget {
               onPressed: () => context.go('/schools'),
             ),
           ],
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.base),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -58,7 +58,8 @@ class StudentHomePage extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppSpacing.base),
                 campaigns.when(
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (_, __) => const SizedBox.shrink(),
                   data: (list) => list.isEmpty
                       ? const SizedBox.shrink()
@@ -73,7 +74,8 @@ class StudentHomePage extends ConsumerWidget {
     );
   }
 
-  void _showCampaignRegistration(BuildContext context, AsyncValue<List<dynamic>> campaigns) {
+  void _showCampaignRegistration(
+      BuildContext context, AsyncValue<List<dynamic>> campaigns) {
     campaigns.whenData((list) {
       if (list.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -177,8 +179,8 @@ class _RegistrationsCard extends StatelessWidget {
               Text(
                 'Đăng ký của tôi',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
               const Spacer(),
               TextButton(
@@ -188,71 +190,71 @@ class _RegistrationsCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Flexible(
-            child: SizedBox(
-              height: 220,
-              child: registrations.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.assignment_outlined,
-                            size: 48,
+          SizedBox(
+            height: 220,
+            child: registrations.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.assignment_outlined,
+                          size: 48,
+                          color: isDark
+                              ? AppColors.textTertiaryDark
+                              : AppColors.textTertiaryLight,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Bạn chưa đăng ký chiến dịch nào',
+                          style: TextStyle(
                             color: isDark
-                                ? AppColors.textTertiaryDark
-                                : AppColors.textTertiaryLight,
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondaryLight,
                           ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Bạn chưa đăng ký chiến dịch nào',
-                            style: TextStyle(
-                              color: isDark
-                                  ? AppColors.textSecondaryDark
-                                  : AppColors.textSecondaryLight,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.separated(
-                      itemCount: registrations.length,
-                      separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        final r = registrations[index];
-                        final schoolName = r.school?.schoolName ?? 'N/A';
-                        final createdAt = r.createdAt != null
-                            ? DateFormat('d/M/yyyy').format(r.createdAt!)
-                            : 'N/A';
-                        return ListTile(
-                          dense: true,
-                          leading: CircleAvatar(
-                            radius: 16,
-                            backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                            child: Icon(
-                              Icons.school,
-                              size: 16,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          title: Text(schoolName, style: const TextStyle(fontSize: 14)),
-                          subtitle: Text(
-                            'Ngày đăng ký: $createdAt',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: isDark
-                                  ? AppColors.textSecondaryDark
-                                  : AppColors.textSecondaryLight,
-                            ),
-                          ),
-                          trailing: StatusChip(
-                            label: r.status,
-                            status: _statusType(r.status),
-                          ),
-                        );
-                      },
+                        ),
+                      ],
                     ),
-            ),
+                  )
+                : ListView.separated(
+                    itemCount: registrations.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final r = registrations[index];
+                      final schoolName = r.school?.schoolName ?? 'N/A';
+                      final createdAt = r.createdAt != null
+                          ? DateFormat('d/M/yyyy').format(r.createdAt!)
+                          : 'N/A';
+                      return ListTile(
+                        dense: true,
+                        leading: CircleAvatar(
+                          radius: 16,
+                          backgroundColor:
+                              AppColors.primary.withValues(alpha: 0.1),
+                          child: const Icon(
+                            Icons.school,
+                            size: 16,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        title: Text(schoolName,
+                            style: const TextStyle(fontSize: 14)),
+                        subtitle: Text(
+                          'Ngày đăng ký: $createdAt',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondaryLight,
+                          ),
+                        ),
+                        trailing: StatusChip(
+                          label: r.status,
+                          status: _statusType(r.status),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -283,8 +285,8 @@ class _ProfileCard extends StatelessWidget {
           Text(
             'Hồ sơ',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+                  fontWeight: FontWeight.w600,
+                ),
           ),
           const SizedBox(height: 16),
           Center(
@@ -293,7 +295,7 @@ class _ProfileCard extends StatelessWidget {
               backgroundColor: AppColors.primary.withValues(alpha: 0.1),
               child: Text(
                 (user?.email ?? 'S')[0].toUpperCase(),
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                   color: AppColors.primary,
@@ -306,8 +308,8 @@ class _ProfileCard extends StatelessWidget {
             child: Text(
               user?.email ?? 'N/A',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
           ),
           const SizedBox(height: 4),
@@ -354,7 +356,9 @@ class _InfoRow extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: 13,
-                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                color: isDark
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondaryLight,
               ),
               overflow: TextOverflow.ellipsis,
             ),
@@ -379,8 +383,8 @@ class _CampaignsCard extends StatelessWidget {
           Text(
             'Chiến dịch đang tuyển',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+                  fontWeight: FontWeight.w600,
+                ),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -428,7 +432,8 @@ class _CampaignsCard extends StatelessWidget {
                                   : 'Không có mô tả',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Theme.of(context).brightness == Brightness.dark
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
                                     ? AppColors.textSecondaryDark
                                     : AppColors.textSecondaryLight,
                               ),
@@ -448,7 +453,8 @@ class _CampaignsCard extends StatelessWidget {
                                   '${c.startDate ?? ''} - ${c.endDate ?? ''}',
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: Theme.of(context).colorScheme.primary,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
                                   ),
                                 ),
                               ],
@@ -481,14 +487,17 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
+            Icon(Icons.error_outline,
+                size: 48, color: Theme.of(context).colorScheme.error),
             const SizedBox(height: 16),
-            Text('Không thể tải dữ liệu', style: Theme.of(context).textTheme.titleMedium),
+            Text('Không thể tải dữ liệu',
+                style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(
               error.toString(),
               textAlign: TextAlign.center,
-              style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.error, fontSize: 13),
             ),
             const SizedBox(height: 16),
             FilledButton.icon(

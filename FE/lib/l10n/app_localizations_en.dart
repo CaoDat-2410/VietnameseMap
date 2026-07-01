@@ -491,4 +491,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get confirmUnarchive => 'Confirm Unarchive';
+
+  @override
+  String get settings => 'Settings';
 }

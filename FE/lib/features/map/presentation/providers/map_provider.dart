@@ -72,6 +72,9 @@ final schoolCoordinatesProvider = FutureProvider.family<
 
 final selectedSchoolProvider = StateProvider<SchoolCoordinates?>((ref) => null);
 
+// Provider to track selected school UIDs to show on map
+final selectedSchoolUidsProvider = StateProvider<List<String>>((ref) => []);
+
 // ---------------------------------------------------------------------------
 // Committee providers (2025 reform — People's Committee HQ / Trụ sở UBND)
 // ---------------------------------------------------------------------------

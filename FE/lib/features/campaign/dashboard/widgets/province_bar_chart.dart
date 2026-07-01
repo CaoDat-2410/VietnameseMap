@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../shared/models/campaign_models.dart';
 
 class ProvinceBarChart extends StatelessWidget {
@@ -8,37 +9,21 @@ class ProvinceBarChart extends StatelessWidget {
 
   final List<ProvinceInteractionModel> items;
 
-  static const _colors = [
-    Color(0xFF3B82F6),
-    Color(0xFF10B981),
-    Color(0xFFF59E0B),
-    Color(0xFFEF4444),
-    Color(0xFF8B5CF6),
-    Color(0xFFEC4899),
-    Color(0xFF06B6D4),
-    Color(0xFF84CC16),
-  ];
-
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
-      return Container(
-        height: 200,
-        alignment: Alignment.center,
-        child: Text(
-          'No province data',
-          style: TextStyle(color: Theme.of(context).colorScheme.outline),
-        ),
-      );
+      return const _EmptyState(message: 'Chưa có dữ liệu tỉnh/thành');
     }
 
     final displayItems = items.take(8).toList();
-    final maxY = displayItems
+    final maxYValue = displayItems
         .map((e) => e.totalInteractions.toDouble())
-        .reduce((a, b) => a > b ? a : b);
+        .fold<double>(0, (a, b) => a > b ? a : b);
+    // Ensure maxY is at least 1 to prevent chart issues
+    final maxY = maxYValue <= 0 ? 1.0 : maxYValue * 1.2;
 
     return SizedBox(
-      height: 200,
+      height: 220,
       child: BarChart(
         BarChartData(
           alignment: BarChartAlignment.spaceAround,
@@ -46,15 +31,21 @@ class ProvinceBarChart extends StatelessWidget {
           barTouchData: BarTouchData(
             enabled: true,
             touchTooltipData: BarTouchTooltipData(
+              getTooltipColor: (_) =>
+                  Theme.of(context).colorScheme.surfaceContainerHighest,
+              tooltipRoundedRadius: 8,
               getTooltipItem: (group, groupIndex, rod, rodIndex) {
                 return BarTooltipItem(
                   '${displayItems[groupIndex].provinceName}\n',
-                  const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontWeight: FontWeight.bold,
+                  ),
                   children: [
                     TextSpan(
-                      text: '${rod.toY.round()} interactions',
-                      style: const TextStyle(
-                        color: Colors.white70,
+                      text: '${rod.toY.round()} tương tác',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.normal,
                       ),
                     ),
@@ -79,7 +70,9 @@ class ProvinceBarChart extends StatelessWidget {
                     child: RotatedBox(
                       quarterTurns: -1,
                       child: Text(
-                        name.length > 10 ? '${name.substring(0, 8)}...' : name,
+                        name.length > 10
+                            ? '${name.substring(0, 8)}...'
+                            : name,
                         style: const TextStyle(fontSize: 10),
                       ),
                     ),
@@ -100,19 +93,19 @@ class ProvinceBarChart extends StatelessWidget {
                 },
               ),
             ),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           ),
           gridData: FlGridData(
             show: true,
             drawVerticalLine: false,
             horizontalInterval: maxY / 4,
-            getDrawingHorizontalLine: (value) {
-              return FlLine(
-                color: Theme.of(context).colorScheme.outlineVariant,
-                strokeWidth: 1,
-              );
-            },
+            getDrawingHorizontalLine: (_) => FlLine(
+              color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
+              strokeWidth: 1,
+            ),
           ),
           borderData: FlBorderData(show: false),
           barGroups: [
@@ -122,14 +115,42 @@ class ProvinceBarChart extends StatelessWidget {
                 barRods: [
                   BarChartRodData(
                     toY: displayItems[i].totalInteractions.toDouble(),
-                    color: _colors[i % _colors.length],
+                    color: AppColors
+                        .chartColors[i % AppColors.chartColors.length],
                     width: 20,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(4)),
                   ),
                 ],
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.map_outlined,
+            size: 32,
+            color: Theme.of(context).colorScheme.outline,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            style: TextStyle(color: Theme.of(context).colorScheme.outline),
+          ),
+        ],
       ),
     );
   }

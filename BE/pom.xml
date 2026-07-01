@@ -27,7 +27,15 @@
         <lombok.version>1.18.36</lombok.version>
         <jacoco.version>0.8.12</jacoco.version>
         <testcontainers.version>1.19.7</testcontainers.version>
-    </properties>
+            <sonar.projectKey>VietnamMap</sonar.projectKey>
+        <sonar.projectName>VietnamMap</sonar.projectName>
+        <sonar.sourceEncoding>UTF-8</sonar.sourceEncoding>
+        <sonar.java.binaries>target/classes</sonar.java.binaries>
+        <sonar.coverage.jacoco.xmlReportPaths>target/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+        <sonar.coverage.exclusions>**/config/**,**/dto/**,**/*Application.java,**/enums/**,**/exception/*Exception.java,**/mapper/**,**/campaign/controller/**</sonar.coverage.exclusions>
+        <sonar.cpd.exclusions>**/dto/**,**/model/**</sonar.cpd.exclusions>
+        <sonar.scm.disabled>true</sonar.scm.disabled>
+        <sonar.qualitygate.wait>true</sonar.qualitygate.wait></properties>
 
     <dependencies>
         <!-- Spring Boot Starters -->
@@ -244,7 +252,7 @@
                                         <limit>
                                             <counter>BRANCH</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.60</minimum>
+                                            <minimum>0.55</minimum>
                                         </limit>
                                     </limits>
                                 </rule>

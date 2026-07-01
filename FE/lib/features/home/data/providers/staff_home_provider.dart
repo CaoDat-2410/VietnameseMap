@@ -49,7 +49,7 @@ final staffHomeProvider = FutureProvider<StaffHomeModel>((ref) async {
     final interactions = await ref
         .watch(eventInteractionsProvider(event.id).future);
     totalInteractions += interactions.length;
-    if (event.schoolUid != null && schoolsSeen.add(event.schoolUid!)) {
+    if (schoolsSeen.add(event.schoolUid)) {
       totalSchools++;
     }
   }

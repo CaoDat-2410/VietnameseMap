@@ -72,96 +72,65 @@ class _EventDetailPageState extends ConsumerState<EventDetailPage>
     final role = ref.watch(activeUserProvider).valueOrNull?.role;
     final canManage = role == 'MANAGER' || role == 'ADMIN';
 
-    return Scaffold(
-      appBar: AppBar(
-        title: event.maybeWhen(
-          data: (item) => Text(item.name),
-          orElse: () => Text(l10n.eventDetail),
-        ),
-        actions: [
-          IconButton(
-            tooltip: l10n.refresh,
-            onPressed: () {
-              ref.invalidate(eventDetailProvider(widget.eventId));
-              ref.invalidate(eventSchoolsProvider(widget.eventId));
-              ref.invalidate(eventAssignmentsProvider(widget.eventId));
-              ref.invalidate(eventInteractionsProvider(widget.eventId));
-            },
-            icon: const Icon(Icons.refresh),
+    return DefaultTabController(
+      length: 4,
+      child: Scaffold(
+        appBar: AppBar(
+          title: event.maybeWhen(
+            data: (item) => Text(item.name),
+            orElse: () => Text(l10n.eventDetail),
           ),
-        ],
-      ),
-      body: event.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _ErrorBlock(
-          error: error,
-          onRetry: () => ref.invalidate(eventDetailProvider(widget.eventId)),
-        ),
-        data: (item) => Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: _EventHeader(event: item),
-            ),
-            Container(
-              color: Theme.of(context).colorScheme.surface,
-              child: TabBar(
-                controller: _tabController,
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                tabs: [
-                  Tab(text: l10n.thongTin),
-                  Tab(text: l10n.truongThamGia),
-                  Tab(text: l10n.nhanSu),
-                  const Tab(text: 'Tương tác'),
-                ],
-              ),
-            ),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _EventInfoTab(
-                    event: item,
-                    canManage: canManage,
-                    onEdit: () => _editEvent(item),
-                  ),
-                  _EventSchoolsTab(
-                    eventId: item.id,
-                    canManage: canManage,
-                  ),
-                  _EventEmployeesTab(
-                    eventId: item.id,
-                    canManage: canManage,
-                  ),
-                  EventInteractionsTab(eventId: item.id),
-                ],
-              ),
+          actions: [
+            IconButton(
+              tooltip: l10n.refresh,
+              onPressed: () {
+                ref.invalidate(eventDetailProvider(widget.eventId));
+                ref.invalidate(eventSchoolsProvider(widget.eventId));
+                ref.invalidate(eventAssignmentsProvider(widget.eventId));
+                ref.invalidate(eventInteractionsProvider(widget.eventId));
+              },
+              icon: const Icon(Icons.refresh),
             ),
           ],
+          bottom: TabBar(
+            controller: _tabController,
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            tabs: [
+              Tab(text: l10n.thongTin),
+              Tab(text: l10n.truongThamGia),
+              Tab(text: l10n.nhanSu),
+              const Tab(text: 'Tương tác'),
+            ],
+          ),
+        ),
+        body: event.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => _ErrorBlock(
+            error: error,
+            onRetry: () => ref.invalidate(eventDetailProvider(widget.eventId)),
+          ),
+          data: (item) => TabBarView(
+            controller: _tabController,
+            children: [
+              _EventInfoTab(
+                event: item,
+                canManage: canManage,
+                onEdit: () => _editEvent(item),
+              ),
+              _EventSchoolsTab(
+                eventId: item.id,
+                canManage: canManage,
+              ),
+              _EventEmployeesTab(
+                eventId: item.id,
+                canManage: canManage,
+              ),
+              EventInteractionsTab(eventId: item.id),
+            ],
+          ),
         ),
       ),
-    );
-  }
-}
-
-class _EventHeader extends StatelessWidget {
-  const _EventHeader({required this.event});
-
-  final CampaignEventModel event;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        Text(event.name, style: Theme.of(context).textTheme.headlineSmall),
-        Chip(label: Text(event.status)),
-        Chip(label: Text(event.eventType)),
-      ],
     );
   }
 }
@@ -396,7 +365,19 @@ class _EventSchoolsTabState extends ConsumerState<_EventSchoolsTab> {
           data: (items) => items.isEmpty
               ? Text(l10n.noAssignedSchools)
               : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    FilledButton.tonalIcon(
+                      onPressed: () {
+                        final uids = items.map((s) => s.schoolUid).toList();
+                        context.push(
+                          '/map?schools=${Uri.encodeComponent(uids.join(','))}',
+                        );
+                      },
+                      icon: const Icon(Icons.map_outlined),
+                      label: Text('Xem ${items.length} trường trên bản đồ'),
+                    ),
+                    const SizedBox(height: 12),
                     for (final school in items)
                       Card(
                         child: ListTile(

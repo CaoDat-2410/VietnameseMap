@@ -11,6 +11,39 @@ import '../widgets/outcome_donut_chart.dart';
 import '../widgets/province_bar_chart.dart';
 import '../widgets/top_schools_bar_chart.dart';
 
+class _ResponsiveRow extends StatelessWidget {
+  const _ResponsiveRow({required this.children});
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, c) {
+        if (c.maxWidth > 700) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (int i = 0; i < children.length; i++) ...[
+                if (i > 0) const SizedBox(width: 12),
+                Expanded(child: children[i]),
+              ],
+            ],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (int i = 0; i < children.length; i++) ...[
+              if (i > 0) const SizedBox(height: 12),
+              children[i],
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
 class CampaignDashboardPage extends ConsumerWidget {
   const CampaignDashboardPage({super.key, required this.campaignId});
 
@@ -57,21 +90,17 @@ class CampaignDashboardPage extends ConsumerWidget {
                 const SizedBox(height: 16),
                 _KpiGrid(dashboard: dashboardData),
                 const SizedBox(height: 16),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                _ResponsiveRow(
                   children: [
-                    Expanded(child: _OutcomeChart(outcomes: dashboardData.interactionsByOutcome)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _ProvinceChart(items: dashboardData.interactionsByProvince)),
+                    _OutcomeChart(outcomes: dashboardData.interactionsByOutcome),
+                    _ProvinceChart(items: dashboardData.interactionsByProvince),
                   ],
                 ),
                 const SizedBox(height: 16),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                _ResponsiveRow(
                   children: [
-                    Expanded(child: _TopSchoolsChart(items: dashboardData.topSchools)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _RegistrationsSection(campaignId: campaignId)),
+                    _TopSchoolsChart(items: dashboardData.topSchools),
+                    _RegistrationsSection(campaignId: campaignId),
                   ],
                 ),
               ],

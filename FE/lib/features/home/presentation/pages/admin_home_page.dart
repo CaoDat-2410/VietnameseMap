@@ -138,36 +138,46 @@ class _KpiGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final kpis = [
       ('Người dùng', model.totalUsers, Icons.people, AppColors.primary),
-      ('Chiến dịch', model.totalCampaigns, Icons.campaign, AppColors.chartColors[1]),
+      (
+        'Chiến dịch',
+        model.totalCampaigns,
+        Icons.campaign,
+        AppColors.chartColors[1]
+      ),
       ('Sự kiện', model.totalEvents, Icons.event, AppColors.chartColors[3]),
       ('Trường học', model.totalSchools, Icons.school, AppColors.success),
       ('Tương tác', model.totalInteractions, Icons.chat, AppColors.warning),
-      ('Chờ kích hoạt', model.pendingActivations, Icons.hourglass_empty, AppColors.error),
+      (
+        'Chờ kích hoạt',
+        model.pendingActivations,
+        Icons.hourglass_empty,
+        AppColors.error
+      ),
     ];
 
     return LayoutBuilder(
-        builder: (context, constraints) {
-          final isWide = constraints.maxWidth > 600;
-          final cardWidth = isWide
-              ? (constraints.maxWidth - AppSpacing.bentoGap * 3) / 4
-              : (constraints.maxWidth - AppSpacing.bentoGap) / 2;
-          return Wrap(
-            spacing: AppSpacing.bentoGap,
-            runSpacing: AppSpacing.bentoGap,
-            children: kpis.map((k) {
-              return SizedBox(
-                width: cardWidth,
-                child: KpiCard(
-                  title: k.$1,
-                  value: '${k.$2}',
-                  icon: k.$3,
-                  accentColor: k.$4,
-                  subtitle: '',
-                ),
-              );
-            }).toList(),
-          );
-        },
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth > 600;
+        final cardWidth = isWide
+            ? (constraints.maxWidth - AppSpacing.bentoGap * 3) / 4
+            : (constraints.maxWidth - AppSpacing.bentoGap) / 2;
+        return Wrap(
+          spacing: AppSpacing.bentoGap,
+          runSpacing: AppSpacing.bentoGap,
+          children: kpis.map((k) {
+            return SizedBox(
+              width: cardWidth,
+              child: KpiCard(
+                title: k.$1,
+                value: '${k.$2}',
+                icon: k.$3,
+                accentColor: k.$4,
+                subtitle: '',
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 }
@@ -180,6 +190,7 @@ class _UserRoleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final safeTotal = total <= 0 ? 1 : total;
     final roles = [
       ('ADMIN', usersByRole['ADMIN'] ?? 0, AppColors.error),
       ('MANAGER', usersByRole['MANAGER'] ?? 0, AppColors.warning),
@@ -194,13 +205,14 @@ class _UserRoleCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.pie_chart_outline, size: 20, color: AppColors.primary),
+              const Icon(Icons.pie_chart_outline,
+                  size: 20, color: AppColors.primary),
               const SizedBox(width: 8),
               Text(
                 'Phân bổ vai trò người dùng',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
             ],
           ),
@@ -222,7 +234,8 @@ class _UserRoleCard extends StatelessWidget {
                             value: roles[i].$2.toDouble(),
                             color: roles[i].$3,
                             radius: 28,
-                            title: '${((roles[i].$2 / total) * 100).round()}%',
+                            title:
+                                '${((roles[i].$2 / safeTotal) * 100).round()}%',
                             titleStyle: const TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -292,9 +305,21 @@ class _CampaignStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final statuses = [
-      (name: 'Đang hoạt động', count: (total * 0.4).round(), color: AppColors.success),
-      (name: 'Đã hoàn thành', count: (total * 0.3).round(), color: AppColors.info),
-      (name: 'Sắp diễn ra', count: (total * 0.2).round(), color: AppColors.warning),
+      (
+        name: 'Đang hoạt động',
+        count: (total * 0.4).round(),
+        color: AppColors.success
+      ),
+      (
+        name: 'Đã hoàn thành',
+        count: (total * 0.3).round(),
+        color: AppColors.info
+      ),
+      (
+        name: 'Sắp diễn ra',
+        count: (total * 0.2).round(),
+        color: AppColors.warning
+      ),
       (name: 'Đã hủy', count: (total * 0.1).round(), color: AppColors.error),
     ];
 
@@ -306,8 +331,8 @@ class _CampaignStatusCard extends StatelessWidget {
           Text(
             'Trạng thái chiến dịch',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+                  fontWeight: FontWeight.w600,
+                ),
           ),
           const SizedBox(height: 16),
           Column(
@@ -368,13 +393,14 @@ class _RecentUsersCard extends ConsumerWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.people_outline, size: 20, color: AppColors.primary),
+              const Icon(Icons.people_outline,
+                  size: 20, color: AppColors.primary),
               const SizedBox(width: 8),
               Text(
                 'Người dùng gần đây',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
               const Spacer(),
               TextButton(
@@ -384,71 +410,70 @@ class _RecentUsersCard extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Flexible(
-            child: SizedBox(
-              height: 220,
-              child: usersAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, __) => Center(
-                  child: Text(
-                    'Không thể tải người dùng',
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
-                  ),
+          SizedBox(
+            height: 220,
+            child: usersAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, __) => Center(
+                child: Text(
+                  'Không thể tải người dùng',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
-                data: (users) {
-                  if (users.isEmpty) {
-                    return Center(
-                      child: Text(
-                        'Chưa có người dùng',
+              ),
+              data: (users) {
+                if (users.isEmpty) {
+                  return Center(
+                    child: Text(
+                      'Chưa có người dùng',
+                      style: TextStyle(
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondaryLight,
+                      ),
+                    ),
+                  );
+                }
+                return ListView.separated(
+                  itemCount: users.length.clamp(0, 8),
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final u = users[index];
+                    final name = (u['email'] as String?) ?? 'N/A';
+                    final role = (u['role'] as String?) ?? 'UNKNOWN';
+                    final status = (u['status'] as String?) ?? 'ACTIVE';
+                    return ListTile(
+                      dense: true,
+                      leading: CircleAvatar(
+                        radius: 16,
+                        backgroundColor:
+                            _roleColor(role).withValues(alpha: 0.1),
+                        child: Text(
+                          name.isNotEmpty ? name[0].toUpperCase() : '?',
+                          style: TextStyle(
+                            color: _roleColor(role),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      title: Text(name, style: const TextStyle(fontSize: 14)),
+                      subtitle: Text(
+                        role,
                         style: TextStyle(
+                          fontSize: 12,
                           color: isDark
                               ? AppColors.textSecondaryDark
                               : AppColors.textSecondaryLight,
                         ),
                       ),
+                      trailing: StatusChip(
+                        label: status,
+                        status: _statusType(status),
+                      ),
                     );
-                  }
-                  return ListView.separated(
-                    itemCount: users.length.clamp(0, 8),
-                    separatorBuilder: (_, __) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final u = users[index];
-                      final name = (u['email'] as String?) ?? 'N/A';
-                      final role = (u['role'] as String?) ?? 'UNKNOWN';
-                      final status = (u['status'] as String?) ?? 'ACTIVE';
-                      return ListTile(
-                        dense: true,
-                        leading: CircleAvatar(
-                          radius: 16,
-                          backgroundColor: _roleColor(role).withValues(alpha: 0.1),
-                          child: Text(
-                            name.isNotEmpty ? name[0].toUpperCase() : '?',
-                            style: TextStyle(
-                              color: _roleColor(role),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                        title: Text(name, style: const TextStyle(fontSize: 14)),
-                        subtitle: Text(
-                          role,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isDark
-                                ? AppColors.textSecondaryDark
-                                : AppColors.textSecondaryLight,
-                          ),
-                        ),
-                        trailing: StatusChip(
-                          label: status,
-                          status: _statusType(status),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
+                  },
+                );
+              },
             ),
           ),
         ],
@@ -491,66 +516,67 @@ class _SystemHealthCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.monitor_heart_outlined, size: 20, color: AppColors.success),
+              const Icon(Icons.monitor_heart_outlined,
+                  size: 20, color: AppColors.success),
               const SizedBox(width: 8),
               Text(
                 'Tình trạng hệ thống',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          Expanded(
-            child: Column(
-              children: health.entries.map((e) {
-                final color = _healthColor(e.value);
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: color.withValues(alpha: 0.4),
-                              blurRadius: 4,
-                              spreadRadius: 1,
-                            ),
-                          ],
-                        ),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: health.entries.map((e) {
+              final color = _healthColor(e.value);
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: color,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: color.withValues(alpha: 0.4),
+                            blurRadius: 4,
+                            spreadRadius: 1,
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          e.key,
-                          style: const TextStyle(fontSize: 13),
-                        ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        e.key,
+                        style: const TextStyle(fontSize: 13),
                       ),
-                      Text(
-                        _healthLabel(e.value),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: color,
-                        ),
+                    ),
+                    Text(
+                      _healthLabel(e.value),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: color,
                       ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
           ),
           const Divider(),
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.access_time, size: 14, color: AppColors.textTertiaryLight),
+              const Icon(Icons.access_time,
+                  size: 14, color: AppColors.textTertiaryLight),
               const SizedBox(width: 4),
               Text(
                 'Cập nhật: ${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}',
@@ -598,13 +624,14 @@ class _PendingActivationsCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.person_off_outlined, size: 20, color: AppColors.warning),
+              const Icon(Icons.person_off_outlined,
+                  size: 20, color: AppColors.warning),
               const SizedBox(width: 8),
               Text(
                 'Chờ kích hoạt ($pendingCount)',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
               const Spacer(),
               FilledButton(
@@ -642,14 +669,17 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
+            Icon(Icons.error_outline,
+                size: 48, color: Theme.of(context).colorScheme.error),
             const SizedBox(height: 16),
-            Text('Không thể tải dữ liệu', style: Theme.of(context).textTheme.titleMedium),
+            Text('Không thể tải dữ liệu',
+                style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(
               error.toString(),
               textAlign: TextAlign.center,
-              style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.error, fontSize: 13),
             ),
             const SizedBox(height: 16),
             FilledButton.icon(

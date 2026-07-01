@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../shared/models/campaign_models.dart';
 
 class TopSchoolsBarChart extends StatelessWidget {
@@ -8,28 +9,23 @@ class TopSchoolsBarChart extends StatelessWidget {
 
   final List<TopSchoolModel> items;
 
-  static const _color = Color(0xFF10B981);
+  static const Color _color = AppColors.primary;
 
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) {
-      return Container(
-        height: 200,
-        alignment: Alignment.center,
-        child: Text(
-          'No school data',
-          style: TextStyle(color: Theme.of(context).colorScheme.outline),
-        ),
-      );
+      return const _EmptyState(message: 'Chưa có dữ liệu trường học');
     }
 
     final displayItems = items.take(5).toList();
-    final maxY = displayItems
+    final maxYValue = displayItems
         .map((e) => e.totalInteractions.toDouble())
-        .reduce((a, b) => a > b ? a : b);
+        .fold<double>(0, (a, b) => a > b ? a : b);
+    // Ensure maxY is at least 1 to prevent chart issues
+    final maxY = maxYValue <= 0 ? 1.0 : maxYValue * 1.2;
 
     return SizedBox(
-      height: 200,
+      height: 220,
       child: BarChart(
         BarChartData(
           alignment: BarChartAlignment.spaceAround,
@@ -37,15 +33,21 @@ class TopSchoolsBarChart extends StatelessWidget {
           barTouchData: BarTouchData(
             enabled: true,
             touchTooltipData: BarTouchTooltipData(
+              getTooltipColor: (_) =>
+                  Theme.of(context).colorScheme.surfaceContainerHighest,
+              tooltipRoundedRadius: 8,
               getTooltipItem: (group, groupIndex, rod, rodIndex) {
                 return BarTooltipItem(
                   '${displayItems[groupIndex].schoolName}\n',
-                  const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    fontWeight: FontWeight.bold,
+                  ),
                   children: [
                     TextSpan(
-                      text: '${rod.toY.round()} interactions',
-                      style: const TextStyle(
-                        color: Colors.white70,
+                      text: '${rod.toY.round()} tương tác',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.normal,
                       ),
                     ),
@@ -89,25 +91,19 @@ class TopSchoolsBarChart extends StatelessWidget {
                 },
               ),
             ),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles:
+                const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           ),
           gridData: FlGridData(
             show: true,
-            drawVerticalLine: true,
-            verticalInterval: maxY / 4,
-            getDrawingHorizontalLine: (value) {
-              return FlLine(
-                color: Theme.of(context).colorScheme.outlineVariant,
-                strokeWidth: 1,
-              );
-            },
-            getDrawingVerticalLine: (value) {
-              return FlLine(
-                color: Theme.of(context).colorScheme.outlineVariant,
-                strokeWidth: 1,
-              );
-            },
+            drawVerticalLine: false,
+            horizontalInterval: maxY / 4,
+            getDrawingHorizontalLine: (_) => FlLine(
+              color: Theme.of(context).dividerColor.withValues(alpha: 0.3),
+              strokeWidth: 1,
+            ),
           ),
           borderData: FlBorderData(show: false),
           barGroups: [
@@ -118,13 +114,40 @@ class TopSchoolsBarChart extends StatelessWidget {
                   BarChartRodData(
                     toY: displayItems[i].totalInteractions.toDouble(),
                     color: _color,
-                    width: 18,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                    width: 20,
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(4)),
                   ),
                 ],
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.message});
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.school_outlined,
+            size: 32,
+            color: Theme.of(context).colorScheme.outline,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            style: TextStyle(color: Theme.of(context).colorScheme.outline),
+          ),
+        ],
       ),
     );
   }

@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/widgets/bento_card.dart';
 import '../../shared/models/school_model.dart';
 import '../../shared/providers/schools_provider.dart';
 import '../../shared/repositories/schools_repository.dart';
+
+// Provider to track selected schools for map display
+final selectedSchoolsForMapProvider = StateProvider<List<SchoolModel>>((ref) => []);
 
 class SchoolListPage extends ConsumerStatefulWidget {
   const SchoolListPage({super.key});
@@ -19,6 +23,7 @@ class _SchoolListPageState extends ConsumerState<SchoolListPage> {
   final _communeController = TextEditingController();
   String? _area;
   int _page = 0;
+  final Set<String> _selectedSchoolUids = {};
 
   SchoolSearchParams get _params => SchoolSearchParams(
         page: _page,
@@ -55,7 +60,16 @@ class _SchoolListPageState extends ConsumerState<SchoolListPage> {
     final pageResult = ref.watch(schoolsSearchProvider(_params));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Schools')),
+      appBar: AppBar(
+        title: const Text('Danh sách trường học'),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh',
+            onPressed: () => ref.invalidate(schoolsSearchProvider(_params)),
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -81,31 +95,63 @@ class _SchoolListPageState extends ConsumerState<SchoolListPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Showing ${page.items.length} of ${page.totalItems} schools',
-                      style: Theme.of(context).textTheme.titleMedium,
+                    Expanded(
+                      child: Text(
+                        'Hiển thị ${page.items.length} trong ${page.totalItems} trường',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                     ),
-                    TextButton.icon(
-                      onPressed: () {
-                        final params = _params;
-                        final query = Uri.encodeComponent(
-                          'province=${params.provinceCode ?? ''}&commune=${params.communeCode ?? ''}'
-                        );
-                        context.go('/map?schools=true&$query');
-                      },
-                      icon: const Icon(Icons.map),
-                      label: const Text('Show on Map'),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_selectedSchoolUids.isNotEmpty) ...[
+                          OutlinedButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _selectedSchoolUids.clear();
+                              });
+                            },
+                            icon: const Icon(Icons.clear),
+                            label: Text('Xóa (${_selectedSchoolUids.length})'),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        FilledButton.icon(
+                          onPressed: () {
+                            final selectedUids = _selectedSchoolUids.toList();
+                            if (selectedUids.isNotEmpty) {
+                              final query = Uri.encodeComponent(selectedUids.join(','));
+                              context.go('/map?schools=$query');
+                            } else {
+                              context.go('/map');
+                            }
+                          },
+                          icon: const Icon(Icons.map),
+                          label: Text(_selectedSchoolUids.isNotEmpty
+                              ? 'Xem ${_selectedSchoolUids.length} trường'
+                              : 'Xem bản đồ'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 if (page.items.isEmpty)
-                  const _EmptyBlock(message: 'No schools found')
+                  const _EmptyBlock(message: 'Không tìm thấy trường học nào')
                 else
                   for (final school in page.items)
                     _SchoolListItem(
                       school: school,
-                      onTap: () => context.go('/schools/${school.schoolUid}'),
+                      isSelected: _selectedSchoolUids.contains(school.schoolUid),
+                      onTap: () {
+                        setState(() {
+                          if (_selectedSchoolUids.contains(school.schoolUid)) {
+                            _selectedSchoolUids.remove(school.schoolUid);
+                          } else {
+                            _selectedSchoolUids.add(school.schoolUid);
+                          }
+                        });
+                      },
                     ),
                 const SizedBox(height: 12),
                 _PaginationBar(
@@ -148,141 +194,180 @@ class _SchoolFilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        SizedBox(
-          width: 280,
-          child: TextField(
-            controller: searchController,
-            decoration: const InputDecoration(
-              labelText: 'Search',
-              hintText: 'Search school name or address',
-              prefixIcon: Icon(Icons.search),
+    return BentoCard(
+      size: BentoSize.wide,
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          SizedBox(
+            width: 280,
+            child: TextField(
+              controller: searchController,
+              decoration: const InputDecoration(
+                labelText: 'Tìm kiếm',
+                hintText: 'Tên trường hoặc địa chỉ',
+                prefixIcon: Icon(Icons.search),
+              ),
+              onSubmitted: (_) => onApply(),
             ),
-            onSubmitted: (_) => onApply(),
           ),
-        ),
-        SizedBox(
-          width: 140,
-          child: TextField(
-            controller: provinceController,
-            decoration: const InputDecoration(labelText: 'Province code'),
-            onSubmitted: (_) => onApply(),
+          SizedBox(
+            width: 140,
+            child: TextField(
+              controller: provinceController,
+              decoration: const InputDecoration(labelText: 'Mã tỉnh'),
+              onSubmitted: (_) => onApply(),
+            ),
           ),
-        ),
-        SizedBox(
-          width: 140,
-          child: TextField(
-            controller: communeController,
-            decoration: const InputDecoration(labelText: 'Commune code'),
-            onSubmitted: (_) => onApply(),
+          SizedBox(
+            width: 140,
+            child: TextField(
+              controller: communeController,
+              decoration: const InputDecoration(labelText: 'Mã xã'),
+              onSubmitted: (_) => onApply(),
+            ),
           ),
-        ),
-        SizedBox(
-          width: 140,
-          child: DropdownButtonFormField<String>(
-            initialValue: area,
-            decoration: const InputDecoration(labelText: 'Area'),
-            items: const [
-              DropdownMenuItem(value: 'KV1', child: Text('KV1')),
-              DropdownMenuItem(value: 'KV2', child: Text('KV2')),
-              DropdownMenuItem(value: 'KV2_NT', child: Text('KV2_NT')),
-              DropdownMenuItem(value: 'KV3', child: Text('KV3')),
-            ],
-            onChanged: onAreaChanged,
+          SizedBox(
+            width: 140,
+            child: DropdownButtonFormField<String>(
+              value: area,
+              decoration: const InputDecoration(labelText: 'Khu vực'),
+              items: const [
+                DropdownMenuItem(value: 'KV1', child: Text('KV1')),
+                DropdownMenuItem(value: 'KV2', child: Text('KV2')),
+                DropdownMenuItem(value: 'KV2_NT', child: Text('KV2_NT')),
+                DropdownMenuItem(value: 'KV3', child: Text('KV3')),
+              ],
+              onChanged: onAreaChanged,
+            ),
           ),
-        ),
-        FilledButton.icon(
-          onPressed: onApply,
-          icon: const Icon(Icons.search),
-          label: const Text('Apply'),
-        ),
-        TextButton.icon(
-          onPressed: onClear,
-          icon: const Icon(Icons.clear),
-          label: const Text('Clear'),
-        ),
-      ],
+          FilledButton.icon(
+            onPressed: onApply,
+            icon: const Icon(Icons.search),
+            label: const Text('Tìm kiếm'),
+          ),
+          OutlinedButton.icon(
+            onPressed: onClear,
+            icon: const Icon(Icons.clear),
+            label: const Text('Xóa'),
+          ),
+        ],
+      ),
     );
   }
 }
 
 class _SchoolListItem extends StatelessWidget {
-  const _SchoolListItem({required this.school, required this.onTap});
+  const _SchoolListItem({
+    required this.school,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   final SchoolModel school;
+  final bool isSelected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: BentoCard(
+        size: BentoSize.wide,
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Padding(
-                padding: EdgeInsets.only(top: 2),
-                child: Icon(Icons.school_outlined),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Selection checkbox
+            Checkbox(
+              value: isSelected,
+              onChanged: (_) => onTap(),
+            ),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primaryContainer
+                    : Theme.of(context).colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(12),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      school.schoolName,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${school.provinceName} | ${school.communeName}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (school.address.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        school.address,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall,
+              child: Icon(
+                Icons.school_outlined,
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    school.schoolName,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          '${school.provinceName} | ${school.communeName}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
                       ),
                     ],
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 6,
-                      children: [
-                        Chip(
-                          label: Text(school.schoolUid),
-                          visualDensity: VisualDensity.compact,
-                          padding: EdgeInsets.zero,
-                        ),
-                        Chip(
-                          label: Text(
-                            school.areaType.isEmpty ? 'N/A' : school.areaType,
+                  ),
+                  if (school.address.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      school.address,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
-                          visualDensity: VisualDensity.compact,
-                          padding: EdgeInsets.zero,
-                        ),
-                      ],
                     ),
                   ],
-                ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: [
+                      StatusChip(
+                        label: school.schoolUid,
+                        status: StatusType.draft,
+                      ),
+                      if (school.areaType.isNotEmpty)
+                        StatusChip(
+                          label: school.areaType,
+                          status: StatusType.pending,
+                        ),
+                    ],
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              const Icon(Icons.chevron_right),
-            ],
-          ),
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              Icons.chevron_right,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ],
         ),
       ),
     );
@@ -331,10 +416,23 @@ class _LoadingBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(32),
-        child: CircularProgressIndicator(),
+    return BentoCard(
+      size: BentoSize.wide,
+      child: SizedBox(
+        height: 200,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(
+                'Đang tải dữ liệu...',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -348,20 +446,33 @@ class _ErrorBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: Theme.of(context).colorScheme.errorContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Text(error.toString()),
-            const SizedBox(height: 8),
-            FilledButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
-            ),
-          ],
+    return BentoCard(
+      size: BentoSize.wide,
+      child: SizedBox(
+        height: 200,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 48,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                error.toString(),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Thử lại'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -375,9 +486,28 @@ class _EmptyBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(32),
-      child: Center(child: Text(message)),
+    return BentoCard(
+      size: BentoSize.wide,
+      child: SizedBox(
+        height: 200,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.search_off,
+                size: 48,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

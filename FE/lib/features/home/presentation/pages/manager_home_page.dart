@@ -53,7 +53,7 @@ class ManagerHomePage extends ConsumerWidget {
               onPressed: () => context.go('/map'),
             ),
           ],
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.base),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -84,7 +84,8 @@ class ManagerHomePage extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: AppSpacing.base),
-                _RecentRegistrationsCard(registrations: model.recentRegistrations),
+                _RecentRegistrationsCard(
+                    registrations: model.recentRegistrations),
                 const SizedBox(height: AppSpacing.base),
               ],
             ),
@@ -166,7 +167,6 @@ class _KpiRow extends StatelessWidget {
               accentColor: AppColors.chartColors[2],
               subtitle: 'Tất cả thời gian',
               trend: '+12%',
-              trendUp: true,
             ),
             KpiCard(
               title: 'Trường học',
@@ -195,13 +195,14 @@ class _TrendCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.trending_up, size: 20, color: AppColors.chartColors[0]),
+              Icon(Icons.trending_up,
+                  size: 20, color: AppColors.chartColors[0]),
               const SizedBox(width: 8),
               Text(
                 'Xu hướng tương tác (30 ngày)',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
             ],
           ),
@@ -221,7 +222,11 @@ class _ActivityFeedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final activities = [
-      ('5 phút trước', 'Nguyễn Văn A ghi nhận tương tác tại Hà Nội', Icons.chat),
+      (
+        '5 phút trước',
+        'Nguyễn Văn A ghi nhận tương tác tại Hà Nội',
+        Icons.chat
+      ),
       ('12 phút trước', 'Trần Thị B thêm sự kiện mới', Icons.event),
       ('1 giờ trước', 'Lê Văn C duyệt 3 đăng ký', Icons.check_circle),
       ('2 giờ trước', 'Phạm Thị D cập nhật trường học', Icons.school),
@@ -235,64 +240,65 @@ class _ActivityFeedCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.notifications_outlined, size: 20, color: AppColors.chartColors[4]),
+              Icon(Icons.notifications_outlined,
+                  size: 20, color: AppColors.chartColors[4]),
               const SizedBox(width: 8),
               Text(
                 'Hoạt động gần đây',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          Flexible(
-            child: SizedBox(
-              height: 200,
-              child: ListView.separated(
-                itemCount: activities.length,
-                separatorBuilder: (_, __) => const Divider(height: 16),
-                itemBuilder: (context, index) {
-                  final (time, text, icon) = activities[index];
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: AppColors.chartColors[4].withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Icon(icon, size: 14, color: AppColors.chartColors[4]),
+          SizedBox(
+            height: 200,
+            child: ListView.separated(
+              itemCount: activities.length,
+              separatorBuilder: (_, __) => const Divider(height: 16),
+              itemBuilder: (context, index) {
+                final (time, text, icon) = activities[index];
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppColors.chartColors[4].withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              text,
-                              style: Theme.of(context).textTheme.bodySmall,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              time,
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: isDark
-                                    ? AppColors.textTertiaryDark
-                                    : AppColors.textTertiaryLight,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
+                      child:
+                          Icon(icon, size: 14, color: AppColors.chartColors[4]),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            text,
+                            style: Theme.of(context).textTheme.bodySmall,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            time,
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: isDark
+                                          ? AppColors.textTertiaryDark
+                                          : AppColors.textTertiaryLight,
+                                      fontSize: 11,
+                                    ),
+                          ),
+                        ],
                       ),
-                    ],
-                  );
-                },
-              ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ],
@@ -315,8 +321,8 @@ class _OutcomeCard extends StatelessWidget {
           Text(
             'Kết quả tương tác',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+                  fontWeight: FontWeight.w600,
+                ),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -343,8 +349,8 @@ class _ProvinceCard extends StatelessWidget {
           Text(
             'Tương tác theo tỉnh/thành',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+                  fontWeight: FontWeight.w600,
+                ),
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -373,8 +379,8 @@ class _TopSchoolsCard extends StatelessWidget {
               Text(
                 'Top trường học',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+                      fontWeight: FontWeight.w600,
+                    ),
               ),
               const Spacer(),
               TextButton(
@@ -405,8 +411,8 @@ class _QuickLinksCard extends StatelessWidget {
           Text(
             'Liên kết nhanh',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+                  fontWeight: FontWeight.w600,
+                ),
           ),
           const SizedBox(height: 12),
           _QuickLink(
@@ -436,7 +442,8 @@ class _QuickLinksCard extends StatelessWidget {
 }
 
 class _QuickLink extends StatelessWidget {
-  const _QuickLink({required this.icon, required this.label, required this.onTap});
+  const _QuickLink(
+      {required this.icon, required this.label, required this.onTap});
   final IconData icon;
   final String label;
   final VoidCallback onTap;
@@ -477,8 +484,8 @@ class _RecentRegistrationsCard extends ConsumerWidget {
           Text(
             'Đăng ký gần đây',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+                  fontWeight: FontWeight.w600,
+                ),
           ),
           const SizedBox(height: 12),
           if (registrations.isEmpty)
@@ -488,7 +495,9 @@ class _RecentRegistrationsCard extends ConsumerWidget {
                 child: Text(
                   'Chưa có đăng ký nào',
                   style: TextStyle(
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
                   ),
                 ),
               ),
@@ -512,20 +521,25 @@ class _RecentRegistrationsCard extends ConsumerWidget {
                       radius: 16,
                       backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                       child: Text(
-                        studentName.isNotEmpty ? studentName[0].toUpperCase() : '?',
-                        style: TextStyle(
+                        studentName.isNotEmpty
+                            ? studentName[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(
                           color: AppColors.primary,
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
                         ),
                       ),
                     ),
-                    title: Text(studentName, style: const TextStyle(fontSize: 14)),
+                    title:
+                        Text(studentName, style: const TextStyle(fontSize: 14)),
                     subtitle: Text(
                       '$schoolName · $createdAt',
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondaryLight,
                       ),
                     ),
                     trailing: StatusChip(
@@ -564,14 +578,17 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline, size: 48, color: Theme.of(context).colorScheme.error),
+            Icon(Icons.error_outline,
+                size: 48, color: Theme.of(context).colorScheme.error),
             const SizedBox(height: 16),
-            Text('Không thể tải dữ liệu', style: Theme.of(context).textTheme.titleMedium),
+            Text('Không thể tải dữ liệu',
+                style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(
               error.toString(),
               textAlign: TextAlign.center,
-              style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.error, fontSize: 13),
             ),
             const SizedBox(height: 16),
             FilledButton.icon(

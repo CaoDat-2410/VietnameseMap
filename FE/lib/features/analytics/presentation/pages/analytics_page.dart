@@ -6,6 +6,7 @@ import '../providers/analytics_provider.dart';
 import '../widgets/aggregate_stats_section.dart';
 import '../widgets/base_chart_card.dart';
 import '../widgets/charts_section.dart';
+import '../widgets/filter_section.dart';
 import '../widgets/responsive_sidebar_layout.dart';
 
 class AnalyticsPage extends ConsumerWidget {
@@ -16,17 +17,23 @@ class AnalyticsPage extends ConsumerWidget {
     final filter = ref.watch(analyticsFilterProvider);
     final aggregateData = ref.watch(aggregateDashboardProvider(filter));
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
 
-    final content = Scaffold(
-      backgroundColor: isDark
-          ? AppColors.surfaceContainerDark
-          : AppColors.surfaceContainerLight,
-      body: CustomScrollView(
+    final horizontalPadding = isMobile ? 12.0 : 24.0;
+    final verticalPadding = isMobile ? 16.0 : 24.0;
+
+    return ResponsiveSidebarLayout(
+      content: CustomScrollView(
         slivers: [
-          // Header
           SliverToBoxAdapter(
             child: Container(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                verticalPadding,
+                horizontalPadding,
+                8,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -34,6 +41,7 @@ class AnalyticsPage extends ConsumerWidget {
                     'Analytics',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                           fontWeight: FontWeight.w600,
+                          fontSize: isMobile ? 24 : null,
                           color: isDark
                               ? AppColors.textPrimaryDark
                               : AppColors.textPrimaryLight,
@@ -43,6 +51,7 @@ class AnalyticsPage extends ConsumerWidget {
                   Text(
                     'Tổng quan về chiến dịch và tương tác',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontSize: isMobile ? 13 : null,
                           color: isDark
                               ? AppColors.textSecondaryDark
                               : AppColors.textSecondaryLight,
@@ -52,31 +61,46 @@ class AnalyticsPage extends ConsumerWidget {
               ),
             ),
           ),
-
-          // KPI Stats
           SliverToBoxAdapter(
             child: aggregateData.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(child: CircularProgressIndicator()),
+              loading: () => Padding(
+                padding: EdgeInsets.all(horizontalPadding),
+                child: const Center(child: CircularProgressIndicator()),
               ),
               error: (error, _) => Padding(
-                padding: const EdgeInsets.all(24),
+                padding: EdgeInsets.all(horizontalPadding),
                 child: _ErrorDisplay(error: error.toString()),
               ),
-              data: (data) => AggregateStatsSection(data: data),
+              data: (data) => Padding(
+                padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 24),
+                child: AggregateStatsSection(data: data),
+              ),
             ),
           ),
-
-          // Charts Grid (filter now lives in the sidebar)
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                16,
+                horizontalPadding,
+                0,
+              ),
+              child: const FilterSection(),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.all(horizontalPadding),
               child: aggregateData.when(
                 loading: () => const _ChartsLoadingPlaceholder(),
                 error: (e, _) => _ChartsErrorPlaceholder(
                   error: e.toString(),
-                  onRetry: () => ref.invalidate(analyticsFilterProvider),
+                  onRetry: () {
+                    ref.invalidate(aggregateDashboardProvider(filter));
+                    ref.invalidate(trendProvider(filter));
+                    ref.invalidate(channelProvider(filter));
+                    ref.invalidate(employeeProvider(filter));
+                  },
                 ),
                 data: (data) => ChartsSection(data: data),
               ),
@@ -85,8 +109,6 @@ class AnalyticsPage extends ConsumerWidget {
         ],
       ),
     );
-
-    return ResponsiveSidebarLayout(content: content);
   }
 }
 
@@ -120,7 +142,6 @@ class _ErrorDisplay extends StatelessWidget {
   }
 }
 
-/// Shimmer placeholder shown while chart data loads.
 class _ChartsLoadingPlaceholder extends StatelessWidget {
   const _ChartsLoadingPlaceholder();
 
@@ -129,13 +150,13 @@ class _ChartsLoadingPlaceholder extends StatelessWidget {
     return Column(
       children: List.generate(
         2,
-        (i) => Padding(
-          padding: const EdgeInsets.only(bottom: 16),
+        (i) => const Padding(
+          padding: EdgeInsets.only(bottom: 16),
           child: BaseChartCard(
-            title: 'Đang tải…',
+            title: 'Đang tải...',
             height: 200,
-            child: const ChartEmptyState(
-              message: 'Đang tải dữ liệu phân tích…',
+            child: ChartEmptyState(
+              message: 'Đang tải dữ liệu phân tích...',
             ),
           ),
         ),
@@ -144,12 +165,12 @@ class _ChartsLoadingPlaceholder extends StatelessWidget {
   }
 }
 
-/// Error card with retry button. Shown when chart API fails.
 class _ChartsErrorPlaceholder extends StatelessWidget {
   const _ChartsErrorPlaceholder({
     required this.error,
     required this.onRetry,
   });
+
   final String error;
   final VoidCallback onRetry;
 

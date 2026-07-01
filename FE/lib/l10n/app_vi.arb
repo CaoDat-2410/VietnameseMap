@@ -200,5 +200,6 @@
   "unarchive": "Khôi phục",
   "confirmDelete": "Xác nhận xóa",
   "confirmArchive": "Xác nhận lưu trữ",
-  "confirmUnarchive": "Xác nhận khôi phục"
+  "confirmUnarchive": "Xác nhận khôi phục",
+  "settings": "Cài đặt"
 }
