@@ -12,7 +12,7 @@ import '../features/analytics/presentation/pages/analytics_page.dart';
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/logout_page.dart';
 import '../features/auth/shared/auth_routes.dart';
-import '../features/auth/shared/providers/auth_provider.dart';
+import '../features/auth/presentation/providers/auth_viewmodel.dart';
 import '../features/auth/shared/token_storage.dart';
 import '../features/campaign/dashboard/pages/campaign_dashboard_page.dart';
 import '../features/campaign/dashboard/pages/campaign_list_page.dart';

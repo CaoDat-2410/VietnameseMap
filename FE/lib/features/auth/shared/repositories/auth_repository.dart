@@ -53,6 +53,20 @@ class AuthRepository {
     }
   }
 
+  Future<AuthUserModel> googleSignIn(String idToken) async {
+    final res = await _client.post<Map<String, dynamic>>(
+      '/api/v1/auth/google',
+      data: {'idToken': idToken},
+    );
+    final data = res.data!['data'] as Map<String, dynamic>;
+    final auth = AuthResponseModel.fromJson(data);
+    await _storage.saveTokens(
+      accessToken: auth.accessToken,
+      refreshToken: auth.refreshToken,
+    );
+    return auth.user;
+  }
+
   Future<bool> hasAccessToken() async {
     final token = await _storage.readAccessToken();
     return token != null && token.isNotEmpty;

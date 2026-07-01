@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/analytics/analytics_service.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../shared/auth_routes.dart';
-import '../../shared/providers/auth_provider.dart';
+import '../providers/auth_view_state.dart';
+import '../providers/auth_viewmodel.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -17,7 +19,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _saving = false;
 
   @override
   void dispose() {
@@ -28,28 +29,31 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _saving = true);
-    try {
-      final user = await ref.read(authControllerProvider.notifier).login(
-            _emailController.text.trim(),
-            _passwordController.text,
-          );
-      ref.invalidate(currentUserProvider);
-      if (mounted) context.go(landingPathForRole(user.role));
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.toString())),
+    await ref.read(authViewModelProvider.notifier).loginWithPassword(
+          _emailController.text.trim(),
+          _passwordController.text,
         );
-      }
-    } finally {
-      if (mounted) setState(() => _saving = false);
-    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(authViewModelProvider);
     final l10n = AppLocalizations.of(context)!;
+
+    // On successful login, navigate to role-specific home
+    ref.listen(authViewModelProvider, (previous, next) {
+      if (next is AuthViewStateData && next.user != null) {
+        final role = next.user!.role;
+        final method = next.loginMethod;
+        if (method != null) {
+          AnalyticsService.logEvent('login', {'method': method});
+        }
+        context.go(landingPathForRole(role));
+      }
+    });
+
+    final isLoading = state is AuthViewStateLoading;
+    final errorMessage = state is AuthViewStateError ? state.message : null;
 
     return Scaffold(
       body: Center(
@@ -78,13 +82,31 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       l10n.signInToContinue,
                       textAlign: TextAlign.center,
                     ),
+                    if (errorMessage != null) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.errorContainer,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          errorMessage,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onErrorContainer,
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     TextFormField(
                       controller: _emailController,
                       decoration: InputDecoration(labelText: l10n.email),
                       keyboardType: TextInputType.emailAddress,
                       autofillHints: const [AutofillHints.username],
-                      validator: (v) => v?.trim().isEmpty == true ? l10n.required : null,
+                      validator: (v) =>
+                          v?.trim().isEmpty == true ? l10n.required : null,
                     ),
                     const SizedBox(height: 12),
                     TextFormField(
@@ -93,16 +115,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       obscureText: true,
                       autofillHints: const [AutofillHints.password],
                       onFieldSubmitted: (_) {
-                        if (!_saving) _submit();
+                        if (!isLoading) _submit();
                       },
-                      validator: (v) => v?.trim().isEmpty == true ? l10n.required : null,
+                      validator: (v) =>
+                          v?.trim().isEmpty == true ? l10n.required : null,
                     ),
                     const SizedBox(height: 20),
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
-                        onPressed: _saving ? null : _submit,
-                        child: Text(_saving ? l10n.signingIn : l10n.loginButton),
+                        onPressed: isLoading ? null : _submit,
+                        child: Text(
+                            isLoading ? l10n.signingIn : l10n.loginButton),
                       ),
                     ),
                   ],
@@ -115,3 +139,4 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     );
   }
 }
+

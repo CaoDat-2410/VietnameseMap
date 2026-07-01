@@ -28,8 +28,11 @@ abstract class ViewModel<Loading extends ViewState<dynamic>, Data extends ViewSt
     extends StateNotifier<ViewState<dynamic>> {
   ViewModel() : super(const ViewStateLoading());
 
-  /// Sets the loading state. Override in subclasses to set a typed loading state.
-  void setLoading() {}
+  /// Sets the loading state.
+  // ignore: use_setters_to_change_properties
+  void setLoading() {
+    // ignore: avoid_returning_this
+  }
 
   /// Sets an error state with a human-readable [message].
   void setError(String message, [Object? error]) {
