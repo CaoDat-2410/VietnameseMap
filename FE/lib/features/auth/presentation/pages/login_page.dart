@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
+import '../../../../core/providers/remote_config_provider.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../shared/auth_routes.dart';
 import '../providers/auth_view_state.dart';
@@ -20,6 +21,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+
+  bool get _googleSignInEnabled {
+    final flags = ref.watch(remoteConfigProvider);
+    return flags.googleSignInEnabled;
+  }
 
   @override
   void dispose() {
@@ -148,28 +154,30 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        const Expanded(child: Divider()),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text(
-                            'hoặc',
-                            style: Theme.of(context).textTheme.bodySmall,
+                    if (_googleSignInEnabled) ...[
+                      Row(
+                        children: [
+                          const Expanded(child: Divider()),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              'hoặc',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
                           ),
-                        ),
-                        const Expanded(child: Divider()),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: isLoading ? null : _handleGoogleSignIn,
-                        icon: const Icon(Icons.g_mobiledata, size: 24),
-                        label: const Text('Đăng nhập với Google'),
+                          const Expanded(child: Divider()),
+                        ],
                       ),
-                    ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: isLoading ? null : _handleGoogleSignIn,
+                          icon: const Icon(Icons.g_mobiledata, size: 24),
+                          label: const Text('Đăng nhập với Google'),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

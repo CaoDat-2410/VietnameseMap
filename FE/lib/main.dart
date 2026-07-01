@@ -9,7 +9,7 @@ import 'core/monitoring/sentry_service.dart';
 import 'core/providers/locale_provider.dart';
 import 'core/providers/theme_provider.dart';
 import 'core/theme/app_theme.dart';
-import 'features/auth/shared/providers/auth_provider.dart';
+import 'features/auth/presentation/providers/auth_viewmodel.dart';
 import 'l10n/app_localizations.dart';
 
 Future<void> main() async {
