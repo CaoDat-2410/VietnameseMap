@@ -1,0 +1,24 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Logs
+*.log
+logs/
+
+# Docker volumes (never commit)
+docker-compose.override.yml
+
+# Firebase service account JSON (NEVER commit)
+*firebase*.json
+*google-services*.json
+
+# Environment files
+.env
+.env.local
+.env.*.local
