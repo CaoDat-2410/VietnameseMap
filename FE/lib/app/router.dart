@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import 'widgets/app_sidebar.dart';
 import 'widgets/app_shell_scaffold.dart';
+import '../core/monitoring/navigation_observer.dart';
 import '../features/admin/presentation/pages/admin_users_page.dart';
 import '../features/analytics/presentation/pages/analytics_page.dart';
 import '../features/auth/presentation/pages/login_page.dart';
@@ -98,6 +99,9 @@ MapRouteArgs parseMapArgs(Uri uri) {
 
 final router = GoRouter(
   initialLocation: '/login',
+  observers: [
+    AnalyticsNavigationObserver(),
+  ],
   redirect: (context, state) async {
     final path = state.uri.path;
     if (path == '/' || path.startsWith('/province/')) return '/map';

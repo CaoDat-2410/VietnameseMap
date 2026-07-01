@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/providers/analytics_consent_provider.dart';
 import '../../../../core/providers/locale_provider.dart';
 import '../../../../core/providers/theme_provider.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -12,6 +13,7 @@ class SettingsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
     final locale = ref.watch(localeProvider);
+    final analyticsEnabled = ref.watch(analyticsConsentProvider);
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -43,9 +45,14 @@ class SettingsPage extends ConsumerWidget {
                   },
                 ),
                 const SizedBox(height: 24),
-                _SectionHeader(title: 'Firebase'),
+                _SectionHeader(title: 'Quyền riêng tư & Phân tích'),
                 const SizedBox(height: 8),
-                _FirebaseTile(l10n: l10n),
+                _AnalyticsConsentTile(
+                  currentConsent: analyticsEnabled,
+                  onChanged: (value) {
+                    ref.read(analyticsConsentProvider.notifier).setConsent(value);
+                  },
+                ),
                 const SizedBox(height: 24),
                 _SectionHeader(title: 'Thông tin ứng dụng'),
                 const SizedBox(height: 8),
@@ -150,95 +157,36 @@ class _LanguageTile extends StatelessWidget {
   }
 }
 
-class _FirebaseTile extends StatelessWidget {
-  const _FirebaseTile({required this.l10n});
-  final AppLocalizations l10n;
+class _AnalyticsConsentTile extends StatelessWidget {
+  const _AnalyticsConsentTile({
+    required this.currentConsent,
+    required this.onChanged,
+  });
+
+  final bool currentConsent;
+  final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Opacity(
-      opacity: 0.55,
-      child: Card(
-        margin: EdgeInsets.zero,
-        color: isDark ? Colors.grey[850] : Colors.grey[100],
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    Icons.cloud_outlined,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Firebase',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'Sắp ra mắt',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Thông báo đẩy, đồng bộ đa thiết bị, và xác thực người dùng sẽ được kích hoạt khi kết nối Firebase.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-              ),
-              const SizedBox(height: 12),
-              _FirebaseSettingRow(label: 'google-services.json', value: 'Chưa kết nối'),
-              const SizedBox(height: 6),
-              _FirebaseSettingRow(label: 'Firebase project', value: 'Chưa cấu hình'),
-              const SizedBox(height: 6),
-              _FirebaseSettingRow(label: 'Push notifications', value: 'Tắt'),
-            ],
-          ),
+    return Card(
+      margin: EdgeInsets.zero,
+      child: SwitchListTile(
+        secondary: Icon(
+          Icons.analytics_outlined,
+          color: Theme.of(context).colorScheme.primary,
         ),
+        title: const Text('Cho phép phân tích'),
+        subtitle: Text(
+          currentConsent
+              ? 'Gửi dữ liệu sử dụng ẩn danh để cải thiện ứng dụng'
+              : 'Tắt theo dõi phân tích sử dụng',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+        ),
+        value: currentConsent,
+        onChanged: onChanged,
       ),
-    );
-  }
-}
-
-class _FirebaseSettingRow extends StatelessWidget {
-  const _FirebaseSettingRow({required this.label, required this.value});
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-        ),
-        Text(
-          value,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w500,
-              ),
-        ),
-      ],
     );
   }
 }
