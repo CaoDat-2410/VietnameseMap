@@ -2,11 +2,11 @@
 
 ## Current State
 
-**Last Updated:** 2026-06-24 23:51
-**Session ID:** session-20260624-marker-sidebar-analytics-dark-admin
-**Active Feature:** feat-056 (admin table) completed — ALL 5 PLAN STEPS DONE
+**Last Updated:** 2026-07-01 14:05
+**Session ID:** session-20260701-firebase-mvvm
+**Active Feature:** feat-071 (Phase 10 — final verification) — ALL 10 PHASES COMPLETE
 
-## Status: PLAN IMPLEMENTED — feat-047 … feat-051 DONE
+## Status: ALL 10 PLAN PHASES IMPLEMENTED (feat-062 through feat-071)
 
 ### Completed in this session
 
@@ -709,3 +709,99 @@ Wide-screen now shows: `Row([VietnamMapView (flex:3) | divider | ProvinceListBod
 - Sonar Quality Gate: OK.
 - Sonar metrics: coverage 81.8%, line coverage 86.7%, branch coverage 59.9%, new violations 0.
 - Report task: `cd8e31a1-1fba-4da7-b524-f51e7cff2fed`.
+
+---
+
+## Firebase + MVVM Integration — 2026-07-01 (feat-062 to feat-071)
+
+All 10 phases implemented and committed. Summary below.
+
+### Phase 1 — Firebase Setup + MVVM Convention (feat-062)
+- FE: pubspec.yaml packages, .env DEV/PROD Firebase keys, firebase_options.dart, firebase_initializer.dart
+- BE: firebase-admin 9.3.0, FirebaseConfig.java (Storage Bean), application.yml firebase section
+- FE/docs/MVVM_CONVENTION.md
+
+### Phase 2 — Analytics + Monitoring (feat-063)
+- Analytics events taxonomy + consent-gated AnalyticsService
+- SentryService (web) + CrashlyticsService (mobile)
+- AnalyticsNavigationObserver for GoRouter screen_view tracking
+- Wired into main.dart + router.dart
+
+### Phase 3 — MVVM Base + Auth Refactor (feat-064)
+- ViewState sealed base, abstract ViewModel (StateNotifier)
+- AuthViewState sealed, AuthViewModel (StateNotifier, replaces AuthController)
+- login_page.dart refactored to MVVM
+
+### Phase 4 — Google Sign-In (feat-065)
+- BE: GoogleAuthController / GoogleAuthService / tokeninfo verification / user provisioning
+- BE: migration_google_auth.sql (google_subject column)
+- FE: auth_repository.googleSignIn() + login_page Google button
+
+### Phase 5 — Firebase Remote Config (feat-066)
+- RemoteConfigKeys, RemoteConfigDefaults, RemoteConfigSnapshot
+- RemoteConfigService (initialize/fetch) + RemoteConfigNotifier provider
+- Google Sign-In button gated behind `remoteConfigProvider.googleSignInEnabled`
+
+### Phase 6 — Firebase Storage (feat-067)
+- BE: StorageController POST /api/v1/storage/upload-url, StorageService (GCS pre-signed URL, 15-min expiry)
+- FE: StorageRepository (URL generation + direct GCS PUT via Dio), StorageImage widget
+
+### Phase 7 — FCM Push Notifications (feat-068)
+- BE: NotificationService (saveToken/deleteToken/sendToUser/sendBroadcast), NotificationController, SecurityConfig rules
+- FE: MessagingService (init, permission, token registration, foreground/background handlers), NotificationCenter singleton, NotificationCenterPage
+
+### Phase 8 — Integration Test Suite (feat-069)
+- 4 test flows: login, campaign list, map page, settings
+- GitHub Actions workflow with macOS runner, docker compose backend, screenshot upload on failure
+
+### Phase 9 — AI Code Review (feat-070)
+- .github/workflows/ai-review.yml with templates for CodeRabbit, DeepReview, ReviewNB
+
+### Phase 10 — Final Verification (feat-071)
+- flutter analyze lib/: **0 errors** (118 info hints, all pre-existing)
+- feature_list.json + progress.md updated
+- 10 commits total for the Firebase integration
+
+### Verification
+| Check | Result |
+|-------|--------|
+| flutter analyze lib/ | 0 errors, 118 info hints |
+| flutter analyze lib/core/ | 0 errors |
+| flutter analyze lib/features/auth/ | 0 errors |
+| flutter analyze lib/features/storage/ | 0 errors |
+| flutter analyze lib/core/messaging/ | 0 errors |
+| flutter analyze lib/features/notifications/ | 0 errors |
+| flutter analyze integration_test/ | 0 errors |
+
+### Git Commits (all phases)
+| Commit | Phase |
+|--------|-------|
+| `firebase-setup` | Phase 1 — Firebase project setup + MVVM convention |
+| `analytics-monitoring` | Phase 2 — Firebase Analytics + Sentry + Crashlytics |
+| `mvvm-architecture` | Phase 3 — MVVM base + Auth refactor |
+| `google-signin` | Phase 4 — Google Sign-In backend + FE button |
+| `remote-config` | Phase 5 — Firebase Remote Config |
+| `firebase-storage` | Phase 6 — Firebase Storage |
+| `fcm-notifications` | Phase 7 — FCM push notifications |
+| `integration-test-suite` | Phase 8 — Integration tests |
+| `ai-review-workflow` | Phase 9 — AI code review workflow |
+| `final-verification` | Phase 10 — Docs update |
+
+### Prerequisites for Full Activation
+| Service | Required Setup |
+|---------|--------------|
+| Firebase Analytics | Firebase project + google-services.json (FE) + FIREBASE_API_KEY |
+| Firebase Auth | Enable Google Sign-In in Firebase Console |
+| Firebase Storage | Enable Storage in Firebase Console + FIREBASE_STORAGE_BUCKET |
+| Firebase Messaging | Generate FCM Web Push Certs + VAPID key |
+| Firebase Crashlytics | Enable Crashlytics in Firebase Console (mobile only) |
+| Firebase Remote Config | Define keys in Firebase Console (use defaults until then) |
+| Sentry (Web) | SENTRY_DSN env var in .env |
+| Backend Firebase Admin | FIREBASE_SERVICE_ACCOUNT_JSON env var |
+
+### Notes for Next Session
+- Default credentials: `admin@vnmap.local` / `admin123`
+- All new BE endpoints require JWT auth (except documented permitAll paths)
+- FE integration tests require backend running (`docker compose up -d`)
+- GitHub Actions E2E workflow requires self-hosted macOS runner or macOS-large GitHub runner
+
