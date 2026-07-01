@@ -45,6 +45,21 @@ dependencies:
   # Admin
   data_table_2: ^2.7.2
 
+  # Firebase
+  firebase_core: ^3.9.0
+  firebase_analytics: ^11.3.0
+  firebase_auth: ^5.3.0
+  firebase_storage: ^12.3.0
+  firebase_messaging: ^15.1.0
+  firebase_crashlytics: ^4.2.0
+  firebase_remote_config: ^5.1.0
+
+  # Sentry (Web + Mobile crash reporting)
+  sentry_flutter: ^8.1.0
+
+  # Google Sign-In
+  google_sign_in: ^6.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

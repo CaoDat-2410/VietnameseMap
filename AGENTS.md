@@ -46,6 +46,26 @@ If baseline verification is failing, repair that first before adding new scope.
 - `progress.md` - Session continuity log
 - `session-handoff.md` - Optional, for larger sessions
 
+## Architecture References
+
+- **`docs/MVVM_CONVENTION.md`** — MVVM pattern: ViewState, ViewModel Notifier, Repository contract. All new features must follow this convention.
+- **`docs/PROJECT_CONTEXT.md`** — Architecture overview, data flow, and technology decisions.
+
+## Firebase Conventions
+
+- **Firebase NOT initialized on startup by default** — `Firebase.initializer.dart` throws on mobile unless platform-specific config files are present. Web only.
+- **Service account never committed** — `BE/.gitignore` excludes all `*firebase*.json`, `*google-services*.json`, `service-account*.json` files. Set via env var.
+- **Remote config flags** — managed in Firebase Console; consumed via `RemoteConfigProvider`. Never hardcode feature gates.
+- **Analytics opt-in** — user consent via Settings page; gate all `logEvent()` calls behind consent check.
+
+## Backend Firebase Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `FIREBASE_SERVICE_ACCOUNT_JSON` | Full JSON string of Firebase service account (preferred for Docker) |
+| `FIREBASE_SERVICE_ACCOUNT_FILE` | Classpath or file path to service account JSON |
+| `FIREBASE_STORAGE_BUCKET` | GCS bucket name (default: `vnmap-campaign.appspot.com`) |
+
 ## Definition of Done
 
 A feature is done only when ALL of the following are true:

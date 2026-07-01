@@ -14,6 +14,12 @@ class AppConfig {
   /// Check if running in production mode
   static bool get isProduction => envMode == 'production';
 
+  /// Firebase environment: 'dev' or 'prod'
+  /// Used to select the correct Firebase project (FirebaseOptions)
+  static String get firebaseEnv {
+    return dotenv.env['FIREBASE_ENV'] ?? 'dev';
+  }
+
   /// Backend API base URL
   /// Can be set via:
   /// 1. Environment variable: flutter run --dart-define=API_BASE_URL=http://...

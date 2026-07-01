@@ -120,6 +120,13 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- Firebase Admin SDK for Storage, FCM, and Auth -->
+        <dependency>
+            <groupId>com.google.firebase</groupId>
+            <artifactId>firebase-admin</artifactId>
+            <version>9.3.0</version>
+        </dependency>
+
         <!-- Testing -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
