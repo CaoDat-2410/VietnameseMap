@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -33,6 +34,23 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           _emailController.text.trim(),
           _passwordController.text,
         );
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    try {
+      final googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) return;
+      final auth = await googleUser.authentication;
+      final idToken = auth.idToken;
+      if (idToken == null) return;
+      await ref.read(authViewModelProvider.notifier).loginWithGoogle(idToken);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Đăng nhập Google thất bại: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -127,6 +145,29 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         onPressed: isLoading ? null : _submit,
                         child: Text(
                             isLoading ? l10n.signingIn : l10n.loginButton),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const Expanded(child: Divider()),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            'hoặc',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                        const Expanded(child: Divider()),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: isLoading ? null : _handleGoogleSignIn,
+                        icon: const Icon(Icons.g_mobiledata, size: 24),
+                        label: const Text('Đăng nhập với Google'),
                       ),
                     ),
                   ],
