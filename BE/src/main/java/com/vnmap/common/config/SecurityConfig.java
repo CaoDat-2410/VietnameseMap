@@ -64,6 +64,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/students/**", "/api/v1/persons/**", "/api/v1/student-relatives/**").hasAnyRole(MANAGER, ADMIN)
                         .requestMatchers("/api/v1/geo/**", "/api/v1/weather/**").permitAll()
                         .requestMatchers("/api/analytics/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/notifications/token").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/notifications/token").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/notifications/send").hasAnyRole(STAFF, MANAGER, ADMIN)
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
