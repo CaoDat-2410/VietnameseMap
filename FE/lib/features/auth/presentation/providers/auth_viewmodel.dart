@@ -58,6 +58,23 @@ class AuthViewModel extends StateNotifier<AuthViewState> {
     }
   }
 
+  Future<void> registerWithPassword({
+    required String email,
+    required String password,
+  }) async {
+    state = const AuthViewStateLoading();
+    try {
+      final user = await _repository.registerWithPassword(
+        email: email,
+        password: password,
+      );
+      state = AuthViewStateData(user, loginMethod: 'password');
+      AnalyticsService.logEvent('sign_up', {'method': 'password'});
+    } catch (e) {
+      state = AuthViewStateError('Đăng ký thất bại: ' + e.toString());
+    }
+  }
+
   Future<void> logout() async {
     try {
       await _repository.logout();

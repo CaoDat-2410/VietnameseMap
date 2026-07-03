@@ -66,6 +66,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signingIn => 'Signing in...';
 
   @override
+  String get signUp => 'Sign up';
+
+  @override
   String get loginButton => 'Login';
 
   @override
@@ -494,4 +497,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settings => 'Settings';
+
+  @override
+  String get registerForEvent => 'Register for event';
+
+  @override
+  String get registerForEventSubtitle => 'Submit your information to register';
+
+  @override
+  String get yourInformation => 'Your information';
+
+  @override
+  String get schoolInformation => 'School information';
+
+  @override
+  String get searchSchool => 'Search school';
+
+  @override
+  String get className => 'Class';
+
+  @override
+  String get registrationSuccess => 'Registration submitted';
+
+  @override
+  String get pleaseSelectSchool => 'Please select a school';
+
+  @override
+  String get register => 'Register';
+
+  @override
+  String get showOnMap => 'Show on map';
+
+  @override
+  String get noSchoolsFoundHint => 'No schools found. Try a different keyword.';
 }

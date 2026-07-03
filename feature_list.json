@@ -1203,9 +1203,9 @@
                            "note":  "User asked about auto-grading approach based on interaction/outcome data"
                        },
                        {
-                           "issue":  "feat-077 Part 2 (FE follow-up) not yet started",
-                           "priority":  "medium",
-                           "note":  "Backend complete. Pending: student home, registration form, event detail map link"
+                          "issue":  "feat-077 Part 2 (FE follow-up) completed",
+                          "priority":  "info",
+                          "note":  "Backend + Frontend complete. flutter analyze OK (info-only), flutter build web --release SUCCESS"
                        },
                        {
                            "issue":  "feat-078 (notification bell) and feat-079 (profile page) not yet started",
@@ -1217,10 +1217,10 @@
         {
             "id": "feat-077",
             "name": "Student role permissions + student-registration flow",
-            "status": "backend-complete / fe-pending",
+            "status": "completed (backend + frontend)",
             "backendDone": true,
-            "feDone": false,
-            "evidence": "SecurityConfig opens /campaigns, /events, /schools, /student-registrations to STUDENT; controller/service handle authenticated STUDENT path (skip password); verified with curl: 200 OK on read, 403 on admin, 200 OK on POST registration"
+            "feDone": true,
+            "evidence": "BE: SecurityConfig opens /campaigns, /events, /schools, /student-registrations to STUDENT; controller/service handle authenticated STUDENT path (skip password); verified with curl: 200 OK on read, 403 on admin, 200 OK on POST registration. FE: student_home_page adds Available campaigns + My registrations actions; campaign_list_page adds per-card Đăng ký button for STUDENT; new event_registration_page (form + school search/select + grade/class/note); router adds /student/register-event/:campaignId and /student/my-registrations routes gated to STUDENT; auth_repository.registerWithPassword + auth_viewmodel.registerWithPassword backing register_page; pubspec adds url_launcher; flutter analyze (target dirs) 45 info-only lint, no error/warn; flutter build web --release SUCCESS"
         },
         {
             "id": "feat-078",

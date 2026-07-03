@@ -36,7 +36,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get schools => 'Trường học';
 
   @override
-  String get school => 'Trường học';
+  String get school => 'Trường';
 
   @override
   String get users => 'Người dùng';
@@ -64,6 +64,9 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get signingIn => 'Đang đăng nhập...';
+
+  @override
+  String get signUp => 'Đăng ký';
 
   @override
   String get loginButton => 'Đăng nhập';
@@ -157,7 +160,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get noEmployees => 'Không có nhân viên';
 
   @override
-  String get noRegistrationsYet => 'Chưa có đăng ký';
+  String get noRegistrationsYet => 'Chưa có đăng ký nào';
 
   @override
   String get noData => 'Không có dữ liệu';
@@ -280,13 +283,13 @@ class AppLocalizationsVi extends AppLocalizations {
   String get note => 'Ghi chú';
 
   @override
-  String get grade => 'Khối lớp';
+  String get grade => 'Khối';
 
   @override
   String get classLabel => 'Lớp';
 
   @override
-  String get phone => 'Điện thoại';
+  String get phone => 'Số điện thoại';
 
   @override
   String get role => 'Vai trò';
@@ -495,4 +498,37 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get settings => 'Cài đặt';
+
+  @override
+  String get registerForEvent => 'Đăng ký sự kiện';
+
+  @override
+  String get registerForEventSubtitle => 'Điền thông tin để đăng ký';
+
+  @override
+  String get yourInformation => 'Thông tin của bạn';
+
+  @override
+  String get schoolInformation => 'Thông tin trường học';
+
+  @override
+  String get searchSchool => 'Tìm trường';
+
+  @override
+  String get className => 'Lớp';
+
+  @override
+  String get registrationSuccess => 'Đăng ký thành công';
+
+  @override
+  String get pleaseSelectSchool => 'Vui lòng chọn trường';
+
+  @override
+  String get register => 'Đăng ký';
+
+  @override
+  String get showOnMap => 'Xem trên bản đồ';
+
+  @override
+  String get noSchoolsFoundHint => 'Không tìm thấy trường. Thử từ khóa khác.';
 }

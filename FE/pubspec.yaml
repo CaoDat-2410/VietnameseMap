@@ -42,6 +42,9 @@ dependencies:
   # Charts
   fl_chart: ^0.69.0
 
+  # URL launching (open maps, phones, etc.)
+  url_launcher: ^6.3.0
+
   # Admin
   data_table_2: ^2.7.2
 

@@ -71,4 +71,21 @@ class AuthRepository {
     final token = await _storage.readAccessToken();
     return token != null && token.isNotEmpty;
   }
+
+  Future<AuthUserModel> registerWithPassword({
+    required String email,
+    required String password,
+  }) async {
+    final res = await _client.post<Map<String, dynamic>>(
+      '/api/v1/auth/register',
+      data: {'email': email, 'password': password},
+    );
+    final data = res.data!['data'] as Map<String, dynamic>;
+    final auth = AuthResponseModel.fromJson(data);
+    await _storage.saveTokens(
+      accessToken: auth.accessToken,
+      refreshToken: auth.refreshToken,
+    );
+    return auth.user;
+  }
 }

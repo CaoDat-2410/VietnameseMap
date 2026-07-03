@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/bento_card.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../auth/shared/providers/auth_provider.dart';
 import '../../data/providers/student_home_provider.dart';
 import '../widgets/home_page_shell.dart';
@@ -15,6 +16,7 @@ class StudentHomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
     final homeData = ref.watch(studentHomeProvider);
     final user = ref.watch(activeUserProvider).valueOrNull;
     final campaigns = ref.watch(availableCampaignsProvider);
@@ -25,66 +27,60 @@ class StudentHomePage extends ConsumerWidget {
         error: error,
         onRetry: () => ref.invalidate(studentHomeProvider),
       ),
-      data: (model) => Scaffold(
-        body: HomePageShell(
-          title: 'Xin chào, ${user?.email ?? 'Sinh viên'}!',
-          subtitle: 'Theo dõi hoạt động đăng ký của bạn',
-          actions: [
-            HomeAction(
-              label: 'Đăng ký chiến dịch',
-              icon: Icons.add,
-              isPrimary: true,
-              onPressed: () => _showCampaignRegistration(context, campaigns),
-            ),
-            HomeAction(
-              label: 'Xem trường học',
-              icon: Icons.school_outlined,
-              onPressed: () => context.go('/schools'),
-            ),
-          ],
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.base),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _KpiRow(model: model),
-                const SizedBox(height: AppSpacing.base),
-                _HomeGridRow(
-                  spans: const [8, 4],
-                  children: [
-                    _RegistrationsCard(registrations: model.registrations),
-                    _ProfileCard(user: user),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.base),
-                campaigns.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (_, __) => const SizedBox.shrink(),
-                  data: (list) => list.isEmpty
-                      ? const SizedBox.shrink()
-                      : _CampaignsCard(campaigns: list),
-                ),
-                const SizedBox(height: AppSpacing.base),
-              ],
+      data: (model) {
+        return Scaffold(
+          body: HomePageShell(
+            title: 'Xin chào, ${user?.email ?? 'Sinh viên'}!',
+            subtitle: 'Theo dõi hoạt động đăng ký của bạn',
+            actions: [
+              HomeAction(
+                label: l10n.registerForEvent,
+                icon: Icons.add,
+                isPrimary: true,
+                onPressed: () => context.go('/campaigns'),
+              ),
+              HomeAction(
+                label: l10n.schools,
+                icon: Icons.school_outlined,
+                onPressed: () => context.go('/schools'),
+              ),
+              HomeAction(
+                label: l10n.myRegistrations,
+                icon: Icons.assignment_ind_outlined,
+                onPressed: () => context.go('/student/my-registrations'),
+              ),
+            ],
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(AppSpacing.base),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _KpiRow(model: model),
+                  const SizedBox(height: AppSpacing.base),
+                  _HomeGridRow(
+                    spans: const [8, 4],
+                    children: [
+                      _RegistrationsCard(registrations: model.registrations),
+                      _ProfileCard(user: user),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.base),
+                  campaigns.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (_, __) => const SizedBox.shrink(),
+                    data: (list) => list.isEmpty
+                        ? const SizedBox.shrink()
+                        : _CampaignsCard(campaigns: list),
+                  ),
+                  const SizedBox(height: AppSpacing.base),
+                ],
+              ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  void _showCampaignRegistration(
-      BuildContext context, AsyncValue<List<dynamic>> campaigns) {
-    campaigns.whenData((list) {
-      if (list.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Không có chiến dịch nào đang tuyển')),
         );
-        return;
-      }
-      context.go('/campaigns');
-    });
+      },
+    );
   }
 }
 

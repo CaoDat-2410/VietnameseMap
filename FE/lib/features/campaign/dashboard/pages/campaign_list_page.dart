@@ -207,7 +207,7 @@ class _CampaignFilters extends StatelessWidget {
   }
 }
 
-class _CampaignCard extends StatelessWidget {
+class _CampaignCard extends ConsumerWidget {
   const _CampaignCard({
     required this.campaign,
     required this.canManage,
@@ -221,8 +221,9 @@ class _CampaignCard extends StatelessWidget {
   final VoidCallback onArchive;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
+    final role = ref.watch(activeUserProvider).valueOrNull?.role;
 
     return Card(
       child: Padding(
@@ -277,6 +278,13 @@ class _CampaignCard extends StatelessWidget {
                   icon: const Icon(Icons.event_outlined),
                   label: Text(l10n.events),
                 ),
+                if (role == 'STUDENT')
+                  FilledButton.icon(
+                    onPressed: () => context.go(
+                        '/student/register-event/${campaign.id}'),
+                    icon: const Icon(Icons.app_registration),
+                    label: Text(l10n.register),
+                  ),
               ],
             ),
           ],

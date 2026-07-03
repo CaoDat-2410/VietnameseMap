@@ -26,6 +26,7 @@ import '../features/map/presentation/pages/map_page.dart';
 import '../features/school/presentation/pages/school_detail_page.dart';
 import '../features/school/presentation/pages/school_list_page.dart';
 import '../features/settings/presentation/pages/settings_page.dart';
+import '../features/student/presentation/pages/event_registration_page.dart';
 import '../features/student/presentation/pages/my_registrations_page.dart';
 import '../features/student/presentation/pages/student_register_page.dart';
 import '../features/weather/presentation/pages/weather_page.dart';
@@ -174,7 +175,7 @@ final router = GoRouter(
             context: context,
             state: state,
             child: _RoleGate(
-              allowedRoles: {'STAFF', 'MANAGER', 'ADMIN'},
+              allowedRoles: {'STAFF', 'MANAGER', 'ADMIN', 'STUDENT'},
               child: const CampaignListPage(),
             ),
           ),
@@ -209,7 +210,7 @@ final router = GoRouter(
             context: context,
             state: state,
             child: _RoleGate(
-              allowedRoles: const {'STAFF', 'MANAGER', 'ADMIN'},
+              allowedRoles: const {'STAFF', 'MANAGER', 'ADMIN', 'STUDENT'},
               child: CampaignEventsPage(
                 campaignId: int.parse(state.pathParameters['campaignId']!),
               ),
@@ -222,7 +223,7 @@ final router = GoRouter(
             context: context,
             state: state,
             child: _RoleGate(
-              allowedRoles: const {'STAFF', 'MANAGER', 'ADMIN'},
+              allowedRoles: const {'STAFF', 'MANAGER', 'ADMIN', 'STUDENT'},
               child: EventDetailPage(
                 eventId: int.parse(state.pathParameters['eventId']!),
               ),
@@ -235,7 +236,7 @@ final router = GoRouter(
             context: context,
             state: state,
             child: _RoleGate(
-              allowedRoles: {'STAFF', 'MANAGER', 'ADMIN'},
+              allowedRoles: {'STAFF', 'MANAGER', 'ADMIN', 'STUDENT'},
               child: const SchoolListPage(),
             ),
           ),
@@ -246,9 +247,22 @@ final router = GoRouter(
             context: context,
             state: state,
             child: _RoleGate(
-              allowedRoles: const {'STAFF', 'MANAGER', 'ADMIN'},
+              allowedRoles: const {'STAFF', 'MANAGER', 'ADMIN', 'STUDENT'},
               child: SchoolDetailPage(
                 schoolUid: state.pathParameters['schoolUid']!,
+              ),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/student/register-event/:campaignId',
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
+            child: _RoleGate(
+              allowedRoles: const {'STUDENT'},
+              child: EventRegistrationPage(
+                campaignId: int.parse(state.pathParameters['campaignId']!),
               ),
             ),
           ),

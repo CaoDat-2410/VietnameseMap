@@ -212,6 +212,12 @@ abstract class AppLocalizations {
   /// **'Signing in...'**
   String get signingIn;
 
+  /// No description provided for @signUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign up'**
+  String get signUp;
+
   /// No description provided for @loginButton.
   ///
   /// In en, this message translates to:
@@ -1051,6 +1057,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Settings'**
   String get settings;
+
+  /// No description provided for @registerForEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'Register for event'**
+  String get registerForEvent;
+
+  /// No description provided for @registerForEventSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit your information to register'**
+  String get registerForEventSubtitle;
+
+  /// No description provided for @yourInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Your information'**
+  String get yourInformation;
+
+  /// No description provided for @schoolInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'School information'**
+  String get schoolInformation;
+
+  /// No description provided for @searchSchool.
+  ///
+  /// In en, this message translates to:
+  /// **'Search school'**
+  String get searchSchool;
+
+  /// No description provided for @className.
+  ///
+  /// In en, this message translates to:
+  /// **'Class'**
+  String get className;
+
+  /// No description provided for @registrationSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration submitted'**
+  String get registrationSuccess;
+
+  /// No description provided for @pleaseSelectSchool.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a school'**
+  String get pleaseSelectSchool;
+
+  /// No description provided for @register.
+  ///
+  /// In en, this message translates to:
+  /// **'Register'**
+  String get register;
+
+  /// No description provided for @showOnMap.
+  ///
+  /// In en, this message translates to:
+  /// **'Show on map'**
+  String get showOnMap;
+
+  /// No description provided for @noSchoolsFoundHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No schools found. Try a different keyword.'**
+  String get noSchoolsFoundHint;
 }
 
 class _AppLocalizationsDelegate

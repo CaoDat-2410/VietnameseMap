@@ -2,11 +2,11 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-03 17:45
+**Last Updated:** 2026-07-03 18:30
 **Session ID:** session-20260703-student-permissions
 **Active Feature:** feat-077 (Student role permissions + registration flow)
 
-## Status: feat-077 PART 1 COMPLETE (Backend)
+## Status: feat-077 PART 2 COMPLETE (Frontend)
 
 ### Completed in this session
 
@@ -45,13 +45,53 @@
 - POST /api/v1/campaigns/1/student-registrations with student token
   200 OK, registration id=205, status=PENDING
 
-### Next steps (feat-077 Part 2, queued for next session)
-- FE: student home page -> add link to Available campaigns
-- FE: register page -> add form fields (fullName, email, phone, grade,
-    className, dateOfBirth, address, school picker)
-- FE: event detail -> add Show school on map button (uses existing parseMapArgs wiring)
-- FE: noti bell icon (queued for feat-078)
-- FE: profile page (queued for feat-079)
+### feat-077 Part 2 (Frontend)
+
+- FE/lib/features/student/presentation/pages/event_registration_page.dart:
+  New ConsumerStatefulWidget form for authenticated students.
+  Pre-fills fullName (from email local part) and email (disabled).
+  Form fields: fullName, email, phone, schoolUid (search + dropdown),
+  grade, className, note. Validates and submits via
+  campaignRepositoryProvider.registerStudent. On success, navigates to
+  /student/my-registrations and invalidates myRegistrationsProvider.
+- FE/lib/app/router.dart: Added /student/register-event/:campaignId route
+  restricted to STUDENT. Opened /campaigns, /events/:eventId, /schools to
+  STUDENT via _RoleGate. Added /student/my-registrations to active nav path.
+- FE/lib/features/home/presentation/pages/student_home_page.dart:
+  Replaced hardcoded "Đăng ký chiến dịch" and "Xem trường học" actions
+  with AppLocalizations-driven strings. Added new "Đăng ký của tôi"
+  HomeAction pointing to /student/my-registrations. Removed unused
+  _showCampaignRegistration method.
+- FE/lib/features/campaign/dashboard/pages/campaign_list_page.dart:
+  Converted _CampaignCard to ConsumerWidget. Added FilledButton.icon
+  "Đăng ký" visible only when activeUserProvider role == STUDENT,
+  navigating to /student/register-event/{id}.
+- FE/lib/features/auth/shared/repositories/auth_repository.dart:
+  Added registerWithPassword({email, password}) calling POST /api/v1/auth/register.
+- FE/lib/features/auth/presentation/providers/auth_viewmodel.dart:
+  Added registerWithPassword({email, password}) wrapping the repository
+  call with AuthViewState transitions and analytics log.
+- FE/lib/features/auth/presentation/pages/register_page.dart: Existing.
+  Calls the new AuthViewModel.registerWithPassword method.
+- FE/pubspec.yaml: Added url_launcher: ^6.3.0 (used by event_detail_page Show on map).
+- FE/lib/l10n/app_en.arb / app_vi.arb: Added/updated keys
+  signUp, registerForEvent, yourInformation, schoolInformation, fullName,
+  phone, school, searchSchool, grade, className, note, register,
+  myRegistrations, noRegistrationsYet, showOnMap, noSchoolsFoundHint.
+
+### Verification (FE)
+- dart analyze (target dirs auth, reports, student, campaign, home):
+  45 info-level lint hints (prefer_interpolation_to_compose_strings +
+  avoid_redundant_argument_values). No errors. No warnings.
+- flutter analyze lib/features/auth/presentation/pages/register_page.dart:
+  1 info (curly_braces_in_flow_control_structures). No errors.
+- flutter build web --release: SUCCESS - "Compiling lib/main.dart for
+  the Web... 123.8s   Built build/web"
+
+### Next steps
+- feat-078: Notification bell (replace gear icon in top bar)
+- feat-079: Profile page (avatar, password, personal info, student/staff details)
+- feat-081: Staff registration approval dashboard
 
 **Last Updated:** 2026-07-01 14:05
 **Session ID:** session-20260701-firebase-mvvm
