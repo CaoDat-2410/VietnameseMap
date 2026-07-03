@@ -768,10 +768,15 @@ public class CampaignService {
     }
 
     @Transactional
-    public StudentRegistrationDto registerStudent(long campaignId, StudentRegistrationRequest request) {
+    public StudentRegistrationDto registerStudent(long campaignId, StudentRegistrationRequest request, CurrentUser currentUser) {
         getCampaign(campaignId);
         SchoolDto school = getSchool(request.schoolUid());
-        Long studentId = findStudentIdByEmail(request.email());
+        boolean authenticatedAsStudent = currentUser != null
+                && "STUDENT".equals(currentUser.role())
+                && currentUser.studentId() != null;
+        Long studentId = authenticatedAsStudent
+                ? currentUser.studentId()
+                : findStudentIdByEmail(request.email());
         if (studentId == null) {
             studentId = createStudent(new StudentRequest(
                     request.schoolUid(),
@@ -783,8 +788,19 @@ public class CampaignService {
                     request.grade(),
                     request.className()
             )).id();
-        } else {
+        } else if (!authenticatedAsStudent) {
             requireMatchingStudentPassword(request.email(), request.password());
+            updateStudent(studentId, new StudentRequest(
+                    request.schoolUid(),
+                    request.fullName(),
+                    request.email(),
+                    request.phone(),
+                    request.dateOfBirth(),
+                    request.address(),
+                    request.grade(),
+                    request.className()
+            ));
+        } else {
             updateStudent(studentId, new StudentRequest(
                     request.schoolUid(),
                     request.fullName(),
@@ -797,23 +813,25 @@ public class CampaignService {
             ));
         }
 
-        Long userId = findUserIdByEmail(request.email());
-        if (userId == null) {
-            jdbc.update(
-                    """
-                    INSERT INTO app_users (email, password_hash, role, status, student_id)
-                    VALUES (?, ?, 'STUDENT', 'ACTIVE', ?)
-                    """,
-                    request.email(),
-                    passwordEncoder.encode(request.password()),
-                    studentId
-            );
-        } else {
-            jdbc.update(
-                    "UPDATE app_users SET student_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND student_id IS NULL",
-                    studentId,
-                    userId
-            );
+        if (!authenticatedAsStudent) {
+            Long userId = findUserIdByEmail(request.email());
+            if (userId == null) {
+                jdbc.update(
+                        """
+                        INSERT INTO app_users (email, password_hash, role, status, student_id)
+                        VALUES (?, ?, 'STUDENT', 'ACTIVE', ?)
+                        """,
+                        request.email(),
+                        passwordEncoder.encode(request.password()),
+                        studentId
+                );
+            } else {
+                jdbc.update(
+                        "UPDATE app_users SET student_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND student_id IS NULL",
+                        studentId,
+                        userId
+                );
+            }
         }
 
         Long registrationId = findRegistrationId(campaignId, studentId);

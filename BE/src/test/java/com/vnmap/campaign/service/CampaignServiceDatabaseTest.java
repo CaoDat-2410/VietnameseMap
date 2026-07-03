@@ -160,7 +160,7 @@ class CampaignServiceDatabaseTest {
                 "Coverage address",
                 "Interested"
         );
-        StudentRegistrationDto registration = service.registerStudent(campaign.id(), registrationRequest);
+        StudentRegistrationDto registration = service.registerStudent(campaign.id(), registrationRequest, null);
         assertThat(registration.status()).isEqualTo("PENDING");
         assertThat(service.getCampaignRegistrations(campaign.id())).extracting(StudentRegistrationDto::id)
                 .contains(registration.id());
@@ -168,12 +168,12 @@ class CampaignServiceDatabaseTest {
                 .extracting(StudentRegistrationDto::id)
                 .contains(registration.id());
         assertThat(service.updateRegistrationStatus(registration.id(), "APPROVED").status()).isEqualTo("APPROVED");
-        assertThatThrownBy(() -> service.registerStudent(campaign.id(), registrationRequest))
+        assertThatThrownBy(() -> service.registerStudent(campaign.id(), registrationRequest, null))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Registration already exists");
 
         service.updateRegistrationStatus(registration.id(), "REJECTED");
-        StudentRegistrationDto reopened = service.registerStudent(campaign.id(), registrationRequest);
+        StudentRegistrationDto reopened = service.registerStudent(campaign.id(), registrationRequest, null);
         assertThat(reopened.status()).isEqualTo("PENDING");
         StudentRegistrationRequest wrongPassword = new StudentRegistrationRequest(
                 schoolUid,
@@ -187,7 +187,7 @@ class CampaignServiceDatabaseTest {
                 "Coverage address",
                 "Interested"
         );
-        assertThatThrownBy(() -> service.registerStudent(campaign.id(), wrongPassword))
+        assertThatThrownBy(() -> service.registerStudent(campaign.id(), wrongPassword, null))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Email or password is incorrect");
 

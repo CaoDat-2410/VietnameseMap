@@ -23,6 +23,9 @@ public class SecurityConfig {
     private static final String ADMIN = "ADMIN";
     private static final String MANAGER = "MANAGER";
     private static final String STAFF = "STAFF";
+    private static final String STUDENT = "STUDENT";
+    private static final String AUTHENTICATED =
+            "hasAnyRole('" + STAFF + "','" + MANAGER + "','" + ADMIN + "','" + STUDENT + "')";
     private static final String EVENTS_API = "/api/v1/events/**";
 
     @Bean
@@ -41,32 +44,36 @@ public class SecurityConfig {
                                 writeError(response, objectMapper, HttpServletResponse.SC_FORBIDDEN, "Forbidden"))
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/refresh").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/google", "/api/v1/auth/register").permitAll()
                         .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
                         .requestMatchers(HttpMethod.GET, "/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/campaigns/*").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/campaigns/*/student-registrations").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/student-registrations/my").hasRole("STUDENT")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/campaigns", "/api/v1/campaigns/*", "/api/v1/campaigns/*/events", EVENTS_API, "/api/v1/schools/**").hasAnyRole(STAFF, MANAGER, ADMIN, STUDENT)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/campaigns/*/student-registrations").hasAnyRole(STAFF, MANAGER, ADMIN, STUDENT)
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/student-registrations/*/status").hasAnyRole(STAFF, MANAGER, ADMIN)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/student-registrations/my").hasAnyRole(STAFF, MANAGER, ADMIN, STUDENT)
                         .requestMatchers(HttpMethod.GET, "/api/v1/campaigns/*/student-registrations").hasAnyRole(STAFF, MANAGER, ADMIN)
                         .requestMatchers(HttpMethod.GET, "/api/v1/students/**", "/api/v1/persons/**", "/api/v1/student-relatives/**").hasAnyRole(STAFF, MANAGER, ADMIN)
                         .requestMatchers(HttpMethod.GET, "/api/v1/employees", "/api/v1/events/*/schools", "/api/v1/events/*/assignments").hasAnyRole(STAFF, MANAGER, ADMIN)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/campaigns", "/api/v1/campaigns/*/dashboard", "/api/v1/campaigns/*/events", EVENTS_API, "/api/v1/schools/**").hasAnyRole(STAFF, MANAGER, ADMIN)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/campaigns/*/dashboard").hasAnyRole(MANAGER, ADMIN)
                         .requestMatchers(HttpMethod.POST, "/api/v1/events/*/interactions").hasAnyRole(STAFF, MANAGER, ADMIN)
                         .requestMatchers(HttpMethod.PUT, "/api/v1/events/*/interactions/*").hasAnyRole(STAFF, MANAGER, ADMIN)
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/events/*/interactions/*").hasAnyRole(STAFF, MANAGER, ADMIN)
                         .requestMatchers("/api/v1/users/**").hasRole(ADMIN)
+                        .requestMatchers("/api/v1/reports/**").hasAnyRole(MANAGER, ADMIN)
                         .requestMatchers(HttpMethod.POST, "/api/v1/employees").hasRole(ADMIN)
                         .requestMatchers(HttpMethod.PUT, "/api/v1/employees/**").hasRole(ADMIN)
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/employees/**").hasRole(ADMIN)
                         .requestMatchers(HttpMethod.POST, "/api/v1/campaigns", "/api/v1/campaigns/*/events", "/api/v1/events/*/schools", "/api/v1/events/*/assignments").hasAnyRole(MANAGER, ADMIN)
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/campaigns/**", EVENTS_API, "/api/v1/student-registrations/*/status").hasAnyRole(MANAGER, ADMIN)
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/campaigns/**", EVENTS_API).hasAnyRole(MANAGER, ADMIN)
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/campaigns/**", EVENTS_API).hasAnyRole(MANAGER, ADMIN)
                         .requestMatchers("/api/v1/students/**", "/api/v1/persons/**", "/api/v1/student-relatives/**").hasAnyRole(MANAGER, ADMIN)
                         .requestMatchers("/api/v1/geo/**", "/api/v1/weather/**").permitAll()
                         .requestMatchers("/api/analytics/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/notifications/token").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/notifications/token").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/notifications/send").hasAnyRole(STAFF, MANAGER, ADMIN)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/notifications").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/notifications/*/read").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/notifications/send").hasAnyRole(MANAGER, ADMIN)
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -84,3 +91,4 @@ public class SecurityConfig {
         objectMapper.writeValue(response.getWriter(), ApiResponse.error(message));
     }
 }
+

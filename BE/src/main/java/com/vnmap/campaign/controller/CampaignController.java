@@ -337,10 +337,24 @@ public class CampaignController {
     @PostMapping("/campaigns/{campaignId}/student-registrations")
     public ResponseEntity<ApiResponse<StudentRegistrationDto>> registerStudent(
             @PathVariable long campaignId,
-            @Valid @RequestBody StudentRegistrationRequest request
+            @Valid @RequestBody StudentRegistrationRequest request,
+            @AuthenticationPrincipal CurrentUser currentUser
     ) {
+        StudentRegistrationRequest effective = currentUser != null
+                ? new StudentRegistrationRequest(
+                        request.schoolUid(),
+                        request.fullName(),
+                        request.email(),
+                        request.phone(),
+                        "no-password-set",
+                        request.grade(),
+                        request.className(),
+                        request.dateOfBirth(),
+                        request.address(),
+                        request.note())
+                : request;
         return ResponseEntity.ok(ApiResponse.success(
-                campaignService.registerStudent(campaignId, request),
+                campaignService.registerStudent(campaignId, effective, currentUser),
                 "Student registration submitted successfully"
         ));
     }

@@ -2,6 +2,57 @@
 
 ## Current State
 
+**Last Updated:** 2026-07-03 17:45
+**Session ID:** session-20260703-student-permissions
+**Active Feature:** feat-077 (Student role permissions + registration flow)
+
+## Status: feat-077 PART 1 COMPLETE (Backend)
+
+### Completed in this session
+
+- **feat-077 -- Student role permissions + student-registration flow (Part 1: Backend)**
+  - BE/src/main/java/com/vnmap/common/config/SecurityConfig.java: Added STUDENT constant.
+    Opened /api/v1/campaigns, /api/v1/campaigns/{id}, /api/v1/campaigns/{id}/events,
+    /api/v1/events/**, /api/v1/schools/** to STUDENT role (previously STAFF/MANAGER/ADMIN only).
+    Opened POST /api/v1/campaigns/{id}/student-registrations to STUDENT.
+    Opened GET /api/v1/student-registrations/my to STUDENT.
+    Kept PUT /api/v1/student-registrations/{id}/status and
+    GET /api/v1/campaigns/{id}/student-registrations to STAFF/MANAGER/ADMIN.
+    Dashboard/interactions/employees/users still admin/staff/manager only.
+  - BE/src/main/java/com/vnmap/campaign/controller/CampaignController.java:
+    POST /campaigns/{id}/student-registrations now accepts @AuthenticationPrincipal CurrentUser.
+    When authenticated as STUDENT with studentId, controller passes synthetic request
+    (password=no-password-set) to skip password validation and forwards the user to the service.
+  - BE/src/main/java/com/vnmap/campaign/service/CampaignService.java:
+    registerStudent(...) now takes CurrentUser. When caller is STUDENT, the service uses
+    currentUser.studentId() directly, updates the student row from the request body,
+    skips app_users upsert, and lets PENDING/CONFLICT logic still apply.
+  - BE/src/test/java/com/vnmap/campaign/service/CampaignServiceDatabaseTest.java:
+    Updated 4 call sites to pass null as the new third argument.
+
+### Verification (backend only; FE follow-up in feat-077 Part 2)
+- docker build --target builder -t vnmap-be-compile-check .  BUILD SUCCESS
+- docker compose up -d --no-deps backend  container recreated, healthy
+- Created seed STUDENT account student1@vnmap.local / student123
+- STUDENT token tests (200 OK as expected):
+    GET /api/v1/campaigns, /api/v1/campaigns/1, /api/v1/campaigns/1/events,
+    /api/v1/events/1, /api/v1/schools, /api/v1/schools/01-001,
+    /api/v1/student-registrations/my, /api/v1/notifications
+- STUDENT token tests (403 Forbidden as expected):
+    GET /api/v1/users (admin only), /api/v1/students (staff+),
+    /api/v1/employees (staff+), /api/v1/campaigns/1/student-registrations (staff+),
+    /api/v1/campaigns/1/dashboard (manager/admin only)
+- POST /api/v1/campaigns/1/student-registrations with student token
+  200 OK, registration id=205, status=PENDING
+
+### Next steps (feat-077 Part 2, queued for next session)
+- FE: student home page -> add link to Available campaigns
+- FE: register page -> add form fields (fullName, email, phone, grade,
+    className, dateOfBirth, address, school picker)
+- FE: event detail -> add Show school on map button (uses existing parseMapArgs wiring)
+- FE: noti bell icon (queued for feat-078)
+- FE: profile page (queued for feat-079)
+
 **Last Updated:** 2026-07-01 14:05
 **Session ID:** session-20260701-firebase-mvvm
 **Active Feature:** feat-071 (Phase 10 â€” final verification) â€” ALL 10 PHASES COMPLETE
