@@ -6,6 +6,7 @@ public record UserDto(
         String role,
         String status,
         Long employeeId,
-        Long studentId
+        Long studentId,
+        String firebaseUid
 ) {
 }

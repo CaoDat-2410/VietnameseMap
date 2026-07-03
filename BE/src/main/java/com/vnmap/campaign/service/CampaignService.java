@@ -5,6 +5,9 @@ import com.vnmap.common.exception.ResourceNotFoundException;
 import com.vnmap.geo.repository.AdministrativeUnitRepository;
 import com.vnmap.common.model.PagedResponse;
 import com.vnmap.common.security.CurrentUser;
+import com.vnmap.notification.service.NotificationTriggerService;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -63,21 +66,29 @@ public class CampaignService {
     private final JdbcTemplate jdbc;
     private final PasswordEncoder passwordEncoder;
     private final AdministrativeUnitRepository unitRepository;
+    private final ObjectProvider<NotificationTriggerService> notificationTriggers;
 
     public CampaignService(JdbcTemplate jdbc, PasswordEncoder passwordEncoder,
                           AdministrativeUnitRepository unitRepository) {
+        this(jdbc, passwordEncoder, unitRepository, null);
+    }
+
+    @Autowired(required = false)
+    public CampaignService(JdbcTemplate jdbc, PasswordEncoder passwordEncoder,
+                          AdministrativeUnitRepository unitRepository,
+                          ObjectProvider<NotificationTriggerService> notificationTriggers) {
         this.jdbc = jdbc;
         this.passwordEncoder = passwordEncoder;
         this.unitRepository = unitRepository;
+        this.notificationTriggers = notificationTriggers;
     }
 
     private long generatedId(KeyHolder keyHolder) {
-        Map<String, Object> keys = keyHolder.getKeys();
-        if (keys != null && keys.get("id") instanceof Number id) {
-            return id.longValue();
-        }
-        if (keyHolder.getKey() != null) {
-            return keyHolder.getKey().longValue();
+        var keys = keyHolder.getKeyList();
+        if (keys != null && !keys.isEmpty()) {
+            Object idVal = keys.get(0).get("id");
+            if (idVal instanceof Number n) return n.longValue();
+            if (idVal instanceof Object[] arr) return ((Number) arr[0]).longValue();
         }
         throw new IllegalStateException("Insert did not return generated id");
     }
@@ -360,7 +371,12 @@ public class CampaignService {
             ps.setLong(6, request.ownerEmployeeId());
             return ps;
         }, keyHolder);
-        return getCampaign(generatedId(keyHolder));
+        long campaignId = generatedId(keyHolder);
+        CampaignDto created = getCampaign(campaignId);
+        if (notificationTriggers != null) {
+            notificationTriggers.ifAvailable(service -> service.campaignCreated(campaignId, created.name()));
+        }
+        return created;
     }
 
     @Transactional
@@ -539,7 +555,12 @@ public class CampaignService {
             ps.setString(12, blankToNull(request.provinceCode()));
             return ps;
         }, keyHolder);
-        return getEvent(generatedId(keyHolder));
+        long eventId = generatedId(keyHolder);
+        CampaignEventDto created = getEvent(eventId);
+        if (notificationTriggers != null) {
+            notificationTriggers.ifAvailable(service -> service.eventCreated(eventId, created.name()));
+        }
+        return created;
     }
 
     @Transactional
@@ -613,6 +634,9 @@ public class CampaignService {
                 eventId,
                 employeeId
         );
+        if (notificationTriggers != null) {
+            notificationTriggers.ifAvailable(service -> service.staffAssigned(eventId, employeeId));
+        }
     }
 
     @Transactional
@@ -1078,7 +1102,7 @@ public class CampaignService {
 
     public List<UserDto> getUsers() {
         return jdbc.query(
-                "SELECT id, email, role, status, employee_id, student_id FROM app_users ORDER BY id",
+                "SELECT id, email, role, status, employee_id, student_id, firebase_uid FROM app_users ORDER BY id",
                 this::mapUser
         );
     }
@@ -1139,7 +1163,13 @@ public class CampaignService {
     @Transactional
     public UserDto updateUserStatus(long id, String status) {
         validateIn(status, ACTIVE_STATUS, "DISABLED");
-        return updateUserColumn(id, STATUS_COLUMN, status);
+        UserDto updated = updateUserColumn(id, STATUS_COLUMN, status);
+        if ("DISABLED".equals(status)) {
+            if (notificationTriggers != null) {
+                notificationTriggers.ifAvailable(service -> service.accountDeactivated(id));
+            }
+        }
+        return updated;
     }
 
     @Transactional
@@ -1267,7 +1297,7 @@ public class CampaignService {
 
     private UserDto getUser(long id) {
         return jdbc.query(
-                "SELECT id, email, role, status, employee_id, student_id FROM app_users WHERE id = ?",
+                "SELECT id, email, role, status, employee_id, student_id, firebase_uid FROM app_users WHERE id = ?",
                 this::mapUser,
                 id
         ).stream().findFirst().orElseThrow(() -> new ResourceNotFoundException("User", "id", id));
@@ -1453,7 +1483,8 @@ public class CampaignService {
                 rs.getString("role"),
                 rs.getString(STATUS_COLUMN),
                 rs.getObject("employee_id", Long.class),
-                rs.getObject(STUDENT_ID_COLUMN, Long.class)
+                rs.getObject(STUDENT_ID_COLUMN, Long.class),
+                rs.getString("firebase_uid")
         );
     }
 
@@ -1555,3 +1586,7 @@ public class CampaignService {
         );
     }
 }
+
+
+
+

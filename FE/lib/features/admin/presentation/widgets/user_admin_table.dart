@@ -461,8 +461,12 @@ class _MobileUserCard extends StatelessWidget {
                   _InfoChip(label: 'EMP: ${user['employeeId']}'),
                   const SizedBox(width: 8),
                 ],
-                if (user['studentId'] != null)
+                if (user['studentId'] != null) ...[
                   _InfoChip(label: 'STU: ${user['studentId']}'),
+                  const SizedBox(width: 8),
+                ],
+                if (user['firebaseUid'] != null)
+                  _InfoChip(label: 'Google', color: Color(0xFF4285F4)),
               ],
             ),
             const SizedBox(height: 12),
@@ -499,20 +503,25 @@ class _MobileUserCard extends StatelessWidget {
 }
 
 class _InfoChip extends StatelessWidget {
-  const _InfoChip({required this.label});
+  const _InfoChip({required this.label, this.color});
   final String label;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
+    final chipColor = color ?? Theme.of(context).colorScheme.surfaceContainerHighest;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: chipColor,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         label,
-        style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+        style: TextStyle(
+          fontSize: 11,
+          color: color != null ? Colors.white : Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }
@@ -638,6 +647,10 @@ class _DesktopUserTable extends StatelessWidget {
                 onSort: (i, asc) => onSort(i, asc),
               ),
               const DataColumn2(
+                label: Text('Google'),
+                size: ColumnSize.S,
+              ),
+              const DataColumn2(
                 label: Text('Thao tác'),
                 size: ColumnSize.S,
                 fixedWidth: 120,
@@ -680,6 +693,12 @@ class _UserDataSource extends DataTableSource {
         DataCell(UserStatusChip(status: user['status'] as String? ?? '')),
         DataCell(Text('${user['employeeId'] ?? '-'}', textAlign: TextAlign.center)),
         DataCell(Text('${user['studentId'] ?? '-'}', textAlign: TextAlign.center)),
+        DataCell(user['firebaseUid'] != null
+            ? const Tooltip(
+                message: 'Dang nhap Google Firebase',
+                child: Icon(Icons.g_mobiledata, size: 20, color: Color(0xFF4285F4)),
+              )
+            : const SizedBox.shrink()),
         DataCell(
           Row(
             mainAxisSize: MainAxisSize.min,

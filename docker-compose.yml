@@ -1,0 +1,279 @@
+# ================================================================
+# VN Map Campaign — Docker Compose
+# ================================================================
+# Single-file orchestration. Run: docker compose up -d
+# Ports: postgres=15432, redis=6379, minio=9000/9001, be=8080, fe=3000
+# ================================================================
+
+x-common-env: &common-env
+  TZ: Asia/Saigon
+
+services:
+  # ================================================================
+  # Infrastructure
+  # ================================================================
+
+  postgres:
+    build:
+      context: ./BE/postgres
+      dockerfile: Dockerfile
+    container_name: vnmap_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vnmapdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "123456"
+      <<: *common-env
+    ports:
+      - "15432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d vnmapdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - vnmap_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: vnmap_redis
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "redis123", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis123", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - vnmap_network
+
+  # ================================================================
+  # MinIO Object Storage
+  # ================================================================
+
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: vnmap_minio
+    restart: unless-stopped
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: "${MINIO_ACCESS_KEY:-vnmapminio}"
+      MINIO_ROOT_PASSWORD: "${MINIO_SECRET_KEY:-vnmapminio123}"
+      <<: *common-env
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Console
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - vnmap_network
+
+  # Initialize MinIO buckets and policies (runs once after minio is healthy)
+  minio-init:
+    image: quay.io/minio/mc:latest
+    container_name: vnmap_minio_init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:-vnmapminio}"
+      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:-vnmapminio123}"
+      MINIO_BUCKET: "${MINIO_BUCKET:-vnmap-campaign}"
+      MINIO_REPORTS_BUCKET: "${MINIO_REPORTS_BUCKET:-vnmap-campaign-reports}"
+    volumes:
+      - ./BE/minio/cors.json:/tmp/cors.json:ro
+    entrypoint: ["/bin/sh", "-c"]
+    # Single-string command prevents YAML parser from splitting lines into array.
+    # (mc cors set is non-fatal — older mc builds may not support new CORS JSON format)
+    command:
+      - >
+        mc alias set vnmap http://minio:9000 $${MINIO_ACCESS_KEY} $${MINIO_SECRET_KEY} &&
+        mc mb --ignore-existing vnmap/$${MINIO_BUCKET} &&
+        mc anonymous set download vnmap/$${MINIO_BUCKET} 2>/dev/null || true &&
+        mc mb --ignore-existing vnmap/$${MINIO_REPORTS_BUCKET} &&
+        mc anonymous set none vnmap/$${MINIO_REPORTS_BUCKET} 2>/dev/null || true
+    networks:
+      - vnmap_network
+
+  # ================================================================
+  # Data Import (runs once after postgres is healthy)
+  # ================================================================
+
+  # Import Vietnamese admin units + geographic data from HuggingFace
+  # Idempotent — uses INSERT ... ON CONFLICT DO NOTHING
+  import:
+    build:
+      context: ./BE
+      dockerfile: Dockerfile.import
+    container_name: vnmap_import
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PYTHONUNBUFFERED: "1"
+      <<: *common-env
+    networks:
+      - vnmap_network
+
+  # Import THPT schools from Excel + seed campaigns + generate interactions
+  # Idempotent — skips if data already exists
+  import-schools:
+    build:
+      context: ./BE
+      dockerfile: Dockerfile.import
+    container_name: vnmap_import_schools
+    depends_on:
+      import:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    environment:
+      PYTHONUNBUFFERED: "1"
+      DB_HOST: vnmap_postgres
+      <<: *common-env
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["python3", "import_schools_campaign.py", "--host", "vnmap_postgres", "--excel", "/app/import_data/Truong_THPT_2026_import_ready.xlsx"]
+    networks:
+      - vnmap_network
+
+  # Run all schema migrations + seed admin/sample data + generate interactions
+  # Idempotent — all statements use ON CONFLICT DO NOTHING / IF NOT EXISTS
+  seed:
+    image: postgres:16-alpine
+    container_name: vnmap_seed
+    depends_on:
+      import-schools:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: "123456"
+      <<: *common-env
+    volumes:
+      # Schema migrations (must run before sample data)
+      - ./BE/scripts/migration_firebase_uid.sql:/docker-entrypoint-initdb.d/01-migration_firebase_uid.sql:ro
+      - ./BE/scripts/migration_notifications.sql:/docker-entrypoint-initdb.d/02-migration_notifications.sql:ro
+      - ./BE/scripts/migration_report_exports.sql:/docker-entrypoint-initdb.d/03-migration_report_exports.sql:ro
+      # Seed data (requires schema to exist)
+      - ./BE/scripts/seed_admin_accounts.sql:/docker-entrypoint-initdb.d/11-seed_admin_accounts.sql:ro
+      - ./BE/scripts/sample_data.sql:/docker-entrypoint-initdb.d/12-sample_data.sql:ro
+      - ./BE/scripts/gen_inter.sql:/docker-entrypoint-initdb.d/13-gen_inter.sql:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >
+        echo 'Waiting for postgres...' &&
+        sleep 3 &&
+        psql -h vnmap_postgres -U postgres -d vnmapdb -f /docker-entrypoint-initdb.d/01-migration_firebase_uid.sql &&
+        psql -h vnmap_postgres -U postgres -d vnmapdb -f /docker-entrypoint-initdb.d/02-migration_notifications.sql &&
+        psql -h vnmap_postgres -U postgres -d vnmapdb -f /docker-entrypoint-initdb.d/03-migration_report_exports.sql &&
+        psql -h vnmap_postgres -U postgres -d vnmapdb -f /docker-entrypoint-initdb.d/11-seed_admin_accounts.sql &&
+        psql -h vnmap_postgres -U postgres -d vnmapdb -f /docker-entrypoint-initdb.d/12-sample_data.sql &&
+        psql -h vnmap_postgres -U postgres -d vnmapdb -f /docker-entrypoint-initdb.d/13-gen_inter.sql &&
+        echo 'Seed completed successfully'
+    networks:
+      - vnmap_network
+
+  # ================================================================
+  # Application Services
+  # ================================================================
+
+  backend:
+    image: vnmap-be:latest
+    container_name: vnmap_backend
+    restart: unless-stopped
+    environment:
+      # Database
+      DB_HOST: vnmap_postgres
+      DB_PORT: "5432"
+      DB_NAME: vnmapdb
+      DB_USERNAME: postgres
+      DB_PASSWORD: "123456"
+      # Redis
+      REDIS_HOST: vnmap_redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: "redis123"
+      # MinIO
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_PUBLIC_ENDPOINT: "${MINIO_PUBLIC_ENDPOINT:-http://localhost:9000}"
+      MINIO_BUCKET: "${MINIO_BUCKET:-vnmap-campaign}"
+      MINIO_REPORTS_BUCKET: "${MINIO_REPORTS_BUCKET:-vnmap-campaign-reports}"
+      MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:-vnmapminio}"
+      MINIO_SECRET_KEY: "${MINIO_SECRET_KEY:-vnmapminio123}"
+      MINIO_REGION: "${MINIO_REGION:-us-east-1}"
+      # Weather
+      OWM_BASE_URL: "${OWM_BASE_URL:-https://api.openweathermap.org}"
+      OWM_API_KEY: "${OWM_API_KEY:-}"
+      # Spring
+      SPRING_PROFILES_ACTIVE: dev
+      CORS_ALLOWED_ORIGINS: "*"
+      # Firebase — set FIREBASE_SERVICE_ACCOUNT_JSON env var or mount firebase-service-account.json
+      FIREBASE_SERVICE_ACCOUNT_FILE: /app/firebase-service-account.json
+      <<: *common-env
+    volumes:
+      - type: bind
+        source: ./BE/firebase-service-account.json
+        target: /app/firebase-service-account.json
+        read_only: true
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
+      seed:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - vnmap_network
+
+  frontend:
+    image: vnmap-fe:latest
+    container_name: vnmap_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - vnmap_network
+
+# ================================================================
+# Volumes (named so they persist across compose restarts)
+# ================================================================
+
+volumes:
+  postgres_data:
+    name: vnmap_postgres_data
+  redis_data:
+    name: vnmap_redis_data
+  minio_data:
+    name: vnmap_minio_data
+
+# ================================================================
+# Network
+# ================================================================
+
+networks:
+  vnmap_network:
+    name: vnmap_network
+    driver: bridge
