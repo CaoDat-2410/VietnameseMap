@@ -1268,3 +1268,37 @@ import (exit 0)              ──→ import-schools (exit 0) ─→ seed (exit
 - Phone/email click on web copies to clipboard (no `dart:io` launcher) because of web-platform constraints; on mobile this should switch to `url_launcher`.
 - `assigned_only` STAFF scoping (per user flow choice): STAFF with `employeeId` sees only registrations whose `campaign_id` or `school_uid` appears in `event_assignments` joined to their events. MANAGER/ADMIN see everything.
 - Tooling: `Write` and `StrReplace` tools occasionally dump Dart files as UTF-16 LE (every other byte 0x00). All newly created files must be re-encoded to UTF-8 before `flutter analyze` will accept them.
+
+
+---
+
+## Smoke test of feat-077..feat-081 - 2026-07-04
+
+### Test scope
+- Logged in as admin + student + manager, hit every new endpoint from feat-077..feat-081 (25 checks). Plus extra probe of `/storage/upload-url` and `/employees`.
+- See `smoke_feats.py` + `extra_checks.py` at repo root (will be removed before commit).
+
+### Result: 25/25 PASS on first attempt
+- feat-077 (student permissions + register flow): 7/7 PASS
+  - STUDENT can read campaigns, events, schools, my-registrations; forbidden from admin endpoints.
+- feat-078 (notification bell APIs): 3/3 PASS
+  - /notifications list + unread-count working for both ADMIN and STUDENT.
+- feat-079 (profile APIs): 3/3 PASS
+  - /auth/me returns 200; PUT /auth/me accepts avatarObjectKey; /auth/me/password accepts change.
+- feat-080 (multi-form PDF report): 7/7 PASS at HTTP layer
+  - POST /reports works for all 4 reportTypes (CAMPAIGN/EVENT/SCHOOL/REGION); MANAGER allowed, STUDENT 403.
+- feat-081 (staff dashboard APIs): 5/5 PASS
+  - Paged list, status filter, search, role gate, bulk-status all functional.
+
+### Real bugs uncovered (NOT in scope of feat-077..feat-081)
+1. **[HIGH] Storage backend not migrated** - `BE/src/main/java/com/vnmap/storage/service/StorageService.java` still uses Firebase GCS SDK. `MinioConfig` provides S3Client/S3Presigner but no consumer. Effects:
+   - `POST /api/v1/storage/upload-url` returns `https://storage.googleapis.com/...` URLs even though the project migrated to MinIO (feat-072).
+   - `StorageService.uploadGeneratedObject(path, bytes)` (used by `CampaignReportService`) throws 500 because the Firebase bucket `vnmap-campaign.appspot.com` does not exist. This is the source of the long-standing `'Failed to upload object to storage'` seen during feat-080.
+   - feat-079 avatar upload is broken at the upload step (FE gets GCS URL, attempts PUT, fails).
+2. **[MEDIUM] NoResourceFoundException -> 500** - Spring's exception is not mapped in `GlobalExceptionHandler`. GETs to unknown routes return 500 instead of 404.
+3. **[MEDIUM] GET /api/v1/reports list endpoint missing** - FE sidebar/navigation likely expects a list of recent report jobs; only POST PDF endpoint exists today.
+
+### Recommendation
+- These bugs predate feat-077..feat-081 and were masked earlier because direct PDF download was never attempted end-to-end post-feat-074.
+- Should be addressed as a dedicated `feat-082: fix storage backend (MinIO migration)` before any further feature work that relies on avatar upload or PDF report download.
+- All known issues logged in `feature_list.json` under `knownIssues`.

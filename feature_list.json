@@ -1308,19 +1308,29 @@
                  ],
 "knownIssues":  [
                        {
+                           "issue":  "Storage backend still uses Firebase GCS despite feat-072 MinIO migration",
+                           "priority":  "high",
+                           "note":  "StorageService uses GCS SDK (storage.googleapis.com URLs). MinioConfig provides S3Client but is unused. Effects: (1) /api/v1/storage/upload-url returns GCS presigned URLs that fail when FE attempts upload; (2) StorageService.uploadGeneratedObject fails for PDF reports because the Firebase bucket 'vnmap-campaign.appspot.com' does not exist; (3) feat-079 avatar upload is broken at the upload step. Need to rewrite StorageService.generateUploadUrl() + uploadGeneratedObject() + generateDownloadUrl() to use S3Presigner/S3Client (AWS SDK v2) and the MinIO endpoint."
+                       },
+                       {
+                           "issue":  "NoResourceFoundException returns 500 instead of 404",
+                           "priority":  "medium",
+                           "note":  "Spring's NoResourceFoundException is not mapped in GlobalExceptionHandler, so GET /api/v1/foo-bar returns 500 instead of 404. Add @ExceptionHandler(NoResourceFoundException.class) returning HttpStatus.NOT_FOUND."
+                       },
+                       {
+                           "issue":  "GET /api/v1/reports list endpoint missing",
+                           "priority":  "medium",
+                           "note":  "FE may rely on a list endpoint (e.g. /api/v1/reports with pagination). Currently only POST /api/v1/reports/campaigns/pdf exists; there is no list. Add: GET /api/v1/reports?page&limit&status returning paged list of report jobs for the current user."
+                       },
+                       {
+                           "issue":  "PDF report generation backend fails after enqueueing (StorageService.uploadGeneratedObject)",
+                           "priority":  "high",
+                           "note":  "ReportService enqueues report, status PENDING, then background job calls StorageService.uploadGeneratedObject which throws 'Failed to upload object to storage' (bucket 'vnmap-campaign.appspot.com' not found). Root cause: same as Storage backend bug above."
+                       },
+                       {
                            "issue":  "Auto-grading suggestion provided to user - not implemented yet",
                            "priority":  "low",
                            "note":  "User asked about auto-grading approach based on interaction/outcome data"
-                       },
-                       {
-                          "issue":  "feat-077 Part 2 (FE follow-up) completed",
-                          "priority":  "info",
-                          "note":  "Backend + Frontend complete. flutter analyze OK (info-only), flutter build web --release SUCCESS"
-                       },
-                       {
-                           "issue":  "feat-078 (notification bell) and feat-079 (profile page) not yet started",
-                           "priority":  "low",
-                           "note":  "Queued for next session per AGENTS.md one-feature-at-a-time rule"
                        }
                    ],
     "pendingFeatures": [
