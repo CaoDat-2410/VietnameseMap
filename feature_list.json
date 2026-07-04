@@ -1194,6 +1194,96 @@
                                        "FE/lib/features/reports/presentation/providers/report_viewmodel.dart",
                                        "FE/lib/core/messaging/messaging_service.dart"
                                    ]
+                     },
+                     {
+                         "id":  "feat-077",
+                         "name":  "Student role permissions + student-registration flow",
+                         "description":  "BE SecurityConfig opens /campaigns, /events, /schools, /student-registrations to STUDENT; controller/service handle authenticated STUDENT path. FE adds student registration page, campaign registration buttons, role-gated routes.",
+                         "dependencies":  [
+
+                                         ],
+                         "status":  "completed",
+                         "evidence":  "BE+FE complete. flutter analyze OK, flutter build web --release SUCCESS",
+                         "files":  [
+                                       "BE/src/main/java/com/vnmap/auth/service/AuthService.java",
+                                       "BE/src/main/java/com/vnmap/common/config/SecurityConfig.java",
+                                       "BE/src/main/java/com/vnmap/campaign/service/CampaignService.java",
+                                       "FE/lib/features/student/presentation/pages/event_registration_page.dart",
+                                       "FE/lib/features/campaign/dashboard/pages/campaign_list_page.dart",
+                                       "FE/lib/features/auth/shared/repositories/auth_repository.dart",
+                                       "FE/lib/features/auth/presentation/providers/auth_viewmodel.dart",
+                                       "FE/lib/app/router.dart",
+                                       "FE/pubspec.yaml"
+                                   ]
+                     },
+                     {
+                         "id":  "feat-078",
+                         "name":  "Notification bell + modal",
+                         "description":  "Add bell icon with unread badge to AppShell. Mobile: appears in AppBar actions next to settings. Desktop: floating top-right overlay. Tap opens bottom-sheet preview (most recent 10, with type icon/title/body/relative time/unread dot). Tap row -> mark read + deep-link to /events/:id or /campaigns/:id/dashboard. Header has 'Đọc tất cả' action; footer has 'Xem tất cả' -> /notifications. Wired through new NotificationRepository (list/unread-count/mark-read/mark-all-read) backed by /api/v1/notifications endpoints; bell badge auto-updates via Riverpod FutureProvider.autoDispose.",
+                         "dependencies":  [
+                                              "feat-068",
+                                              "feat-075"
+                                          ],
+                         "status":  "completed",
+                         "evidence":  "flutter analyze lib/features/notifications lib/app/widgets/app_shell_scaffold.dart: No issues found | flutter analyze lib/: 0 errors (148 info hints, all pre-existing) | flutter build web --release: Built build\\web | 4 new files: notification_models.dart, notification_repository.dart, notification_provider.dart, notification_bell.dart; app_shell_scaffold.dart updated to wire bell into mobile AppBar + desktop top-right floating overlay",
+                         "files":  [
+                                       "FE/lib/features/notifications/domain/models/notification_models.dart",
+                                       "FE/lib/features/notifications/data/repositories/notification_repository.dart",
+                                       "FE/lib/features/notifications/presentation/providers/notification_provider.dart",
+                                       "FE/lib/features/notifications/presentation/widgets/notification_bell.dart",
+                                       "FE/lib/app/widgets/app_shell_scaffold.dart"
+                                   ]
+                     },
+                     {
+                         "id":  "feat-079",
+                         "name":  "Profile page (avatar / info / password)",
+                         "description":  "New /profile page (mobile + desktop) with avatar (initial-fallback or uploaded image), info card (name/email/role/status/firebase badge), and password change form (hidden for Google Sign-In users). Backend: PUT /api/v1/auth/me (avatar_object_key) and PUT /api/v1/auth/me/password (verify current + min 8 chars + reject if firebase_uid present). Migration adds avatar_object_key column to app_users. AuthUserDto now returns avatarObjectKey, fullName (joined from employees/students), and firebaseUser flag. StorageService folder 'avatars' used for upload; object key is stored on the user row.",
+                         "dependencies":  [
+                                              "feat-067",
+                                              "feat-073"
+                                          ],
+                         "status":  "completed",
+                         "evidence":  "BE: docker build --target builder: BUILD SUCCESS | tests pass with new AuthUserDto 9-arg constructor | FE: flutter analyze lib/features/auth lib/app/router.dart lib/app/widgets/app_shell_scaffold.dart: 0 errors | flutter analyze lib/: 0 errors (only pre-existing duplicate_ignore warning) | flutter build web --release: Built build\\web exit 0 (74.1s)",
+                         "files":  [
+                                       "BE/scripts/migration_user_avatar.sql",
+                                       "BE/src/main/java/com/vnmap/auth/dto/AuthUserDto.java",
+                                       "BE/src/main/java/com/vnmap/auth/dto/UpdateProfileRequest.java",
+                                       "BE/src/main/java/com/vnmap/auth/dto/ChangePasswordRequest.java",
+                                       "BE/src/main/java/com/vnmap/auth/service/AuthService.java",
+                                       "BE/src/main/java/com/vnmap/auth/controller/AuthController.java",
+                                       "BE/src/test/java/com/vnmap/auth/controller/AuthControllerTest.java",
+                                       "FE/lib/features/auth/shared/models/auth_models.dart",
+                                       "FE/lib/features/auth/shared/repositories/auth_repository.dart",
+                                       "FE/lib/features/auth/presentation/providers/profile_viewmodel.dart",
+                                       "FE/lib/features/auth/presentation/pages/profile_page.dart",
+                                       "FE/lib/app/router.dart",
+                                       "FE/lib/app/widgets/app_shell_scaffold.dart"
+                                   ]
+                     },
+                     {
+                         "id":  "feat-080",
+                         "name":  "Multi-form PDF report redesign (Campaign / Event / School / Region)",
+                         "description":  "Backend: CampaignReportRequest extended with reportType field (CAMPAIGN/EVENT/SCHOOL/REGION) and chartImages map (base64 PNG keyed by section). PdfReportRenderer gains a KPI title page (4 numeric tiles) and embeds chart images above each section. Service routes section queries by reportType. Frontend: /reports landing page with 4 type cards, /reports/{type} form pages with type-specific filters and chart preview tiles. ChartToImage uses Overlay insertion + RepaintBoundary.toImage to render fl_chart widgets to PNG. Routes guarded by _RoleGate(MANAGER,ADMIN). Sidebar adds 'B\u00e1o c\u00e1o' item for staff/manager/admin.",
+                         "dependencies":  [
+                                              "feat-074"
+                                          ],
+                         "status":  "completed",
+                         "evidence":  "BE: docker build --target builder: BUILD SUCCESS; POST /api/v1/reports/campaigns/pdf with reportType=REGION returns 200 OK (reportId=10); POST with reportType=CAMPAIGN returns 200 OK (reportId=11). FE: flutter analyze lib/features/reports lib/app/router.dart: 0 errors (only info-level lints); flutter analyze lib/: 0 errors (177 info-only). flutter build web --release: Built build\\web (87.7s). 4 new types supported.",
+                         "files":  [
+                                       "BE/src/main/java/com/vnmap/report/dto/CampaignReportRequest.java",
+                                       "BE/src/main/java/com/vnmap/report/service/CampaignReportService.java",
+                                       "BE/src/main/java/com/vnmap/report/service/PdfReportRenderer.java",
+                                       "FE/lib/features/reports/domain/models/report_models.dart",
+                                       "FE/lib/features/reports/data/chart_to_image.dart",
+                                       "FE/lib/features/reports/presentation/providers/report_filter_providers.dart",
+                                       "FE/lib/features/reports/presentation/widgets/report_form_scaffold.dart",
+                                       "FE/lib/features/reports/presentation/pages/reports_landing_page.dart",
+                                       "FE/lib/features/reports/presentation/pages/campaign_report_type_page.dart",
+                                       "FE/lib/features/reports/presentation/pages/event_report_type_page.dart",
+                                       "FE/lib/features/reports/presentation/pages/school_report_type_page.dart",
+                                       "FE/lib/features/reports/presentation/pages/region_report_type_page.dart",
+                                       "FE/lib/app/router.dart"
+                                   ]
                      }
                  ],
 "knownIssues":  [
@@ -1214,32 +1304,6 @@
                        }
                    ],
     "pendingFeatures": [
-        {
-            "id": "feat-077",
-            "name": "Student role permissions + student-registration flow",
-            "status": "completed (backend + frontend)",
-            "backendDone": true,
-            "feDone": true,
-            "evidence": "BE: SecurityConfig opens /campaigns, /events, /schools, /student-registrations to STUDENT; controller/service handle authenticated STUDENT path (skip password); verified with curl: 200 OK on read, 403 on admin, 200 OK on POST registration. FE: student_home_page adds Available campaigns + My registrations actions; campaign_list_page adds per-card Đăng ký button for STUDENT; new event_registration_page (form + school search/select + grade/class/note); router adds /student/register-event/:campaignId and /student/my-registrations routes gated to STUDENT; auth_repository.registerWithPassword + auth_viewmodel.registerWithPassword backing register_page; pubspec adds url_launcher; flutter analyze (target dirs) 45 info-only lint, no error/warn; flutter build web --release SUCCESS"
-        },
-        {
-            "id": "feat-078",
-            "name": "Notification bell + modal",
-            "status": "queued",
-            "scope": "Replace gear icon with bell, modal popup with recent notifications, deep-link to detail"
-        },
-        {
-            "id": "feat-079",
-            "name": "Profile page (password / info / avatar)",
-            "status": "queued",
-            "scope": "Change password (non-Firebase users), update personal info, upload avatar to MinIO"
-        },
-        {
-            "id": "feat-080",
-            "name": "Multi-form PDF report redesign",
-            "status": "queued",
-            "scope": "Reports by date range, region, school, campaign, event; embed charts (donut, bar, line, KPI, heatmap)"
-        },
         {
             "id": "feat-081",
             "name": "Staff registration approval dashboard",

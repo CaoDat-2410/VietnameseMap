@@ -11,6 +11,7 @@ import '../features/admin/presentation/pages/admin_users_page.dart';
 import '../features/analytics/presentation/pages/analytics_page.dart';
 import '../features/auth/presentation/pages/login_page.dart';
 import '../features/auth/presentation/pages/logout_page.dart';
+import '../features/auth/presentation/pages/profile_page.dart';
 import '../features/auth/shared/auth_routes.dart';
 import '../features/auth/presentation/providers/auth_viewmodel.dart';
 import '../features/auth/shared/token_storage.dart';
@@ -26,6 +27,11 @@ import '../features/map/presentation/pages/map_page.dart';
 import '../features/school/presentation/pages/school_detail_page.dart';
 import '../features/school/presentation/pages/school_list_page.dart';
 import '../features/settings/presentation/pages/settings_page.dart';
+import '../features/reports/presentation/pages/campaign_report_type_page.dart';
+import '../features/reports/presentation/pages/event_report_type_page.dart';
+import '../features/reports/presentation/pages/region_report_type_page.dart';
+import '../features/reports/presentation/pages/reports_landing_page.dart';
+import '../features/reports/presentation/pages/school_report_type_page.dart';
 import '../features/student/presentation/pages/event_registration_page.dart';
 import '../features/student/presentation/pages/my_registrations_page.dart';
 import '../features/student/presentation/pages/student_register_page.dart';
@@ -348,6 +354,69 @@ final router = GoRouter(
             child: const SettingsPage(),
           ),
         ),
+        GoRoute(
+          path: '/profile',
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
+            child: const ProfilePage(),
+          ),
+        ),
+        GoRoute(
+          path: '/reports',
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
+            child: _RoleGate(
+              allowedRoles: const {'MANAGER', 'ADMIN'},
+              child: const ReportsLandingPage(),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/reports/campaign',
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
+            child: _RoleGate(
+              allowedRoles: const {'MANAGER', 'ADMIN'},
+              child: const CampaignReportTypePage(),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/reports/event',
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
+            child: _RoleGate(
+              allowedRoles: const {'MANAGER', 'ADMIN'},
+              child: const EventReportTypePage(),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/reports/school',
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
+            child: _RoleGate(
+              allowedRoles: const {'MANAGER', 'ADMIN'},
+              child: const SchoolReportTypePage(),
+            ),
+          ),
+        ),
+        GoRoute(
+          path: '/reports/region',
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
+            child: _RoleGate(
+              allowedRoles: const {'MANAGER', 'ADMIN'},
+              child: const RegionReportTypePage(),
+            ),
+          ),
+        ),
       ],
     ),
   ],
@@ -379,10 +448,12 @@ class _AppShell extends ConsumerWidget {
     if (location.startsWith('/login')) return '/login';
     if (location.startsWith('/logout')) return '/logout';
     if (location.startsWith('/settings')) return '/settings';
+    if (location.startsWith('/profile')) return '/profile';
     if (location.startsWith('/campaigns') || location.startsWith('/events')) {
       return '/campaigns';
     }
     if (location.startsWith('/schools')) return '/schools';
+    if (location.startsWith('/reports')) return '/reports';
     if (location.startsWith('/student/my-registrations')) {
       return '/student/my-registrations';
     }
@@ -425,6 +496,8 @@ class _AppShell extends ConsumerWidget {
       return items;
     }
 
+    items.add(_NavItem('/profile', 'Hồ sơ', Icons.account_circle_outlined, Icons.account_circle));
+
     if (role == 'STUDENT') {
       items.add(_NavItem('/student/my-registrations', l10n.mine,
           Icons.assignment_ind_outlined, Icons.assignment_ind));
@@ -440,6 +513,8 @@ class _AppShell extends ConsumerWidget {
           '/campaigns', l10n.campaigns, Icons.campaign_outlined, Icons.campaign));
       items.add(_NavItem(
           '/analytics', 'Analytics', Icons.analytics_outlined, Icons.analytics));
+      items.add(_NavItem(
+          '/reports', 'Báo cáo', Icons.summarize_outlined, Icons.summarize));
       items.add(_NavItem(
           '/schools', l10n.schools, Icons.school_outlined, Icons.school));
     }

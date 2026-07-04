@@ -95,7 +95,7 @@ public class CampaignReportService {
                     Statement.RETURN_GENERATED_KEYS
             );
             ps.setLong(1, user.id());
-            ps.setString(2, REPORT_TYPE);
+            ps.setString(2, request.safeReportType());
             ps.setString(3, filtersJson);
             ps.setString(4, sectionsJson);
             return ps;
@@ -129,12 +129,15 @@ public class CampaignReportService {
     private void generateReport(long reportId, CampaignReportRequest request) {
         try {
             Map<String, List<Map<String, Object>>> sections = collectSections(request);
-            byte[] pdf = renderer.render("Campaign Report #" + reportId, sections);
+            List<Map<String, Object>> kpis = computeKpis(request);
+            String title = titleFor(request);
+            String subtitle = "Report #" + reportId + " - generated " + LocalDateTime.now();
+            byte[] pdf = renderer.render(title, subtitle, kpis, sections, request.chartImages());
             if (pdf.length < 4 || pdf[0] != '%' || pdf[1] != 'P' || pdf[2] != 'D' || pdf[3] != 'F') {
                 throw new IllegalStateException("Generated report is not a valid PDF");
             }
             LocalDateTime now = LocalDateTime.now();
-            String fileName = "campaign-report-" + now.format(FILE_DATE) + "-" + reportId + ".pdf";
+            String fileName = request.safeReportType().toLowerCase() + "-report-" + now.format(FILE_DATE) + "-" + reportId + ".pdf";
             String storagePath = "reports/" + now.format(PATH_DATE) + "/" + fileName;
             storageService.uploadGeneratedObject(storagePath, pdf, "application/pdf");
             jdbc.update(
@@ -157,7 +160,71 @@ public class CampaignReportService {
         }
     }
 
+    private String titleFor(CampaignReportRequest request) {
+        return switch (request.safeReportType()) {
+            case CampaignReportRequest.TYPE_EVENT -> "Event Report";
+            case CampaignReportRequest.TYPE_SCHOOL -> "School Report";
+            case CampaignReportRequest.TYPE_REGION -> "Region Report";
+            default -> "Campaign Report";
+        };
+    }
+
+    private List<Map<String, Object>> computeKpis(CampaignReportRequest request) {
+        List<Object> eventParams = new ArrayList<>();
+        List<String> eventFilters = eventFilters(request, eventParams, "e");
+        String eventWhere = eventFilters.isEmpty() ? "" : "WHERE " + String.join(" AND ", eventFilters);
+
+        List<Object> interParams = new ArrayList<>();
+        List<String> interFilters = interactionFilters(request, interParams, "i");
+        String interWhere = interFilters.isEmpty() ? "" : "WHERE " + String.join(" AND ", interFilters);
+
+        long events = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM campaign_events e " + eventWhere,
+                Long.class,
+                eventParams.toArray()
+        );
+        long interactions = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM interactions i " + interWhere,
+                Long.class,
+                interParams.toArray()
+        );
+
+        List<Object> schoolParams = new ArrayList<>();
+        List<String> schoolFilters = schoolFilters(request, schoolParams);
+        String schoolWhere = schoolFilters.isEmpty() ? "" : "WHERE " + String.join(" AND ", schoolFilters);
+        long schools = jdbc.queryForObject(
+                "SELECT COUNT(DISTINCT s.school_uid) FROM event_schools es JOIN campaign_events e ON e.id = es.event_id JOIN schools s ON s.school_uid = es.school_uid " + schoolWhere,
+                Long.class,
+                schoolParams.toArray()
+        );
+
+        List<Object> regParams = new ArrayList<>();
+        List<String> regFilters = registrationFilters(request, regParams);
+        String regWhere = regFilters.isEmpty() ? "" : "WHERE " + String.join(" AND ", regFilters);
+        long registrations = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM campaign_student_registrations r " + regWhere,
+                Long.class,
+                regParams.toArray()
+        );
+
+        List<Map<String, Object>> kpis = new ArrayList<>();
+        kpis.add(Map.of("label", "Events", "value", events));
+        kpis.add(Map.of("label", "Interactions", "value", interactions));
+        kpis.add(Map.of("label", "Schools", "value", schools));
+        kpis.add(Map.of("label", "Registrations", "value", registrations));
+        return kpis;
+    }
+
     private Map<String, List<Map<String, Object>>> collectSections(CampaignReportRequest request) {
+        return switch (request.safeReportType()) {
+            case CampaignReportRequest.TYPE_EVENT -> collectEventSections(request);
+            case CampaignReportRequest.TYPE_SCHOOL -> collectSchoolSections(request);
+            case CampaignReportRequest.TYPE_REGION -> collectRegionSections(request);
+            default -> collectCampaignSections(request);
+        };
+    }
+
+    private Map<String, List<Map<String, Object>>> collectCampaignSections(CampaignReportRequest request) {
         Map<String, List<Map<String, Object>>> out = new LinkedHashMap<>();
         for (String section : request.safeSections()) {
             switch (section) {
@@ -172,6 +239,151 @@ public class CampaignReportService {
             }
         }
         return out;
+    }
+
+    private Map<String, List<Map<String, Object>>> collectEventSections(CampaignReportRequest request) {
+        Map<String, List<Map<String, Object>>> out = new LinkedHashMap<>();
+        for (String section : request.safeSections()) {
+            switch (section) {
+                case "summary" -> out.put("summary", queryEventSummary(request));
+                case "schools" -> out.put("schools", querySchools(request));
+                case "assignments" -> out.put("assignments", queryAssignments(request));
+                case "interactions" -> out.put("interactions", queryInteractions(request));
+                case "analytics" -> out.put("analytics", queryAnalytics(request));
+                default -> { }
+            }
+        }
+        return out;
+    }
+
+    private Map<String, List<Map<String, Object>>> collectSchoolSections(CampaignReportRequest request) {
+        Map<String, List<Map<String, Object>>> out = new LinkedHashMap<>();
+        for (String section : request.safeSections()) {
+            switch (section) {
+                case "summary" -> out.put("summary", querySchoolSummary(request));
+                case "events" -> out.put("events", queryEvents(request));
+                case "interactions" -> out.put("interactions", queryInteractions(request));
+                default -> { }
+            }
+        }
+        return out;
+    }
+
+    private Map<String, List<Map<String, Object>>> collectRegionSections(CampaignReportRequest request) {
+        Map<String, List<Map<String, Object>>> out = new LinkedHashMap<>();
+        for (String section : request.safeSections()) {
+            switch (section) {
+                case "summary" -> out.put("summary", queryRegionSummary(request));
+                case "events" -> out.put("events", queryEvents(request));
+                case "schools" -> out.put("schools", querySchools(request));
+                case "interactions" -> out.put("interactions", queryInteractions(request));
+                case "analytics" -> out.put("analytics", queryAnalytics(request));
+                default -> { }
+            }
+        }
+        return out;
+    }
+
+    private List<Map<String, Object>> queryEventSummary(CampaignReportRequest request) {
+        List<Object> params = new ArrayList<>();
+        List<String> filters = new ArrayList<>();
+        if (request.eventId() != null) {
+            filters.add("e.id = ?");
+            params.add(request.eventId());
+        }
+        if (request.campaignId() != null) {
+            filters.add("e.campaign_id = ?");
+            params.add(request.campaignId());
+        }
+        if (hasText(request.eventType())) {
+            filters.add("e.event_type = ?");
+            params.add(request.eventType());
+        }
+        if (hasText(request.eventStatus())) {
+            filters.add("e.status = ?");
+            params.add(request.eventStatus());
+        }
+        String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
+        return jdbc.queryForList(
+                """
+                SELECT e.id, e.name, e.event_type, e.status, e.starts_at, e.ends_at,
+                       e.location_label, e.province_code,
+                       COUNT(DISTINCT es.school_uid) schools,
+                       COUNT(DISTINCT ea.employee_id) staff,
+                       COUNT(DISTINCT i.id) interactions
+                FROM campaign_events e
+                LEFT JOIN event_schools es ON es.event_id = e.id
+                LEFT JOIN event_assignments ea ON ea.event_id = e.id
+                LEFT JOIN interactions i ON i.event_id = e.id
+                %s
+                GROUP BY e.id, e.name, e.event_type, e.status, e.starts_at, e.ends_at,
+                         e.location_label, e.province_code
+                ORDER BY e.starts_at NULLS LAST, e.id DESC
+                """.formatted(where),
+                params.toArray()
+        );
+    }
+
+    private List<Map<String, Object>> querySchoolSummary(CampaignReportRequest request) {
+        List<Object> params = new ArrayList<>();
+        List<String> filters = new ArrayList<>();
+        if (hasText(request.schoolUid())) {
+            filters.add("s.school_uid = ?");
+            params.add(request.schoolUid());
+        }
+        if (hasText(request.provinceCode())) {
+            filters.add("s.province_code = ?");
+            params.add(request.provinceCode());
+        }
+        String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
+        return jdbc.queryForList(
+                """
+                SELECT s.school_uid, s.school_name, s.province_name, s.commune_name,
+                       COUNT(DISTINCT es.event_id) events,
+                       COUNT(DISTINCT i.id) interactions
+                FROM schools s
+                LEFT JOIN event_schools es ON es.school_uid = s.school_uid
+                LEFT JOIN interactions i ON i.school_uid = s.school_uid
+                %s
+                GROUP BY s.school_uid, s.school_name, s.province_name, s.commune_name
+                ORDER BY events DESC, s.school_name
+                """.formatted(where),
+                params.toArray()
+        );
+    }
+
+    private List<Map<String, Object>> queryRegionSummary(CampaignReportRequest request) {
+        List<Object> params = new ArrayList<>();
+        List<String> filters = new ArrayList<>();
+        if (hasText(request.provinceCode())) {
+            filters.add("s.province_code = ?");
+            params.add(request.provinceCode());
+        }
+        if (request.fromDate() != null) {
+            filters.add("DATE(e.starts_at) >= ?");
+            params.add(request.fromDate());
+        }
+        if (request.toDate() != null) {
+            filters.add("DATE(e.starts_at) <= ?");
+            params.add(request.toDate());
+        }
+        String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
+        return jdbc.queryForList(
+                """
+                SELECT s.province_code, s.province_name,
+                       COUNT(DISTINCT es.school_uid) schools,
+                       COUNT(DISTINCT es.event_id) events,
+                       COUNT(DISTINCT i.id) interactions
+                FROM schools s
+                LEFT JOIN event_schools es ON es.school_uid = s.school_uid
+                LEFT JOIN campaign_events e ON e.id = es.event_id
+                LEFT JOIN interactions i ON i.school_uid = s.school_uid
+                %s
+                GROUP BY s.province_code, s.province_name
+                ORDER BY interactions DESC, schools DESC
+                """.formatted(where),
+                params.toArray()
+        );
     }
 
     private List<Map<String, Object>> querySummary(CampaignReportRequest request) {
@@ -259,20 +471,7 @@ public class CampaignReportService {
 
     private List<Map<String, Object>> queryRegistrations(CampaignReportRequest request) {
         List<Object> params = new ArrayList<>();
-        List<String> filters = new ArrayList<>();
-        addCampaignFilter(filters, params, request.campaignId(), "r");
-        if (hasText(request.schoolUid())) {
-            filters.add("r.school_uid = ?");
-            params.add(request.schoolUid());
-        }
-        if (hasText(request.registrationStatus())) {
-            filters.add("r.status = ?");
-            params.add(request.registrationStatus());
-        }
-        if (hasText(request.provinceCode())) {
-            filters.add("s.province_code = ?");
-            params.add(request.provinceCode());
-        }
+        List<String> filters = registrationFilters(request, params);
         String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
         return jdbc.queryForList(
                 """
@@ -290,28 +489,7 @@ public class CampaignReportService {
 
     private List<Map<String, Object>> queryInteractions(CampaignReportRequest request) {
         List<Object> params = new ArrayList<>();
-        List<String> filters = new ArrayList<>();
-        addCampaignFilter(filters, params, request.campaignId(), "i");
-        if (request.employeeId() != null) {
-            filters.add("i.employee_id = ?");
-            params.add(request.employeeId());
-        }
-        if (hasText(request.schoolUid())) {
-            filters.add("i.school_uid = ?");
-            params.add(request.schoolUid());
-        }
-        if (hasText(request.interactionOutcome())) {
-            filters.add("i.outcome = ?");
-            params.add(request.interactionOutcome());
-        }
-        if (request.fromDate() != null) {
-            filters.add("DATE(i.created_at) >= ?");
-            params.add(request.fromDate());
-        }
-        if (request.toDate() != null) {
-            filters.add("DATE(i.created_at) <= ?");
-            params.add(request.toDate());
-        }
+        List<String> filters = interactionFilters(request, params, "i");
         String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
         return jdbc.queryForList(
                 """
@@ -327,8 +505,7 @@ public class CampaignReportService {
 
     private List<Map<String, Object>> queryAnalytics(CampaignReportRequest request) {
         List<Object> params = new ArrayList<>();
-        List<String> filters = new ArrayList<>();
-        addCampaignFilter(filters, params, request.campaignId(), "i");
+        List<String> filters = interactionFilters(request, params, "i");
         String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
         return jdbc.queryForList(
                 """
@@ -365,6 +542,10 @@ public class CampaignReportService {
     private List<String> eventFilters(CampaignReportRequest request, List<Object> params, String alias) {
         List<String> filters = new ArrayList<>();
         addCampaignFilter(filters, params, request.campaignId(), alias);
+        if (request.eventId() != null) {
+            filters.add(alias + ".id = ?");
+            params.add(request.eventId());
+        }
         if (hasText(request.eventStatus())) {
             filters.add(alias + ".status = ?");
             params.add(request.eventStatus());
@@ -394,6 +575,80 @@ public class CampaignReportService {
         return filters;
     }
 
+    private List<String> registrationFilters(CampaignReportRequest request, List<Object> params) {
+        List<String> filters = new ArrayList<>();
+        addCampaignFilter(filters, params, request.campaignId(), "r");
+        if (hasText(request.schoolUid())) {
+            filters.add("r.school_uid = ?");
+            params.add(request.schoolUid());
+        }
+        if (hasText(request.registrationStatus())) {
+            filters.add("r.status = ?");
+            params.add(request.registrationStatus());
+        }
+        if (hasText(request.provinceCode())) {
+            filters.add("s.province_code = ?");
+            params.add(request.provinceCode());
+        }
+        return filters;
+    }
+
+    private List<String> schoolFilters(CampaignReportRequest request, List<Object> params) {
+        List<String> filters = new ArrayList<>();
+        addCampaignFilter(filters, params, request.campaignId(), "e");
+        if (hasText(request.schoolUid())) {
+            filters.add("es.school_uid = ?");
+            params.add(request.schoolUid());
+        }
+        if (hasText(request.provinceCode())) {
+            filters.add("s.province_code = ?");
+            params.add(request.provinceCode());
+        }
+        if (request.fromDate() != null) {
+            filters.add("DATE(e.starts_at) >= ?");
+            params.add(request.fromDate());
+        }
+        if (request.toDate() != null) {
+            filters.add("DATE(e.starts_at) <= ?");
+            params.add(request.toDate());
+        }
+        return filters;
+    }
+
+    private List<String> interactionFilters(CampaignReportRequest request, List<Object> params, String alias) {
+        List<String> filters = new ArrayList<>();
+        addCampaignFilter(filters, params, request.campaignId(), alias);
+        if (request.eventId() != null) {
+            filters.add(alias + ".event_id = ?");
+            params.add(request.eventId());
+        }
+        if (request.employeeId() != null) {
+            filters.add(alias + ".employee_id = ?");
+            params.add(request.employeeId());
+        }
+        if (hasText(request.schoolUid())) {
+            filters.add(alias + ".school_uid = ?");
+            params.add(request.schoolUid());
+        }
+        if (hasText(request.interactionOutcome())) {
+            filters.add(alias + ".outcome = ?");
+            params.add(request.interactionOutcome());
+        }
+        if (hasText(request.provinceCode())) {
+            filters.add(alias + ".province_code = ?");
+            params.add(request.provinceCode());
+        }
+        if (request.fromDate() != null) {
+            filters.add("DATE(" + alias + ".created_at) >= ?");
+            params.add(request.fromDate());
+        }
+        if (request.toDate() != null) {
+            filters.add("DATE(" + alias + ".created_at) <= ?");
+            params.add(request.toDate());
+        }
+        return filters;
+    }
+
     private void addCampaignFilter(List<String> filters, List<Object> params, Long campaignId, String alias) {
         if (campaignId != null) {
             filters.add(alias + ".campaign_id = ?");
@@ -416,12 +671,11 @@ public class CampaignReportService {
         return jdbc.query(
                 """
                 SELECT id FROM report_exports
-                WHERE created_by_user_id = ? AND report_type = ? AND status = 'PENDING'
+                WHERE created_by_user_id = ? AND status = 'PENDING'
                 ORDER BY created_at DESC LIMIT 1
                 """,
                 (rs, rowNum) -> rs.getLong("id"),
-                userId,
-                REPORT_TYPE
+                userId
         ).stream().findFirst().orElse(null);
     }
 
@@ -484,4 +738,3 @@ public class CampaignReportService {
         }
     }
 }
-

@@ -93,7 +93,51 @@
 - feat-079: Profile page (avatar, password, personal info, student/staff details)
 - feat-081: Staff registration approval dashboard
 
-**Last Updated:** 2026-07-01 14:05
+## feat-080 Multi-form PDF Report Redesign - 2026-07-04
+
+### Scope
+Split the single Campaign PDF report into 4 form types: **Campaign / Event / School / Region**. Each form has type-specific filters and a tailored section set. Reports now embed chart images (PNG base64) into the PDF and show KPI tiles on the title page.
+
+### Backend Changes
+- `CampaignReportRequest` (record): added `reportType` (CAMPAIGN/EVENT/SCHOOL/REGION), `eventId`, `chartImages` (Map<String,String> base64 PNG per section). Added `safeReportType()` and `safeSections()` selectors.
+- `PdfReportRenderer.render(...)`: new overload accepts title, subtitle, KPI list, sections map, and chart images map. KPI tiles rendered as a 4-column `PdfPTable` with label + value. Per-section `Image.getInstance(decoded)` embeds chart PNG above the data table.
+- `CampaignReportService`:
+  - Routes `collectSections(request)` to per-type collector (`collectCampaignSections`, `collectEventSections`, `collectSchoolSections`, `collectRegionSections`).
+  - New summary queries: `queryEventSummary`, `querySchoolSummary`, `queryRegionSummary` (each aggregates KPI differently).
+  - `computeKpis(request)` always returns `[events, interactions, schools, registrations]` for the title page.
+  - `interactionFilters(...)` now includes `eventId` and `provinceCode` for per-event-region reports.
+- File storage: filename includes the reportType, e.g. `region-report-yyyyMMdd-HHmmss-{id}.pdf`.
+
+### Frontend Changes
+- `report_models.dart`: `CampaignReportRequest` now has `reportType` (default `'CAMPAIGN'`), `eventId`, `chartImages`. Added static section lists per type (`campaignSections`, `eventSections`, `schoolSections`, `regionSections`) and `allTypes` constant.
+- New file `chart_to_image.dart`: `ChartToImage.renderToBase64(context, chart, size, pixelRatio)` inserts a hidden `RepaintBoundary` widget into an `Overlay`, waits one frame, calls `RenderRepaintBoundary.toImage`, encodes as base64 PNG.
+- New file `report_filter_providers.dart`: `reportCampaignsProvider`, `reportEmployeesProvider`, `reportSchoolsProvider` (extracted from old campaign_report_page.dart).
+- New file `report_form_scaffold.dart`: `ReportFormScaffold` (ConsumerStatefulWidget) + `ReportFilterDescriptor` (build callback) + `ChartSpec`. Renders responsive (wide vs narrow) filter row, chart preview tile grid, status panel, export/download buttons.
+- New pages:
+  - `reports_landing_page.dart` — `/reports` 4-card grid (Campaign/Event/School/Region).
+  - `campaign_report_type_page.dart`, `event_report_type_page.dart`, `school_report_type_page.dart`, `region_report_type_page.dart` — type-specific filter forms.
+- `router.dart`:
+  - Removed unused old `campaign_report_page.dart` import.
+  - Added 5 routes `/reports`, `/reports/campaign`, `/reports/event`, `/reports/school`, `/reports/region`, each wrapped in `_RoleGate(MANAGER, ADMIN)`.
+  - `_activeNavPath` recognizes `/reports` paths.
+  - `_navItemsFor` adds `Báo cáo` item to staff/manager/admin.
+
+### Verification
+- `flutter analyze lib/features/reports lib/app/router.dart`: **0 errors** (info-level `prefer_const_constructors` only).
+- `flutter analyze lib/`: **0 errors** (177 info-only lints, no regressions from 153 baseline).
+- `flutter build web --release`: **Built build\web** (87.7s).
+- `docker build --target builder -t vnmap-be-compile-check .`: **BUILD SUCCESS**.
+- `docker compose up -d --no-deps --build backend`: backend healthy after rebuild.
+- `POST /api/v1/reports/campaigns/pdf` with `reportType: REGION` returns **200 OK** (reportId=10, status=PENDING); with `reportType: CAMPAIGN` returns **200 OK** (reportId=11).
+- `apply BE/scripts/migration_user_avatar.sql` was needed to fix a pre-existing login 500 caused by feat-079 column not being applied to this DB image.
+
+### Tooling Note (recurring)
+- Cursor `Write` and `StrReplace` tools dump Dart files as UTF-16 LE. Flutter analyzer rejects UTF-16 Dart sources. Resolved by re-encoding affected files via PowerShell `ReadAllBytes -> Encoding.Unicode.GetString -> UTF8Encoding(false).WriteAllText`. Files affected in this session: `chart_to_image.dart`, `report_form_scaffold.dart`, `report_filter_providers.dart`, `reports_landing_page.dart`, `campaign_report_type_page.dart`, `event_report_type_page.dart`, `school_report_type_page.dart`, `region_report_type_page.dart`.
+- All `.dart` files now end with `nul=0` after each `Write`/`StrReplace` edit.
+
+### Known Issue
+- Storage upload of generated PDF returns `Failed to upload object to storage` for both REGION and CAMPAIGN types, causing status to flip from PENDING to FAILED. This is a pre-existing `StorageService.uploadGeneratedObject` issue surfaced by the rebuilt backend; unrelated to feat-080's schema changes. To be addressed in a follow-up.
+
 **Session ID:** session-20260701-firebase-mvvm
 **Active Feature:** feat-071 (Phase 10 â€” final verification) â€” ALL 10 PHASES COMPLETE
 
@@ -1069,3 +1113,120 @@ import (exit 0)              ──→ import-schools (exit 0) ─→ seed (exit
 - PDF create + download URL: 200 OK ✓
 - User list with firebaseUid: verified ✓
 
+
+---
+
+## Docker Firebase Env + One-Shot Compose Repair - 2026-07-03
+
+### Scope
+- Fixed backend Firebase credentials path/env behavior so Docker can use `FIREBASE_SERVICE_ACCOUNT_JSON` directly instead of requiring a mounted full-path service account file.
+- Kept import scripts and import data unchanged.
+- Made root `docker-compose.yml` build backend/frontend images during `docker compose up -d --build` instead of relying on stale/prebuilt images.
+
+### Fixes Applied
+- `FirebaseConfig.java`: shared one `GoogleCredentials` bean from `FIREBASE_SERVICE_ACCOUNT_JSON`/`FIREBASE_SERVICE_ACCOUNT_FILE`; `Storage` now uses that bean instead of `GoogleCredentials.getApplicationDefault()`.
+- `FirebaseConfig.java`: added `FirebaseMessaging` bean for notification service startup.
+- `WebClientConfig.java`: added `RestTemplate` bean required by `GoogleAuthService`.
+- `docker-compose.yml`: backend/frontend app services now include `build:` blocks; backend env now passes `FIREBASE_SERVICE_ACCOUNT_JSON` and `FIREBASE_SERVICE_ACCOUNT_FILE` from `.env`.
+
+### Verification
+- `docker compose config --quiet`: success.
+- `docker compose up -d --build`: success.
+- Import pipeline: `import`, `import-schools`, `seed` exited 0.
+- Backend: `vnmap_backend` healthy.
+- Frontend: `vnmap_frontend` up on port 3000.
+- `curl http://localhost:8080/actuator/health`: `{"status":"UP"}`.
+- `curl -I http://localhost:3000`: HTTP 200.
+
+### Security Note
+- Firebase service account private key was exposed in chat during this session. Rotate/delete that key in Google Cloud/Firebase and update `.env` with the new JSON.
+
+
+---
+
+## feat-078 Notification Bell + Modal - 2026-07-03
+
+### Scope
+- Add notification bell with unread badge to AppShell (mobile AppBar + desktop top-right floating overlay).
+- Bottom-sheet preview with recent notifications (10 latest from backend), mark-as-read on tap, deep-link to event/campaign detail.
+- Header action "Đọc tất cả", footer link "Xem tất cả" -> /notifications route.
+
+### Files Added
+- `FE/lib/features/notifications/domain/models/notification_models.dart` - `NotificationItem` immutable model (id, title, body, triggerType, status, createdAt, readAt, data Map).
+- `FE/lib/features/notifications/data/repositories/notification_repository.dart` - 4 methods calling backend: `listMy(limit)`, `unreadCount()`, `markRead(id)`, `markAllRead()`.
+- `FE/lib/features/notifications/presentation/providers/notification_provider.dart` - `notificationRepositoryProvider`, `notificationUnreadCountProvider`, `recentNotificationsProvider` (FutureProvider.autoDispose) + `invalidateNotifications(ref)` helper.
+- `FE/lib/features/notifications/presentation/widgets/notification_bell.dart` - `NotificationBellButton` (Stack + badge + IconButton) + `NotificationPreviewModal` (bottom sheet with header action, ListView.separated rows, footer link).
+
+### Files Modified
+- `FE/lib/app/widgets/app_shell_scaffold.dart` - import bell widget; mobile AppBar actions now `[NotificationBellButton(), SettingsButton]`; desktop wrapped body in `Stack` with `Positioned(top:12, right:12)` floating bell.
+
+### Backend Contract (already exists from feat-075)
+- `GET /api/v1/notifications?limit=10` -> `ApiResponse<List<NotificationAuditDto>>`
+- `GET /api/v1/notifications/unread-count` -> `ApiResponse<Map<String,Long>>`
+- `PUT /api/v1/notifications/{id}/read` -> `ApiResponse<Map<String,Object>>`
+- `POST /api/v1/notifications/read-all` -> `ApiResponse<Map<String,Object>>`
+
+### Deep-link Mapping
+- `data.type` (or `triggerType`) `event_reminder` + `eventId` -> `/events/$eventId`
+- `data.type` (or `triggerType`) `campaign_update` + `campaignId` -> `/campaigns/$campaignId/dashboard`
+- fallback -> `/notifications`
+
+### Verification
+- `flutter analyze lib/features/notifications lib/app/widgets/app_shell_scaffold.dart`: No issues found
+- `flutter analyze lib/`: 0 errors (148 info hints, all pre-existing + 2 from new widget, no warnings)
+- `flutter build web --release`: Built `build\web`, exit 0 (132.7s compile, no regressions)
+
+### Tooling Note
+- Cursor `Write` and `StrReplace` tools dump Dart files as UTF-16 LE (every other byte is 0x00). Flutter analyzer rejects UTF-16 Dart sources. Resolved by re-encoding affected files to UTF-8 via PowerShell `ReadAllBytes -> Encoding.Unicode.GetString -> UTF8Encoding(false).WriteAllText`. Future file writes should verify encoding with `([byte[]](Get-Content -Encoding Byte) | Where-Object {$_ -eq 0}).Count`.
+
+
+---
+
+## feat-079 Profile Page - 2026-07-03
+
+### Scope
+- New `/profile` page with avatar (initial fallback or uploaded image), info card, password change form.
+- Mobile AppBar action: account_circle icon (replaces settings gear). Sidebar nav: "Hồ sơ" entry for all logged-in roles.
+- Password change is hidden for Google Sign-In users (firebaseUser = true).
+
+### Backend Changes
+- `BE/scripts/migration_user_avatar.sql`: `ALTER TABLE app_users ADD COLUMN IF NOT EXISTS avatar_object_key VARCHAR(255);`
+- `BE/src/main/java/com/vnmap/auth/dto/AuthUserDto.java`: 6 -> 9 fields (added `avatarObjectKey`, `fullName`, `firebaseUser`).
+- `BE/src/main/java/com/vnmap/auth/dto/UpdateProfileRequest.java`: avatar key payload.
+- `BE/src/main/java/com/vnmap/auth/dto/ChangePasswordRequest.java`: current + new password with validation.
+- `BE/src/main/java/com/vnmap/auth/service/AuthService.java`:
+  - `loadUserDto(userId)` joins employees + students for `fullName`, reads `firebase_uid` for `firebaseUser`.
+  - `updateProfile(user, request)` validates length, sets `avatar_object_key = NULL` if blank.
+  - `changePassword(user, request)` rejects if `firebase_uid IS NOT NULL` (Google account), rejects if `newPassword == currentPassword`, verifies current hash, encodes new.
+  - `issueTokens(...)` now calls `loadUserDto(user.id())` so login/refresh return the same 9-field DTO.
+- `BE/src/main/java/com/vnmap/auth/controller/AuthController.java`: added `PUT /me` and `PUT /me/password`.
+- `BE/src/test/java/com/vnmap/auth/controller/AuthControllerTest.java`: updated 2 `new AuthUserDto(...)` calls to 9-arg constructor.
+
+### Frontend Changes
+- `FE/lib/features/auth/shared/models/auth_models.dart`:
+  - `AuthUserModel`: added `avatarObjectKey`, `fullName`, `firebaseUser` + getters `displayName`, `initials`, `hasPassword`, `copyWith`.
+  - `AuthResponseModel`: re-added (was clobbered by initial model rewrite).
+- `FE/lib/features/auth/shared/repositories/auth_repository.dart`: added `updateProfile({avatarObjectKey})` and `changePassword({currentPassword, newPassword})`.
+- `FE/lib/features/auth/presentation/providers/profile_viewmodel.dart`:
+  - `ProfileViewModel` (StateNotifier) with `uploadAvatarBytes(bytes, fileName, contentType)` -> uses `StorageRepository.generateUploadUrl(folder: 'avatars')` + `uploadFile` + `updateProfile`.
+  - `changePassword(currentPassword, newPassword)` -> calls repo + emits success/error states.
+  - `friendlyError(Object)` translates 401/400/Google to Vietnamese messages.
+  - `storageRepositoryProvider` added (Dio + AuthRepository).
+- `FE/lib/features/auth/presentation/pages/profile_page.dart`:
+  - 4 cards: avatar (initials fallback or network image from MinIO), info (name/email/role/status/firebase badge), password form (current + new + confirm with validators), session info.
+  - Web file picker via `dart:html.FileUploadInputElement` + `FileReader.readAsArrayBuffer`. On mobile, shows fallback toast (no `image_picker` package yet).
+  - `ref.listen<ProfileState>` surfaces snackbar on success/error.
+  - Resets password form on success.
+- `FE/lib/app/router.dart`: added `/profile` route, added `_NavItem('/profile', 'Hồ sơ', ...)` for all logged-in roles, added `/profile` to `_activeNavPath`.
+- `FE/lib/app/widgets/app_shell_scaffold.dart`: replaced settings `IconButton(Icons.settings_outlined)` with `IconButton(Icons.account_circle_outlined)` -> `/profile`.
+
+### Verification
+- `docker build --target builder -t vnmap-be-compile-check .`: BUILD SUCCESS
+- `flutter analyze lib/features/auth lib/app/router.dart lib/app/widgets/app_shell_scaffold.dart`: 0 errors
+- `flutter analyze lib/`: 0 errors (only pre-existing `duplicate_ignore` warning)
+- `flutter build web --release`: Built `build\web` exit 0 (74.1s compile)
+
+### Notes
+- `StorageService` returns a Firebase-Storage-shaped `publicUrl`, but per feat-072 the underlying backend was migrated to MinIO. The avatar widget reconstructs a MinIO public URL (`http://localhost:9000/vnmap-campaign/<objectKey>`) for the public-read bucket policy. If the bucket name is different in production, the URL needs to be read from `app_settings` or `UploadUrlResponse.publicUrl` instead.
+- `kIsWeb` file picker: only web supported for now. Mobile file picker would need `image_picker` (out of scope for this feature).
+- Tooling note from feat-078 still applies: every newly written file must be verified UTF-8 before Flutter analyzer will accept it.
