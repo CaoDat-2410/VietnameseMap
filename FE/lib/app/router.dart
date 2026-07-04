@@ -32,6 +32,7 @@ import '../features/reports/presentation/pages/event_report_type_page.dart';
 import '../features/reports/presentation/pages/region_report_type_page.dart';
 import '../features/reports/presentation/pages/reports_landing_page.dart';
 import '../features/reports/presentation/pages/school_report_type_page.dart';
+import '../features/staff/presentation/pages/staff_registrations_page.dart';
 import '../features/student/presentation/pages/event_registration_page.dart';
 import '../features/student/presentation/pages/my_registrations_page.dart';
 import '../features/student/presentation/pages/student_register_page.dart';
@@ -363,6 +364,17 @@ final router = GoRouter(
           ),
         ),
         GoRoute(
+          path: '/staff/registrations',
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
+            child: _RoleGate(
+              allowedRoles: const {'STAFF', 'MANAGER', 'ADMIN'},
+              child: const StaffRegistrationsPage(),
+            ),
+          ),
+        ),
+        GoRoute(
           path: '/reports',
           pageBuilder: (context, state) => _buildPageWithSlideTransition(
             context: context,
@@ -454,6 +466,7 @@ class _AppShell extends ConsumerWidget {
     }
     if (location.startsWith('/schools')) return '/schools';
     if (location.startsWith('/reports')) return '/reports';
+    if (location.startsWith('/staff/registrations')) return '/staff/registrations';
     if (location.startsWith('/student/my-registrations')) {
       return '/student/my-registrations';
     }
@@ -513,6 +526,8 @@ class _AppShell extends ConsumerWidget {
           '/campaigns', l10n.campaigns, Icons.campaign_outlined, Icons.campaign));
       items.add(_NavItem(
           '/analytics', 'Analytics', Icons.analytics_outlined, Icons.analytics));
+      items.add(_NavItem('/staff/registrations', 'Duyệt đơn',
+          Icons.assignment_turned_in_outlined, Icons.assignment_turned_in));
       items.add(_NavItem(
           '/reports', 'Báo cáo', Icons.summarize_outlined, Icons.summarize));
       items.add(_NavItem(

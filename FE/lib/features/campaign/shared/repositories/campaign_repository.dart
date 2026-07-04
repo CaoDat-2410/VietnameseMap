@@ -308,6 +308,56 @@ class CampaignRepository {
     return api.data!;
   }
 
+  Future<Map<String, dynamic>> listStaffRegistrations({
+    int? campaignId,
+    String? schoolUid,
+    String? status,
+    String? q,
+    int page = 0,
+    int limit = 25,
+  }) async {
+    final query = <String, dynamic>{
+      'page': page,
+      'limit': limit,
+    };
+    if (campaignId != null) query['campaignId'] = campaignId;
+    if (schoolUid != null && schoolUid.isNotEmpty) query['schoolUid'] = schoolUid;
+    if (status != null && status.isNotEmpty) query['status'] = status;
+    if (q != null && q.isNotEmpty) query['q'] = q;
+    final res = await _client.get<Map<String, dynamic>>(
+      '/api/v1/staff/student-registrations',
+      queryParameters: query,
+    );
+    final api = ApiResponse.fromJson(res.data!, (json) {
+      final m = json as Map<String, dynamic>;
+      return {
+        'items': (m['items'] as List<dynamic>)
+            .map((e) => StudentRegistrationModel.fromJson(
+                e as Map<String, dynamic>))
+            .toList(),
+        'totalItems': m['totalItems'] ?? 0,
+        'page': m['page'] ?? 0,
+        'limit': m['limit'] ?? limit,
+        'totalPages': m['totalPages'] ?? 0,
+      };
+    });
+    _assertSuccess(api);
+    return api.data!;
+  }
+
+  Future<int> bulkUpdateRegistrationStatus(List<int> ids, String status) async {
+    final res = await _client.post<Map<String, dynamic>>(
+      '/api/v1/student-registrations/bulk-status',
+      data: {'ids': ids, 'status': status},
+    );
+    final api = ApiResponse.fromJson(
+      res.data!,
+      (json) => (json as Map<String, dynamic>)['updated'] as int? ?? 0,
+    );
+    _assertSuccess(api);
+    return api.data!;
+  }
+
   Future<List<Map<String, dynamic>>> getUsers() async {
     final res = await _client.get<Map<String, dynamic>>('/api/v1/users');
     final api = ApiResponse.fromJson(

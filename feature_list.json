@@ -1284,6 +1284,26 @@
                                        "FE/lib/features/reports/presentation/pages/region_report_type_page.dart",
                                        "FE/lib/app/router.dart"
                                    ]
+                     },
+                     {
+                         "id":  "feat-081",
+                         "name":  "Staff registration approval dashboard",
+                         "description":  "Backend adds GET /api/v1/staff/student-registrations (paged list filtered by campaignId/schoolUid/status/q, scoped to STAFF-assigned events/schools) and POST /api/v1/student-registrations/bulk-status (batch update up to 200 ids). Frontend adds /staff/registrations page with PaginatedDataTable2 (ID/name/email/phone/school/class/status/createdAt/actions), text search, status filter, multi-select + bulk Approve/Reject buttons, per-row contact (tel:/mailto: copied to clipboard) and single Approve/Reject actions. Sidebar adds 'Duyệt đơn' item for staff/manager/admin, route guarded by _RoleGate.",
+                         "dependencies":  [
+                                              "feat-077"
+                                          ],
+                         "status":  "completed",
+                         "evidence":  "BE: docker build --target builder: BUILD SUCCESS | GET /api/v1/staff/student-registrations returns 200 with paged items (verified via test-regs-api.py) | POST /api/v1/student-registrations/bulk-status returns 200 with updated count. FE: flutter analyze lib/features/staff lib/app/router.dart: 0 errors | flutter analyze lib/: 0 errors | flutter build web --release: Built build\\web (89.9s)",
+                         "files":  [
+                                       "BE/src/main/java/com/vnmap/campaign/dto/BulkRegistrationStatusRequest.java",
+                                       "BE/src/main/java/com/vnmap/campaign/service/CampaignService.java",
+                                       "BE/src/main/java/com/vnmap/campaign/controller/CampaignController.java",
+                                       "BE/src/main/java/com/vnmap/common/config/SecurityConfig.java",
+                                       "FE/lib/features/staff/presentation/pages/staff_registrations_page.dart",
+                                       "FE/lib/features/staff/presentation/providers/staff_registrations_provider.dart",
+                                       "FE/lib/features/campaign/shared/repositories/campaign_repository.dart",
+                                       "FE/lib/app/router.dart"
+                                   ]
                      }
                  ],
 "knownIssues":  [
@@ -1305,10 +1325,10 @@
                    ],
     "pendingFeatures": [
         {
-            "id": "feat-081",
-            "name": "Staff registration approval dashboard",
+            "id": "feat-082",
+            "name": "TBD next",
             "status": "queued",
-            "scope": "Paginated table of registrations assigned to staff; bulk approve/reject; contact student via phone/email"
+            "scope": "Reserved"
         }
     ]
 }

@@ -1230,3 +1230,41 @@ import (exit 0)              ──→ import-schools (exit 0) ─→ seed (exit
 - `StorageService` returns a Firebase-Storage-shaped `publicUrl`, but per feat-072 the underlying backend was migrated to MinIO. The avatar widget reconstructs a MinIO public URL (`http://localhost:9000/vnmap-campaign/<objectKey>`) for the public-read bucket policy. If the bucket name is different in production, the URL needs to be read from `app_settings` or `UploadUrlResponse.publicUrl` instead.
 - `kIsWeb` file picker: only web supported for now. Mobile file picker would need `image_picker` (out of scope for this feature).
 - Tooling note from feat-078 still applies: every newly written file must be verified UTF-8 before Flutter analyzer will accept it.
+
+
+---
+
+## feat-081 Staff Registration Approval Dashboard - 2026-07-04
+
+### Scope
+- New `/staff/registrations` page so STAFF/MANAGER/ADMIN can review PENDING student registrations, approve/reject in bulk or one-by-one, and quickly copy phone/email for outreach.
+- Backend gains a paged staff list endpoint and a bulk-status endpoint so the UI does not have to round-trip per row.
+
+### Backend Changes
+- `BE/src/main/java/com/vnmap/campaign/dto/BulkRegistrationStatusRequest.java`: new record `{ String status, List<Long> ids }` (max 200 ids, status enum-validated).
+- `BE/src/main/java/com/vnmap/campaign/service/CampaignService.java`:
+  - `listRegistrationsForStaff(user, campaignId, schoolUid, status, query, page, limit)` joins `students` + `schools`, applies filters, and -- when caller has role STAFF + employeeId -- restricts to campaigns/schools they are assigned to via `event_assignments`.
+  - `bulkUpdateRegistrationStatus(request)` issues one `UPDATE ... WHERE id IN (?,?,...)` with `?` placeholders generated from `Collections.nCopies`.
+- `BE/src/main/java/com/vnmap/campaign/controller/CampaignController.java`:
+  - `GET /api/v1/staff/student-registrations` (paged, all four filter params + page/limit).
+  - `POST /api/v1/student-registrations/bulk-status` returns `{ updated, status }`.
+- `BE/src/main/java/com/vnmap/common/config/SecurityConfig.java`: new rules `GET /api/v1/staff/student-registrations` and `POST /api/v1/student-registrations/bulk-status` allowed for STAFF/MANAGER/ADMIN.
+
+### Frontend Changes
+- `FE/lib/features/campaign/shared/repositories/campaign_repository.dart`: `listStaffRegistrations(...)` and `bulkUpdateRegistrationStatus(ids, status)`.
+- `FE/lib/features/staff/presentation/providers/staff_registrations_provider.dart`: filter `StateProvider` (`status`, `q`) + `FutureProvider.autoDispose<StaffRegistrationsPage>` exposing items + total count.
+- `FE/lib/features/staff/presentation/pages/staff_registrations_page.dart`: Scaffold + AppBar refresh; toolbar with text search, status dropdown, and bulk Approve/Reject buttons (disabled when 0 rows selected or in-flight). `PaginatedDataTable2` with columns ID / Full name / Email / Phone / School / Class / Status / Created at / Actions. Actions: phone/email (copies `tel:` / `mailto:` to clipboard on web), per-row approve/reject. `_StatusChip` color-codes PENDING/APPROVED/REJECTED/CANCELLED.
+- `FE/lib/app/router.dart`: new route `/staff/registrations` gated by `_RoleGate(STAFF, MANAGER, ADMIN)`. Sidebar nav adds "Duyệt đơn" item for staff/manager/admin. `_activeNavPath` updated for highlight.
+
+### Verification
+- `docker build -t vnmap-backend:feat-081 .` -> BUILD SUCCESS.
+- Restarted `vnmap_backend` with `FIREBASE_SERVICE_ACCOUNT_FILE=/run/secrets/firebase.json` (mounted `C:/Users/docao/firebase.json`).
+- `test-regs-api.py` (admin login + GET PENDING + bulk-update) all returned 200. After bulk call, two PENDING registrations became APPROVED.
+- `flutter analyze lib/features/staff/ lib/app/router.dart/`: 0 errors (only 2 redundant-default-value info lints).
+- `flutter analyze lib/`: 0 errors.
+- `flutter build web --release`: Built build\web (89.9s).
+
+### Notes
+- Phone/email click on web copies to clipboard (no `dart:io` launcher) because of web-platform constraints; on mobile this should switch to `url_launcher`.
+- `assigned_only` STAFF scoping (per user flow choice): STAFF with `employeeId` sees only registrations whose `campaign_id` or `school_uid` appears in `event_assignments` joined to their events. MANAGER/ADMIN see everything.
+- Tooling: `Write` and `StrReplace` tools occasionally dump Dart files as UTF-16 LE (every other byte 0x00). All newly created files must be re-encoded to UTF-8 before `flutter analyze` will accept them.

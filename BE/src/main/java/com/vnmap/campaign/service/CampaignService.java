@@ -22,6 +22,7 @@ import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -905,6 +906,92 @@ public class CampaignService {
             throw new ResourceNotFoundException("StudentRegistration", "id", id);
         }
         return getRegistration(id);
+    }
+
+    public PagedResponse<StudentRegistrationDto> listRegistrationsForStaff(
+            CurrentUser user,
+            Long campaignId,
+            String schoolUid,
+            String status,
+            String query,
+            int page,
+            int limit
+    ) {
+        int safePage = Math.max(page, 0);
+        int safeLimit = Math.min(Math.max(limit, 1), 200);
+        List<Object> params = new ArrayList<>();
+        List<String> filters = new ArrayList<>();
+        if (campaignId != null) {
+            filters.add("r.campaign_id = ?");
+            params.add(campaignId);
+        }
+        if (schoolUid != null && !schoolUid.isBlank()) {
+            filters.add("r.school_uid = ?");
+            params.add(schoolUid);
+        }
+        if (status != null && !status.isBlank()) {
+            filters.add("r.status = ?");
+            params.add(status);
+        }
+        if (query != null && !query.isBlank()) {
+            filters.add("(LOWER(st.full_name) LIKE LOWER(?) OR LOWER(st.email) LIKE LOWER(?) OR LOWER(st.phone) LIKE LOWER(?))");
+            String pattern = "%" + query.trim() + "%";
+            params.add(pattern);
+            params.add(pattern);
+            params.add(pattern);
+        }
+        if ("STAFF".equals(user.role()) && user.employeeId() != null) {
+            filters.add("""
+                    (r.campaign_id IN (
+                       SELECT e.campaign_id FROM event_assignments ea
+                       JOIN campaign_events e ON e.id = ea.event_id
+                       WHERE ea.employee_id = ?
+                    ) OR r.school_uid IN (
+                       SELECT es.school_uid FROM event_assignments ea
+                       JOIN campaign_events e ON e.id = ea.event_id
+                       JOIN event_schools es ON es.event_id = e.id
+                       WHERE ea.employee_id = ?
+                    ))
+                    """);
+            params.add(user.employeeId());
+            params.add(user.employeeId());
+        }
+        String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
+        Long total = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM campaign_student_registrations r JOIN students st ON st.id = r.student_id " + where,
+                Long.class,
+                params.toArray()
+        );
+        params.add(safeLimit);
+        params.add(safePage * safeLimit);
+        List<StudentRegistrationDto> items = jdbc.query(
+                REGISTRATION_SELECT_SQL + " " + where + " ORDER BY r.created_at DESC, r.id DESC LIMIT ? OFFSET ?",
+                this::mapRegistration,
+                params.toArray()
+        );
+        return PagedResponse.of(items, safePage, safeLimit, total == null ? 0 : total);
+    }
+
+    @Transactional
+    public int bulkUpdateRegistrationStatus(BulkRegistrationStatusRequest request) {
+        validateIn(request.status(), "PENDING", "APPROVED", "REJECTED", "CANCELLED");
+        if (request.ids() == null || request.ids().isEmpty()) {
+            return 0;
+        }
+        String placeholders = String.join(",", Collections.nCopies(request.ids().size(), "?"));
+        return jdbc.update(
+                "UPDATE campaign_student_registrations SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id IN (" + placeholders + ")",
+                concatArgs(request.status(), request.ids())
+        );
+    }
+
+    private Object[] concatArgs(Object first, List<Long> rest) {
+        Object[] arr = new Object[rest.size() + 1];
+        arr[0] = first;
+        for (int i = 0; i < rest.size(); i++) {
+            arr[i + 1] = rest.get(i);
+        }
+        return arr;
     }
 
     public PagedResponse<StudentDto> getStudents(int page, int limit, String schoolUid, String query) {

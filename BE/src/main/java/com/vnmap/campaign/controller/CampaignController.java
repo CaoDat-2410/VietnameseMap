@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @Validated
@@ -387,6 +388,33 @@ public class CampaignController {
         return ResponseEntity.ok(ApiResponse.success(
                 campaignService.updateRegistrationStatus(id, request.status()),
                 "Student registration status updated successfully"
+        ));
+    }
+
+    @GetMapping("/staff/student-registrations")
+    public ResponseEntity<ApiResponse<PagedResponse<StudentRegistrationDto>>> listStaffRegistrations(
+            @RequestParam(required = false) Long campaignId,
+            @RequestParam(required = false) String schoolUid,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "50") @Min(1) @Max(200) int limit,
+            @AuthenticationPrincipal CurrentUser user
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                campaignService.listRegistrationsForStaff(user, campaignId, schoolUid, status, q, page, limit),
+                "Staff registrations retrieved successfully"
+        ));
+    }
+
+    @PostMapping("/student-registrations/bulk-status")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> bulkUpdateRegistrationStatus(
+            @Valid @RequestBody BulkRegistrationStatusRequest request
+    ) {
+        int updated = campaignService.bulkUpdateRegistrationStatus(request);
+        return ResponseEntity.ok(ApiResponse.success(
+                Map.of("updated", updated, "status", request.status()),
+                "Bulk registration status updated successfully"
         ));
     }
 
