@@ -1335,10 +1335,31 @@
                    ],
     "pendingFeatures": [
         {
-            "id": "feat-082",
+            "id": "feat-083",
             "name": "TBD next",
             "status": "queued",
             "scope": "Reserved"
+        }
+    ],
+    "completedFeatures": [
+        {
+            "id": "feat-082",
+            "name": "Bug fixes: MinIO storage migration + 404 handler + reports list",
+            "description": "Migrated BE storage from Firebase GCS to MinIO with custom SigV4 presigner (bypassing AWS SDK v2 auth-scheme/endpoint-resolution interceptor URISyntaxException against non-AWS HTTP endpoints). Added GET /api/v1/reports list endpoint with filters and role-scoped access (admin sees all, manager sees own). Added @ExceptionHandler for NoResourceFoundException -> 404 instead of 500. Updated MINIO_ENDPOINT default in BE/docker-compose.yml to use 'minio' (Docker service name) instead of 'vnmap_minio' because MinIO itself rejects hostnames with underscores.",
+            "dependencies": [],
+            "status": "completed",
+            "evidence": "verify_feat_082.py: 13/13 PASS. /storage/upload-url returns MinIO presigned URL, /api/v1/this-route-does-not-exist returns 404, GET /reports (admin) returns 200 paged list, POST /reports (admin) -> READY with PDF stored at reports/.../{id}.pdf on MinIO, downloadUrl returns 200, downloaded bytes start with %PDF.",
+            "files": [
+                "BE/src/main/java/com/vnmap/common/util/SigV4Presigner.java",
+                "BE/src/main/java/com/vnmap/common/config/MinioConfig.java",
+                "BE/src/main/java/com/vnmap/storage/service/StorageService.java",
+                "BE/src/main/java/com/vnmap/report/controller/ReportController.java",
+                "BE/src/main/java/com/vnmap/report/service/CampaignReportService.java",
+                "BE/src/main/java/com/vnmap/common/exception/GlobalExceptionHandler.java",
+                "BE/pom.xml",
+                "BE/docker-compose.yml",
+                "verify_feat_082.py"
+            ]
         }
     ]
 }

@@ -2,11 +2,11 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-03 18:30
-**Session ID:** session-20260703-student-permissions
-**Active Feature:** feat-077 (Student role permissions + registration flow)
+**Last Updated:** 2026-07-04 21:30
+**Session ID:** session-20260704-feat-082-bugfixes
+**Active Feature:** feat-082 (MinIO storage migration + 404 handler + reports list)
 
-## Status: feat-077 PART 2 COMPLETE (Frontend)
+## Status: feat-082 COMPLETE
 
 ### Completed in this session
 
@@ -1302,3 +1302,48 @@ import (exit 0)              ──→ import-schools (exit 0) ─→ seed (exit
 - These bugs predate feat-077..feat-081 and were masked earlier because direct PDF download was never attempted end-to-end post-feat-074.
 - Should be addressed as a dedicated `feat-082: fix storage backend (MinIO migration)` before any further feature work that relies on avatar upload or PDF report download.
 - All known issues logged in `feature_list.json` under `knownIssues`.
+
+---
+
+## feat-082: Bug fixes (MinIO migration + 404 + reports list) - COMPLETE
+
+### Goal
+Fix three pre-existing bugs from the post-feat-081 smoke test:
+1. **[HIGH] Storage backend still used Firebase GCS SDK** despite feat-072 MinIO migration. Avatar upload (eat-079) and PDF report storage (eat-080) broken end-to-end.
+2. **[MEDIUM] NoResourceFoundException returned 500 instead of 404** for unknown API routes.
+3. **[MEDIUM] Missing GET /api/v1/reports list endpoint** -- only single-report GET existed.
+
+### Solution
+- **StorageService**: replaced AWS SDK v2 S3Presigner/S3Client with a small custom SigV4Presigner (pure JDK HmacSHA256 + canonical request) that bypasses the AWS SDK v2 auth-scheme + endpoint-resolution interceptors. Those interceptors throw URISyntaxException("http:") against non-AWS HTTP endpoints like MinIO -- this is the bug from aws-sdk-java-v2 #4838/5646 affecting every v2.20+ release.
+- **MinioConfig**: simplified to only expose a shared CloseableHttpClient bean. Both presigners gone.
+- **ReportController + CampaignReportService**: added paged GET /api/v1/reports with status/eportType filters, role-scoped (admin sees all, manager sees own).
+- **GlobalExceptionHandler**: added @ExceptionHandler(NoResourceFoundException.class) -> 404 with structured error body.
+- **BE/docker-compose.yml**: changed MINIO_INTERNAL_ENDPOINT default from nmap_minio to minio (Docker service name). MinIO itself rejects hostnames containing underscores (InvalidRequest (invalid hostname)), so underscore names break server-side uploads even with valid SigV4.
+- **pom.xml**: kept AWS SDK v2 s3 2.28.16 for compat, removed pache-client (unused after switching to raw HttpClient).
+
+### Verification
+- erify_feat_082.py: 13/13 PASS
+  - Admin login OK
+  - /storage/upload-url returns MinIO URL (no GCS)
+  - /api/v1/this-route-does-not-exist returns 404 (not 500)
+  - GET /api/v1/reports (admin) returns 200 with paged list
+  - GET /api/v1/reports (admin) with status=READY filter works
+  - GET /api/v1/reports (student) returns 403
+  - POST /api/v1/reports -> status PENDING then READY
+  - storagePath ends with eports/.../{id}.pdf
+  - GET /api/v1/reports/{id}/download-url returns 200 with MinIO URL
+  - Downloaded bytes start with %PDF (verified with '%PDF')
+
+### Lessons
+- AWS SDK v2's S3Presigner and S3Client have **broken auth-scheme + endpoint-resolution interceptors** against non-AWS HTTP endpoints. The fix is to either:
+  1. Use a custom SigV4 implementation (chosen here -- 200 lines of pure JDK), or
+  2. Configure a custom S3AuthSchemeInterceptor (fragile across SDK versions), or
+  3. Add an Apache proxy in front of MinIO to forward as HTTPS (deployment cost).
+- Hostnames with underscores (e.g. Docker service nmap_minio) are **invalid in DNS** per RFC. Java's URI parser rejects them, and MinIO server-side rejects them even when the URL is properly constructed. Use plain minio as the service name.
+- URLEncoder.encode() in Java encodes spaces as + (form-encoding), but AWS SigV4 expects %20 -- always do the explicit .replace("+", "%20") swap.
+
+### Definition of Done
+- [x] Target behavior is implemented
+- [x] Verification script ran: 13/13 PASS
+- [x] Evidence recorded in feature_list.json (completedFeatures) and progress.md
+- [x] Repository restartable from standard startup path (docker-compose unchanged at root)

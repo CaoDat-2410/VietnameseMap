@@ -2,6 +2,7 @@ package com.vnmap.report.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vnmap.common.model.PagedResponse;
 import com.vnmap.common.security.CurrentUser;
 import com.vnmap.report.dto.CampaignReportRequest;
 import com.vnmap.report.dto.ReportExportResponse;
@@ -124,6 +125,43 @@ public class CampaignReportService {
             downloadUrl = storageService.generateDownloadUrl(path, DOWNLOAD_URL_TTL);
         }
         return map(row, downloadUrl);
+    }
+
+    public PagedResponse<ReportExportResponse> listReports(
+            CurrentUser user, int page, int limit, String status, String reportType
+    ) {
+        requireManagerOrAdmin(user);
+        int safePage = Math.max(page, 0);
+        int safeLimit = Math.min(Math.max(limit, 1), 100);
+        List<Object> params = new ArrayList<>();
+        List<String> filters = new ArrayList<>();
+        // ADMIN sees all reports; MANAGER sees only their own.
+        if (!"ADMIN".equals(user.role())) {
+            filters.add("created_by_user_id = ?");
+            params.add(user.id());
+        }
+        if (status != null && !status.isBlank()) {
+            filters.add("status = ?");
+            params.add(status);
+        }
+        if (reportType != null && !reportType.isBlank()) {
+            filters.add("report_type = ?");
+            params.add(reportType);
+        }
+        String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
+        Long total = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM report_exports " + where, Long.class, params.toArray()
+        );
+        params.add(safeLimit);
+        params.add(safePage * safeLimit);
+        List<Map<String, Object>> rows = jdbc.queryForList(
+                "SELECT * FROM report_exports " + where + " ORDER BY created_at DESC LIMIT ? OFFSET ?",
+                params.toArray()
+        );
+        List<ReportExportResponse> items = rows.stream()
+                .map(r -> map(r, null))
+                .toList();
+        return PagedResponse.of(items, safePage, safeLimit, total == null ? 0 : total);
     }
 
     private void generateReport(long reportId, CampaignReportRequest request) {
