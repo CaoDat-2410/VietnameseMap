@@ -25,8 +25,12 @@ class ReportRepository {
   }
 
   Future<List<CampaignSummary>> getCampaigns() async {
-    final res = await _client.get<List<dynamic>>('/api/v1/campaigns?size=100');
-    final items = res.data ?? [];
+    // Backend wraps the list in the standard ApiResponse envelope
+    // (`{ success, message, data: [...] }`). The `size` query param is not
+    // supported by GET /api/v1/campaigns (which only accepts includeArchived)
+    // so we just hit the endpoint without it.
+    final res = await _client.get<Map<String, dynamic>>('/api/v1/campaigns');
+    final items = res.data!['data'] as List<dynamic>? ?? const <dynamic>[];
     return items.map((e) {
       final map = e as Map<String, dynamic>;
       return CampaignSummary(
@@ -38,9 +42,11 @@ class ReportRepository {
   }
 
   Future<PagedSchoolsResponse> getSchools({required int page, String? query}) async {
+    // Backend uses `limit` (not `size`) and returns a PagedResponse
+    // (`{ items, page, limit, totalItems, totalPages }`).
     final params = <String, dynamic>{
       'page': page,
-      'size': 50,
+      'limit': 50,
     };
     if (query != null && query.isNotEmpty) params['q'] = query;
     final res = await _client.get<Map<String, dynamic>>('/api/v1/schools', queryParameters: params);
@@ -61,8 +67,9 @@ class ReportRepository {
   }
 
   Future<List<EmployeeSummary>> getEmployees() async {
-    final res = await _client.get<List<dynamic>>('/api/v1/employees');
-    final items = res.data ?? [];
+    // Same envelope unwrap as getCampaigns() above.
+    final res = await _client.get<Map<String, dynamic>>('/api/v1/employees');
+    final items = res.data!['data'] as List<dynamic>? ?? const <dynamic>[];
     return items.map((e) {
       final map = e as Map<String, dynamic>;
       return EmployeeSummary(

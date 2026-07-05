@@ -33,15 +33,6 @@ public class AnalyticsService {
     private static final String CAMPAIGN_FILTER = " AND i.campaign_id = ?";
     private static final String SCHOOL_FILTER = " AND i.school_uid = ?";
     private static final String TOTAL_COLUMN = "total";
-    private static final String TREND_SQL = """
-            SELECT DATE(i.created_at) AS d, COUNT(*) AS total
-            FROM interactions i
-            WHERE i.created_at >= CURRENT_DATE - ?
-              AND (? IS NULL OR i.campaign_id = ?)
-              AND (? IS NULL OR ? = '' OR i.school_uid = ?)
-            GROUP BY DATE(i.created_at)
-            ORDER BY d
-            """;
 
     private final JdbcTemplate jdbc;
     private final Clock clock;
@@ -153,13 +144,26 @@ public class AnalyticsService {
      * plot a continuous line without gaps.
      */
     public List<TrendPointDto> getInteractionsTrend(int days, Long campaignId, String schoolUid) {
-        Object[] params = {days, campaignId, campaignId, schoolUid, schoolUid, schoolUid};
+        // Build a parameterised WHERE clause that conditionally adds the
+        // optional campaign / school filters. Using positional `?` inside
+        // expressions like `(? IS NULL OR col = ?)` triggers PostgreSQL's
+        // "could not determine data type of parameter" error, so we append
+        // each filter explicitly only when a value is provided.
+        StringBuilder where = new StringBuilder(" WHERE i.created_at >= CURRENT_DATE - ?");
+        List<Object> params = new ArrayList<>();
+        params.add(days);
+        appendScopeFilters(where, params, campaignId, schoolUid);
+
+        String sql = "SELECT DATE(i.created_at) AS d, COUNT(*) AS total " +
+                "FROM interactions i" + where + " " +
+                "GROUP BY DATE(i.created_at) " +
+                "ORDER BY d";
 
         Map<LocalDate, Long> byDate = new LinkedHashMap<>();
-        jdbc.query(TREND_SQL, (rs, rowNum) -> new TrendPointDto(
+        jdbc.query(sql, (rs, rowNum) -> new TrendPointDto(
                 rs.getObject("d", LocalDate.class),
                 rs.getLong(TOTAL_COLUMN)
-        ), params).forEach(row -> byDate.put(row.date(), row.total()));
+        ), params.toArray()).forEach(row -> byDate.put(row.date(), row.total()));
 
         LocalDate today = LocalDate.now(clock);
         List<TrendPointDto> out = new ArrayList<>(days);

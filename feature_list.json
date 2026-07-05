@@ -1300,12 +1300,27 @@
                                        "BE/src/main/java/com/vnmap/campaign/controller/CampaignController.java",
                                        "BE/src/main/java/com/vnmap/common/config/SecurityConfig.java",
                                        "FE/lib/features/staff/presentation/pages/staff_registrations_page.dart",
-                                       "FE/lib/features/staff/presentation/providers/staff_registrations_provider.dart",
+"FE/lib/features/staff/presentation/providers/staff_registrations_provider.dart",
                                        "FE/lib/features/campaign/shared/repositories/campaign_repository.dart",
                                        "FE/lib/app/router.dart"
                                    ]
+                     },
+                     {
+                         "id":  "feat-084",
+                         "name":  "Fix BUG-2: Analytics Trends API 500 + Report tab filter dropdowns crash",
+                         "description": "Two follow-up bugs reported after the 2026-07-05 inspection run. (1) Analytics Trends: GET /api/analytics/trend returned HTTP 500 because the AnalyticsService used bare '?' placeholders inside '? IS NULL OR col = ?' expressions, which PostgreSQL cannot infer types for ('could not determine data type of parameter $2'). Replaced the static TREND_SQL constant with the same dynamic WHERE-clause builder (appendScopeFilters) already used by the sibling methods getChannelBreakdown/getTopEmployees. (2) PDF report tab: ReportRepository.getCampaigns() and getEmployees() called DioClient.get<List<dynamic>>(...) and treated the response body itself as a list, but the backend wraps every list response in the standard ApiResponse envelope { success, message, data: [...] }. Result: reportSchoolsProvider and reportEmployeesProvider crashed when the Analytics Trends card or any report form opened with a 'String is not a subtype of Map' or 'Iterable.map on Map' error. Fixed by unwrapping via res.data!['data'] as List<dynamic>, mirroring getSchools(). Also dropped the unsupported 'size=100' param (GET /api/v1/campaigns only accepts includeArchived) and corrected 'size' to 'limit' for /api/v1/schools (the param name the backend actually uses).",
+                         "dependencies": [
+                                              "feat-080",
+                                              "feat-077"
+                                          ],
+                         "status":  "completed",
+                         "evidence": "BE: docker compose up -d --build backend: BUILD SUCCESS | GET /api/analytics/trend?days=30 -> 200 OK (30 daily points, e.g. {date:2026-06-06,total:0}) | GET /api/analytics/trend?days=7&campaignId=10 -> 200 OK (7 points, filter applied) | No more 'could not determine data type of parameter' in backend logs. FE: flutter analyze lib/features/reports/data/repositories/report_repository.dart: No issues found! | flutter analyze lib/: 182 issues (all pre-existing info/warning, 0 errors). End-to-end smoke (admin token): /api/v1/campaigns -> 10 campaigns (id=10 name='Chien dich Khanh Hoa'); /api/v1/employees -> 10 employees (id=1 name='Dev Staff'); /api/v1/schools?page=0&limit=10 -> 10 schools on page 0, totalItems=4922.",
+                         "files": [
+                                       "BE/src/main/java/com/vnmap/campaign/service/AnalyticsService.java",
+                                       "FE/lib/features/reports/data/repositories/report_repository.dart"
+                                   ]
                      }
-                 ],
+                ],
 "knownIssues":  [
                        {
                            "issue":  "Storage backend still uses Firebase GCS despite feat-072 MinIO migration",

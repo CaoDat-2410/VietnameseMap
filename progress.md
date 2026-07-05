@@ -58,13 +58,13 @@
   restricted to STUDENT. Opened /campaigns, /events/:eventId, /schools to
   STUDENT via _RoleGate. Added /student/my-registrations to active nav path.
 - FE/lib/features/home/presentation/pages/student_home_page.dart:
-  Replaced hardcoded "Đăng ký chiến dịch" and "Xem trường học" actions
-  with AppLocalizations-driven strings. Added new "Đăng ký của tôi"
+  Replaced hardcoded "ÄÄƒng kÃ½ chiáº¿n dá»‹ch" and "Xem trÆ°á»ng há»c" actions
+  with AppLocalizations-driven strings. Added new "ÄÄƒng kÃ½ cá»§a tÃ´i"
   HomeAction pointing to /student/my-registrations. Removed unused
   _showCampaignRegistration method.
 - FE/lib/features/campaign/dashboard/pages/campaign_list_page.dart:
   Converted _CampaignCard to ConsumerWidget. Added FilledButton.icon
-  "Đăng ký" visible only when activeUserProvider role == STUDENT,
+  "ÄÄƒng kÃ½" visible only when activeUserProvider role == STUDENT,
   navigating to /student/register-event/{id}.
 - FE/lib/features/auth/shared/repositories/auth_repository.dart:
   Added registerWithPassword({email, password}) calling POST /api/v1/auth/register.
@@ -114,13 +114,13 @@ Split the single Campaign PDF report into 4 form types: **Campaign / Event / Sch
 - New file `report_filter_providers.dart`: `reportCampaignsProvider`, `reportEmployeesProvider`, `reportSchoolsProvider` (extracted from old campaign_report_page.dart).
 - New file `report_form_scaffold.dart`: `ReportFormScaffold` (ConsumerStatefulWidget) + `ReportFilterDescriptor` (build callback) + `ChartSpec`. Renders responsive (wide vs narrow) filter row, chart preview tile grid, status panel, export/download buttons.
 - New pages:
-  - `reports_landing_page.dart` — `/reports` 4-card grid (Campaign/Event/School/Region).
-  - `campaign_report_type_page.dart`, `event_report_type_page.dart`, `school_report_type_page.dart`, `region_report_type_page.dart` — type-specific filter forms.
+  - `reports_landing_page.dart` â€” `/reports` 4-card grid (Campaign/Event/School/Region).
+  - `campaign_report_type_page.dart`, `event_report_type_page.dart`, `school_report_type_page.dart`, `region_report_type_page.dart` â€” type-specific filter forms.
 - `router.dart`:
   - Removed unused old `campaign_report_page.dart` import.
   - Added 5 routes `/reports`, `/reports/campaign`, `/reports/event`, `/reports/school`, `/reports/region`, each wrapped in `_RoleGate(MANAGER, ADMIN)`.
   - `_activeNavPath` recognizes `/reports` paths.
-  - `_navItemsFor` adds `Báo cáo` item to staff/manager/admin.
+  - `_navItemsFor` adds `BÃ¡o cÃ¡o` item to staff/manager/admin.
 
 ### Verification
 - `flutter analyze lib/features/reports lib/app/router.dart`: **0 errors** (info-level `prefer_const_constructors` only).
@@ -139,13 +139,13 @@ Split the single Campaign PDF report into 4 form types: **Campaign / Event / Sch
 - Storage upload of generated PDF returns `Failed to upload object to storage` for both REGION and CAMPAIGN types, causing status to flip from PENDING to FAILED. This is a pre-existing `StorageService.uploadGeneratedObject` issue surfaced by the rebuilt backend; unrelated to feat-080's schema changes. To be addressed in a follow-up.
 
 **Session ID:** session-20260701-firebase-mvvm
-**Active Feature:** feat-071 (Phase 10 â€” final verification) â€” ALL 10 PHASES COMPLETE
+**Active Feature:** feat-071 (Phase 10 Ã¢â‚¬â€ final verification) Ã¢â‚¬â€ ALL 10 PHASES COMPLETE
 
 ## Status: ALL 10 PLAN PHASES IMPLEMENTED (feat-062 through feat-071)
 
 ### Completed in this session
 
-- **feat-047 â€” Map: auto-zoom + SchoolInfoSheet query fix + AppShell props**
+- **feat-047 Ã¢â‚¬â€ Map: auto-zoom + SchoolInfoSheet query fix + AppShell props**
   - `FE/lib/app/router.dart`: introduced `parseMapArgs(Uri)` helper used by both the
     `/map` route and the wide-screen `_AppShell`, so the embedded map receives
     the same `schoolUids` / `focusLat` / `focusLng` / `focusLabel` from the URL
@@ -159,10 +159,10 @@ Split the single Campaign PDF report into 4 form types: **Campaign / Event / Sch
       tiles haven't finished loading).
   - `FE/lib/features/map/presentation/widgets/school_info_sheet.dart` and
     `FE/lib/features/school/presentation/pages/school_detail_page.dart`:
-    switched the `/map?school=â€¦` (singular, broken) URL to `/map?schools=â€¦`
+    switched the `/map?school=Ã¢â‚¬Â¦` (singular, broken) URL to `/map?schools=Ã¢â‚¬Â¦`
     (plural, matches `parseMapArgs`).
 
-- **feat-048 â€” Analytics: filter bug fix + backend filter params**
+- **feat-048 Ã¢â‚¬â€ Analytics: filter bug fix + backend filter params**
   - `BE/src/main/java/com/vnmap/campaign/controller/AnalyticsController.java`:
     added `@RequestParam` `campaignId` and `schoolUid` on
     `GET /api/analytics/aggregate`.
@@ -176,16 +176,16 @@ Split the single Campaign PDF report into 4 form types: **Campaign / Event / Sch
   - `FE/lib/features/analytics/presentation/providers/analytics_provider.dart`:
     introduced `AnalyticsFilter` record + `analyticsFilterProvider`, and
     converted `aggregateDashboardProvider` into
-    `FutureProvider.family<â€¦, AnalyticsFilter>` so any consumer re-fetches
+    `FutureProvider.family<Ã¢â‚¬Â¦, AnalyticsFilter>` so any consumer re-fetches
     automatically when the filter changes.
   - `FE/lib/features/analytics/presentation/pages/analytics_page.dart`:
     replaced the global `aggregateDashboardProvider` watch with
     `aggregateDashboardProvider(ref.watch(analyticsFilterProvider))`.
   - Verified:
-    - `?schoolUid=79-224` â†’ 1 school, 222 interactions (all at HCM).
-    - `?campaignId=1` â†’ 1 campaign, 8 events, 41 interactions.
+    - `?schoolUid=79-224` Ã¢â€ â€™ 1 school, 222 interactions (all at HCM).
+    - `?campaignId=1` Ã¢â€ â€™ 1 campaign, 8 events, 41 interactions.
 
-- **feat-049 â€” Charts: 3 new types (trend line, channel donut, employee bar)**
+- **feat-049 Ã¢â‚¬â€ Charts: 3 new types (trend line, channel donut, employee bar)**
   - New BE: `TrendPointDto`, `ChannelBreakdownDto`, `EmployeeRankingDto`,
     `AnalyticsService.getInteractionsTrend / getChannelBreakdown /
     getTopEmployees`, and 3 new endpoints on `AnalyticsController`
@@ -201,7 +201,7 @@ Split the single Campaign PDF report into 4 form types: **Campaign / Event / Sch
     with shimmer loading and Vietnamese error states.
   - Verified all 3 BE endpoints return data; FE compiles cleanly.
 
-- **feat-050 â€” Charts: modernize all 6 visuals (palette, tooltips, animations)**
+- **feat-050 Ã¢â‚¬â€ Charts: modernize all 6 visuals (palette, tooltips, animations)**
   - `outcome_donut_chart.dart`, `province_bar_chart.dart`,
     `top_schools_bar_chart.dart` all rewritten to use `AppColors.chartColors`,
     `tooltipRoundedRadius: 8`, dividerColor grid lines, and Vietnamese
@@ -211,7 +211,7 @@ Split the single Campaign PDF report into 4 form types: **Campaign / Event / Sch
   - The 3 new charts from feat-049 already used the modern palette and
     tooltips so they're included in the unified look.
 
-- **feat-051 â€” Analytics: collapsible sidebar layout replacing bottom bar**
+- **feat-051 Ã¢â‚¬â€ Analytics: collapsible sidebar layout replacing bottom bar**
   - New `analytics_sidebar.dart`:
     - `AnalyticsSidebar` widget renders either the full filter (280px) or
       an icon strip (72px).
@@ -227,21 +227,21 @@ Split the single Campaign PDF report into 4 form types: **Campaign / Event / Sch
 
 ### Verification
 
-- `flutter analyze lib/`: **0 errors** (84 info hints only â€” all pre-existing
+- `flutter analyze lib/`: **0 errors** (84 info hints only Ã¢â‚¬â€ all pre-existing
   `prefer_const_*`, `avoid_redundant_argument_values`, `deprecated_member_use`).
 - `cd FE && flutter analyze lib/features/analytics/`: **0 errors** (17 info hints).
-- `cd BE && docker-compose build backend`: **BUILD SUCCESS** (rebuilt twice â€”
+- `cd BE && docker-compose build backend`: **BUILD SUCCESS** (rebuilt twice Ã¢â‚¬â€
   after feat-048 and after feat-049).
 - Backend endpoints all return 200 OK with valid data; full table below.
 
 | Endpoint | Sample request | Sample response |
 |----------|---------------|-----------------|
-| `GET /api/analytics/aggregate` | â€“ | 22 campaigns, 127 events, 124 schools, 593 interactions |
-| `GET /api/analytics/aggregate?schoolUid=79-224` | â€“ | 1 school, 222 interactions, 1 province |
-| `GET /api/analytics/aggregate?campaignId=1` | â€“ | 1 campaign, 8 events, 41 interactions |
-| `GET /api/analytics/trend?days=7` | â€“ | 7 points; peak 485 on 2026-06-24 |
-| `GET /api/analytics/channels` | â€“ | EMAIL 139, ZALO 136, VISIT 133, EVENT 96, PHONE 86, MEETING 3 |
-| `GET /api/analytics/employees` | â€“ | 9 employees ranked (top: Dev Staff 147) |
+| `GET /api/analytics/aggregate` | Ã¢â‚¬â€œ | 22 campaigns, 127 events, 124 schools, 593 interactions |
+| `GET /api/analytics/aggregate?schoolUid=79-224` | Ã¢â‚¬â€œ | 1 school, 222 interactions, 1 province |
+| `GET /api/analytics/aggregate?campaignId=1` | Ã¢â‚¬â€œ | 1 campaign, 8 events, 41 interactions |
+| `GET /api/analytics/trend?days=7` | Ã¢â‚¬â€œ | 7 points; peak 485 on 2026-06-24 |
+| `GET /api/analytics/channels` | Ã¢â‚¬â€œ | EMAIL 139, ZALO 136, VISIT 133, EVENT 96, PHONE 86, MEETING 3 |
+| `GET /api/analytics/employees` | Ã¢â‚¬â€œ | 9 employees ranked (top: Dev Staff 147) |
 
 ### Files Changed
 
@@ -253,8 +253,8 @@ Split the single Campaign PDF report into 4 form types: **Campaign / Event / Sch
 **Frontend (15 files):**
 - `FE/lib/app/router.dart` (parseMapArgs + AppShell props)
 - `FE/lib/features/map/presentation/widgets/vietnam_map_view.dart` (_mapReady)
-- `FE/lib/features/map/presentation/widgets/school_info_sheet.dart` (schoolâ†’schools)
-- `FE/lib/features/school/presentation/pages/school_detail_page.dart` (schoolâ†’schools)
+- `FE/lib/features/map/presentation/widgets/school_info_sheet.dart` (schoolÃ¢â€ â€™schools)
+- `FE/lib/features/school/presentation/pages/school_detail_page.dart` (schoolÃ¢â€ â€™schools)
 - `FE/lib/features/analytics/data/repositories/analytics_repository.dart` (filter params + 3 new methods)
 - `FE/lib/features/analytics/presentation/providers/analytics_provider.dart` (AnalyticsFilter + family providers)
 - `FE/lib/features/analytics/domain/models/analytics_models.dart` (3 new models)
@@ -279,16 +279,16 @@ Split the single Campaign PDF report into 4 form types: **Campaign / Event / Sch
 
 ---
 
-## feat-052 â€” Map Marker Fix (2026-06-24)
+## feat-052 Ã¢â‚¬â€ Map Marker Fix (2026-06-24)
 
 ### Root Cause
 `_mapReadyCompleter` in `vietnam_map_view.dart` only resolved inside `onPositionChanged` (user gesture), so `_geocodeAndShowSchools` never fired on direct navigation. Errors were silently swallowed via `debugPrint`.
 
 ### Changes Made
 
-1. **`initState`**: Replaced `Completer` pattern with `WidgetsBinding.instance.addPostFrameCallback` â€” fires immediately on mount regardless of user gesture.
-2. **`_geocodeAndShowSchools`**: Removed `!_mapReady` guard â€” fetch doesn't need MapController.
-3. **`catch` block**: Replaced `debugPrint` with user-facing `SnackBar` + "Thá»­ láº¡i" action.
+1. **`initState`**: Replaced `Completer` pattern with `WidgetsBinding.instance.addPostFrameCallback` Ã¢â‚¬â€ fires immediately on mount regardless of user gesture.
+2. **`_geocodeAndShowSchools`**: Removed `!_mapReady` guard Ã¢â‚¬â€ fetch doesn't need MapController.
+3. **`catch` block**: Replaced `debugPrint` with user-facing `SnackBar` + "ThÃ¡Â»Â­ lÃ¡ÂºÂ¡i" action.
 
 ### Verification
 - `flutter analyze lib/features/map/presentation/widgets/vietnam_map_view.dart`: **0 errors** (1 warning pre-existing, 7 info hints pre-existing)
@@ -298,7 +298,7 @@ Split the single Campaign PDF report into 4 form types: **Campaign / Event / Sch
 ### Files Changed
 - `FE/lib/features/map/presentation/widgets/vietnam_map_view.dart`
 
-## feat-053 â€” Sidebar Navigation (2026-06-24)
+## feat-053 Ã¢â‚¬â€ Sidebar Navigation (2026-06-24)
 
 ### Root Cause
 `_AppShell` in `router.dart` used `NavigationBar` with 7 items, violating Material Design `bottom-nav-limit` (max 5). No persistent sidebar existed on desktop.
@@ -306,24 +306,24 @@ Split the single Campaign PDF report into 4 form types: **Campaign / Event / Sch
 ### Changes Made
 
 1. **`app_sidebar.dart`**: `AppSidebar` (240px expanded / 72px collapsed, `primaryContainer` highlight, tooltip on collapse) + `AppDrawer` (wraps sidebar in `Drawer` for mobile).
-2. **`app_shell_scaffold.dart`**: `AppShellScaffold` uses `LayoutBuilder` â€” `Row([sidebar|content])` on desktop (>=900px), `Scaffold(drawer)` on mobile. `SidebarExpandedNotifier` persists collapse state to `SharedPreferences`.
+2. **`app_shell_scaffold.dart`**: `AppShellScaffold` uses `LayoutBuilder` Ã¢â‚¬â€ `Row([sidebar|content])` on desktop (>=900px), `Scaffold(drawer)` on mobile. `SidebarExpandedNotifier` persists collapse state to `SharedPreferences`.
 3. **`router.dart`**: Replaced `_AppShell.build()` body with delegation to `AppShellScaffold`. Removed unused `theme_provider.dart` and `vietnam_map_view.dart` imports.
 
 ### Verification
 - `flutter analyze lib/app/`: **0 errors, 0 warnings** (12 info hints only)
 - `flutter analyze lib/`: **85 issues** (baseline 84; +1 pre-existing const hint)
-- Removed legacy desktop split-pane (map+content side-by-side) â€” `MapPage` now handles its own wide-layout
+- Removed legacy desktop split-pane (map+content side-by-side) Ã¢â‚¬â€ `MapPage` now handles its own wide-layout
 
 ### Files Changed
 - `FE/lib/app/widgets/app_sidebar.dart` (NEW)
 - `FE/lib/app/widgets/app_shell_scaffold.dart` (NEW)
 - `FE/lib/app/router.dart`
 
-### Next: feat-054 â€” Analytics Charts Loading/Error UI
+### Next: feat-054 Ã¢â‚¬â€ Analytics Charts Loading/Error UI
 
 ---
 
-## feat-054 â€” Analytics Charts Loading/Error (pending)
+## feat-054 Ã¢â‚¬â€ Analytics Charts Loading/Error (pending)
 
 
 
@@ -333,21 +333,21 @@ Split the single Campaign PDF report into 4 form types: **Campaign / Event / Sch
 
 The detailed plan at `c:\Users\docao\.cursor\plans\analytics_charts_+_map_markers_+_modern_sidebar_ui_e0cf8ca0.plan.md` covers five workstreams:
 
-1. **feat-047** â€” Map: auto-zoom on school navigation + wide-screen marker passthrough + SchoolInfoSheet `?schools=` fix.
-2. **feat-048** â€” Analytics: convert `aggregateDashboardProvider` to `FutureProvider.family<â€¦, AnalyticsFilter>`; add `?campaignId=&schoolUid=` to `/api/analytics/aggregate`.
-3. **feat-049** â€” Charts: 3 new endpoints (`/trend`, `/channels`, `/employees`) + 3 new chart widgets (TrendLineChart, ChannelDonutChart, EmployeeBarChart).
-4. **feat-050** â€” Charts: shared palette via `AppColors.chartColors`, modern tooltips, 600ms entrance animation, Vietnamese empty states, BaseChartCard wrapper.
-5. **feat-051** â€” Analytics: collapsible 280/72px sidebar (persisted in SharedPreferences) replacing the bottom filter bar; mobile becomes a Drawer.
+1. **feat-047** Ã¢â‚¬â€ Map: auto-zoom on school navigation + wide-screen marker passthrough + SchoolInfoSheet `?schools=` fix.
+2. **feat-048** Ã¢â‚¬â€ Analytics: convert `aggregateDashboardProvider` to `FutureProvider.family<Ã¢â‚¬Â¦, AnalyticsFilter>`; add `?campaignId=&schoolUid=` to `/api/analytics/aggregate`.
+3. **feat-049** Ã¢â‚¬â€ Charts: 3 new endpoints (`/trend`, `/channels`, `/employees`) + 3 new chart widgets (TrendLineChart, ChannelDonutChart, EmployeeBarChart).
+4. **feat-050** Ã¢â‚¬â€ Charts: shared palette via `AppColors.chartColors`, modern tooltips, 600ms entrance animation, Vietnamese empty states, BaseChartCard wrapper.
+5. **feat-051** Ã¢â‚¬â€ Analytics: collapsible 280/72px sidebar (persisted in SharedPreferences) replacing the bottom filter bar; mobile becomes a Drawer.
 
 All five entries have been written to `feature_list.json` (now 49 features total).
 
 ### Execution Order (per `AGENTS.md` one-feature-at-a-time)
 
 1. feat-047 (low risk, isolated to router + map widget + 1 line in sheet)
-2. feat-048 (medium â€” BE SQL + FE Riverpod refactor)
-3. feat-049 (medium â€” 3 new endpoints, 3 new widgets)
-4. feat-050 (low â€” pure UI changes)
-5. feat-051 (medium â€” new widgets + analytics_page.dart restructure)
+2. feat-048 (medium Ã¢â‚¬â€ BE SQL + FE Riverpod refactor)
+3. feat-049 (medium Ã¢â‚¬â€ 3 new endpoints, 3 new widgets)
+4. feat-050 (low Ã¢â‚¬â€ pure UI changes)
+5. feat-051 (medium Ã¢â‚¬â€ new widgets + analytics_page.dart restructure)
 
 Each session ends after `flutter analyze lib/` + `flutter build web --release` (FE) or `mvn -DskipTests package` (BE) passes, with `progress.md` updated and a single commit.
 
@@ -375,7 +375,7 @@ Each session ends after `flutter analyze lib/` + `flutter build web --release` (
 - New backend service: `BE/src/main/java/com/vnmap/campaign/service/OsmGeocodingService.java`
   - Calls OSM Nominatim API (`/search?format=json&limit=1&countrycodes=vn`).
   - Falls back to the commune centroid when OSM has no exact match.
-  - **Coordinates are NOT persisted** â€” only returned for the current request.
+  - **Coordinates are NOT persisted** Ã¢â‚¬â€ only returned for the current request.
 - New DTO: `BE/src/main/java/com/vnmap/campaign/dto/SchoolGeocodeDto.java`.
 - New endpoint: `POST /api/v1/schools/geocode` in `CampaignController.java`.
 - New FE repository: `FE/lib/features/map/data/repositories/osm_geocoding_repository.dart`.
@@ -411,8 +411,8 @@ Each session ends after `flutter analyze lib/` + `flutter build web --release` (
 - `docker-compose build backend`: SUCCESS.
 - Backend `/actuator/health`: UP.
 - `POST /api/v1/schools/geocode` works:
-  - 79-224 â†’ fallback (commune centroid PhÆ°á»ng TÃ¢n Táº¡o).
-  - 01-003 â†’ OSM exact match (21.1291558, 105.7721668).
+  - 79-224 Ã¢â€ â€™ fallback (commune centroid PhÃ†Â°Ã¡Â»Âng TÃƒÂ¢n TÃ¡ÂºÂ¡o).
+  - 01-003 Ã¢â€ â€™ OSM exact match (21.1291558, 105.7721668).
 - `GET /api/analytics/aggregate` works:
   - 22 campaigns, 127 events, 4943 schools, 10 employees, 593 interactions.
 - Flutter is running on port 3000.
@@ -442,14 +442,14 @@ unrelated to today's changes. Leave as-is.
 
 ---
 
-## feat-053 â€” Sidebar Navigation (2026-06-24)
+## feat-053 Ã¢â‚¬â€ Sidebar Navigation (2026-06-24)
 
 ### Root Cause
 `_AppShell` used `NavigationBar` with 7 items violating Material Design `bottom-nav-limit` (max 5). No persistent sidebar on desktop.
 
 ### Changes Made
 1. **`app_sidebar.dart`**: `AppSidebar` (240px / 72px collapsed, `primaryContainer` highlight) + `AppDrawer` (wraps sidebar for mobile).
-2. **`app_shell_scaffold.dart`**: `AppShellScaffold` uses `LayoutBuilder` â€” `Row` on desktop >=900px, `Scaffold(drawer)` on mobile. `SidebarExpandedNotifier` persists collapse to `SharedPreferences`.
+2. **`app_shell_scaffold.dart`**: `AppShellScaffold` uses `LayoutBuilder` Ã¢â‚¬â€ `Row` on desktop >=900px, `Scaffold(drawer)` on mobile. `SidebarExpandedNotifier` persists collapse to `SharedPreferences`.
 3. **`router.dart`**: Replaced `_AppShell.build()` with delegation to `AppShellScaffold`. Removed legacy desktop split-pane (map+content side-by-side); `MapPage` handles its own wide-layout.
 
 ### Verification
@@ -463,13 +463,13 @@ unrelated to today's changes. Leave as-is.
 
 ---
 
-## feat-054 â€” Analytics Charts Loading/Error (2026-06-24)
+## feat-054 Ã¢â‚¬â€ Analytics Charts Loading/Error (2026-06-24)
 
 ### Root Cause
-`analytics_page.dart` lines 74-77 rendered `SizedBox.shrink()` during loading/error â€” visible void below KPI section.
+`analytics_page.dart` lines 74-77 rendered `SizedBox.shrink()` during loading/error Ã¢â‚¬â€ visible void below KPI section.
 
 ### Changes Made
-- Added `_ChartsLoadingPlaceholder`: 2 `BaseChartCard` with `ChartEmptyState` message "Äang táº£i dá»¯ liá»‡u phÃ¢n tÃ­châ€¦"
+- Added `_ChartsLoadingPlaceholder`: 2 `BaseChartCard` with `ChartEmptyState` message "Ã„Âang tÃ¡ÂºÂ£i dÃ¡Â»Â¯ liÃ¡Â»â€¡u phÃƒÂ¢n tÃƒÂ­chÃ¢â‚¬Â¦"
 - Added `_ChartsErrorPlaceholder`: `BaseChartCard` with error subtitle + `FilledButton.icon` retry calling `ref.invalidate(analyticsFilterProvider)`
 - Replaced charts `SliverToBoxAdapter` to route through `.when(loading/error/data)`
 
@@ -482,7 +482,7 @@ unrelated to today's changes. Leave as-is.
 
 ---
 
-## feat-055 â€” Dark Mode Sweep (2026-06-24)
+## feat-055 Ã¢â‚¬â€ Dark Mode Sweep (2026-06-24)
 
 ### Root Cause
 Hardcoded `Colors.white/black/grey` and hex values across ~15 files broke dark mode visually.
@@ -492,13 +492,13 @@ Hardcoded `Colors.white/black/grey` and hex values across ~15 files broke dark m
 |------|---------|
 | `vietnam_map_view.dart` | Dark CartoDB tiles, location sheet bg/icon/button/text, event focus badge, school count badge, loading overlays, island label text+shadow |
 | `school_info_sheet.dart` | Sheet bg, primary button, `_buildInfoRow` icon/label colors |
-| `province_list_body.dart` | Search bar bg, breadcrumb bg, school item bg, all grey hints/icons â†’ `onSurfaceVariant` |
-| `school_detail_page.dart` | `_InfoRow` label â†’ `onSurfaceVariant` |
-| `event_detail_page.dart` | `_InfoRow` label, time icon/text â†’ `onSurfaceVariant` |
-| `weather_card.dart` | Gradient + shadow â†’ slate-900/blue-900 in dark mode |
-| `weather_page.dart` | Refresh icon â†’ `onPrimary` |
-| `campaign_dashboard_page.dart` | KPI hex colors â†’ `AppColors.primary/tertiary/warning/info` |
-| `admin_users_page.dart` | Role chips â†’ `AppColors.error/warning/info/success`; status chips â†’ `AppColors.success/warning` |
+| `province_list_body.dart` | Search bar bg, breadcrumb bg, school item bg, all grey hints/icons Ã¢â€ â€™ `onSurfaceVariant` |
+| `school_detail_page.dart` | `_InfoRow` label Ã¢â€ â€™ `onSurfaceVariant` |
+| `event_detail_page.dart` | `_InfoRow` label, time icon/text Ã¢â€ â€™ `onSurfaceVariant` |
+| `weather_card.dart` | Gradient + shadow Ã¢â€ â€™ slate-900/blue-900 in dark mode |
+| `weather_page.dart` | Refresh icon Ã¢â€ â€™ `onPrimary` |
+| `campaign_dashboard_page.dart` | KPI hex colors Ã¢â€ â€™ `AppColors.primary/tertiary/warning/info` |
+| `admin_users_page.dart` | Role chips Ã¢â€ â€™ `AppColors.error/warning/info/success`; status chips Ã¢â€ â€™ `AppColors.success/warning` |
 
 ### Verification
 - `flutter analyze lib/`: **80 issues** (baseline 84, net -4)
@@ -509,15 +509,15 @@ Hardcoded `Colors.white/black/grey` and hex values across ~15 files broke dark m
 
 ---
 
-## feat-056 â€” Admin Data Table (2026-06-24)
+## feat-056 Ã¢â‚¬â€ Admin Data Table (2026-06-24)
 
 ### Root Cause
-`admin_users_page.dart` used `ListView.separated` of `Card`/`ListTile` items with a `PopupMenuButton` â€” no sort, no search, no filter, no pagination.
+`admin_users_page.dart` used `ListView.separated` of `Card`/`ListTile` items with a `PopupMenuButton` Ã¢â‚¬â€ no sort, no search, no filter, no pagination.
 
 ### Changes Made
 - Added `data_table_2: ^2.7.2` to `pubspec.yaml`
 - Created `user_chips.dart`: `UserRoleChip` + `UserStatusChip` shared widgets
-- Created `user_admin_table.dart`: `UserAdminTable` stateful widget with `PaginatedDataTable2` â€” columns for ID, Email (search+sort), Vai trÃ², Tráº¡ng thÃ¡i, Employee ID, Student ID, Thao tÃ¡c. Debounced search + Role/Status dropdowns. `_UserDataSource extends DataTableSource`. Inline `IconButton` actions (edit, toggle status, delete).
+- Created `user_admin_table.dart`: `UserAdminTable` stateful widget with `PaginatedDataTable2` Ã¢â‚¬â€ columns for ID, Email (search+sort), Vai trÃƒÂ², TrÃ¡ÂºÂ¡ng thÃƒÂ¡i, Employee ID, Student ID, Thao tÃƒÂ¡c. Debounced search + Role/Status dropdowns. `_UserDataSource extends DataTableSource`. Inline `IconButton` actions (edit, toggle status, delete).
 - Replaced `ListView` in `admin_users_page.dart` with `UserAdminTable`, delegating actions through `UserAction` enum.
 
 ### Verification
@@ -533,19 +533,19 @@ Hardcoded `Colors.white/black/grey` and hex values across ~15 files broke dark m
 
 ---
 
-## feat-057 â€” Role-Based Bento Home Pages (2026-06-30)
+## feat-057 Ã¢â‚¬â€ Role-Based Bento Home Pages (2026-06-30)
 
 ### Summary
 Built 4 role-specific Bento Grid home pages: Manager, Staff, Student, Admin. Each has KPIs, charts, and role-appropriate content. Reuses existing `BentoCard`, `KpiCard`, `StatusChip`, `TrendLineChart`, `OutcomeDonutChart`, `ProvinceBarChart`, `TopSchoolsBarChart`, `AppShellScaffold` from the existing codebase.
 
 ### Architecture
-- `FE/lib/features/home/` â€” new feature directory
-  - `presentation/widgets/home_grid.dart` â€” 12-column responsive grid (spans 3/4/6/8/12)
-  - `presentation/widgets/home_page_shell.dart` â€” reusable shell: title + subtitle + badge + quick actions
-  - `data/providers/` â€” 4 providers: `manager_home_provider`, `student_home_provider`, `staff_home_provider`, `admin_home_provider`
-  - `presentation/pages/` â€” 4 pages: `manager_home_page`, `staff_home_page`, `student_home_page`, `admin_home_page`
-- `FE/lib/app/router.dart` â€” added 4 routes (`/home/manager`, `/home/staff`, `/home/student`, `/home/admin`) + `_RoleGate` guards + sidebar nav items ("Tá»•ng quan")
-- `FE/lib/features/auth/shared/auth_routes.dart` â€” updated `landingPathForRole` to redirect to `/home/{role}` after login
+- `FE/lib/features/home/` Ã¢â‚¬â€ new feature directory
+  - `presentation/widgets/home_grid.dart` Ã¢â‚¬â€ 12-column responsive grid (spans 3/4/6/8/12)
+  - `presentation/widgets/home_page_shell.dart` Ã¢â‚¬â€ reusable shell: title + subtitle + badge + quick actions
+  - `data/providers/` Ã¢â‚¬â€ 4 providers: `manager_home_provider`, `student_home_provider`, `staff_home_provider`, `admin_home_provider`
+  - `presentation/pages/` Ã¢â‚¬â€ 4 pages: `manager_home_page`, `staff_home_page`, `student_home_page`, `admin_home_page`
+- `FE/lib/app/router.dart` Ã¢â‚¬â€ added 4 routes (`/home/manager`, `/home/staff`, `/home/student`, `/home/admin`) + `_RoleGate` guards + sidebar nav items ("TÃ¡Â»â€¢ng quan")
+- `FE/lib/features/auth/shared/auth_routes.dart` Ã¢â‚¬â€ updated `landingPathForRole` to redirect to `/home/{role}` after login
 
 ### What Existed vs What Was Built
 | What | Status |
@@ -555,11 +555,11 @@ Built 4 role-specific Bento Grid home pages: Manager, Staff, Student, Admin. Eac
 | `aggregateDashboardProvider` + `trendProvider` | Already existed in `analytics_provider.dart` |
 | `TrendLineChart`, `OutcomeDonutChart`, `ProvinceBarChart`, `TopSchoolsBarChart` | Already existed |
 | `myRegistrationsProvider` | Already existed in `campaign_provider.dart` |
-| Home pages + routes + sidebar wiring | **NEW â€” built this session** |
+| Home pages + routes + sidebar wiring | **NEW Ã¢â‚¬â€ built this session** |
 
 ### Backend Gaps Noted
-- `GET /api/v1/employees/{id}/stats` â€” needed for Staff home (currently derived from campaign events)
-- `GET /api/v1/admin/system-stats` â€” needed for Admin home (currently mocked)
+- `GET /api/v1/employees/{id}/stats` Ã¢â‚¬â€ needed for Staff home (currently derived from campaign events)
+- `GET /api/v1/admin/system-stats` Ã¢â‚¬â€ needed for Admin home (currently mocked)
 
 ### Verification
 - `flutter analyze lib/`: 0 errors
@@ -578,10 +578,10 @@ Built 4 role-specific Bento Grid home pages: Manager, Staff, Student, Admin. Eac
 | `FE/lib/features/home/presentation/pages/staff_home_page.dart` | CREATE |
 | `FE/lib/features/home/presentation/pages/student_home_page.dart` | CREATE |
 | `FE/lib/features/home/presentation/pages/admin_home_page.dart` | CREATE |
-| `FE/lib/app/router.dart` | MODIFY â€” 4 routes + sidebar nav + `_homePathFor` helper |
-| `FE/lib/features/auth/shared/auth_routes.dart` | MODIFY â€” updated `landingPathForRole` |
-| `feature_list.json` | MODIFY â€” added feat-057 + backend gaps |
-| `progress.md` | MODIFY â€” added this session log |
+| `FE/lib/app/router.dart` | MODIFY Ã¢â‚¬â€ 4 routes + sidebar nav + `_homePathFor` helper |
+| `FE/lib/features/auth/shared/auth_routes.dart` | MODIFY Ã¢â‚¬â€ updated `landingPathForRole` |
+| `feature_list.json` | MODIFY Ã¢â‚¬â€ added feat-057 + backend gaps |
+| `progress.md` | MODIFY Ã¢â‚¬â€ added this session log |
 
 ---
 
@@ -589,25 +589,25 @@ Built 4 role-specific Bento Grid home pages: Manager, Staff, Student, Admin. Eac
 
 ---
 
-## Bug Fixes â€” 2026-06-30
+## Bug Fixes Ã¢â‚¬â€ 2026-06-30
 
 ### Issue 1: RenderFlex Assertion Errors (mouse_tracker)
 
-**Root Cause**: `crossAxisAlignment: CrossAxisAlignment.stretch` on `Row` widgets inside `_HomeGridRow` in all 4 role-based home pages. `Row` with `stretch` tries to make all children match the tallest child's height â€” but `BentoCard`/`GridView.count` inside `Expanded` children have unbounded intrinsic heights, causing the Flutter assertion:
+**Root Cause**: `crossAxisAlignment: CrossAxisAlignment.stretch` on `Row` widgets inside `_HomeGridRow` in all 4 role-based home pages. `Row` with `stretch` tries to make all children match the tallest child's height Ã¢â‚¬â€ but `BentoCard`/`GridView.count` inside `Expanded` children have unbounded intrinsic heights, causing the Flutter assertion:
 `RenderFlex children have non-zero flex but incoming height constraints are unbounded`.
 
 **Fix Applied** (4 files):
-- `admin_home_page.dart` â€” `_HomeGridRow` Row
-- `manager_home_page.dart` â€” `_HomeGridRow` Row
-- `staff_home_page.dart` â€” `_HomeGridRow` Row
-- `student_home_page.dart` â€” `_HomeGridRow` Row
+- `admin_home_page.dart` Ã¢â‚¬â€ `_HomeGridRow` Row
+- `manager_home_page.dart` Ã¢â‚¬â€ `_HomeGridRow` Row
+- `staff_home_page.dart` Ã¢â‚¬â€ `_HomeGridRow` Row
+- `student_home_page.dart` Ã¢â‚¬â€ `_HomeGridRow` Row
 
-Changed `crossAxisAlignment: CrossAxisAlignment.stretch` â†’ `crossAxisAlignment: CrossAxisAlignment.start` in all 4 files. The layout still fills available width correctly via `Expanded(flex: spans[i])`.
+Changed `crossAxisAlignment: CrossAxisAlignment.stretch` Ã¢â€ â€™ `crossAxisAlignment: CrossAxisAlignment.start` in all 4 files. The layout still fills available width correctly via `Expanded(flex: spans[i])`.
 
 ### Issue 2: Map Hidden on /map Route
 
 **Root Cause**: `MapPage.build()` had two branches:
-- Wide (>600px): Only showed `ProvinceListBody()` â€” `VietnamMapView` was completely absent.
+- Wide (>600px): Only showed `ProvinceListBody()` Ã¢â‚¬â€ `VietnamMapView` was completely absent.
 - Mobile (<600px): Correctly showed `VietnamMapView` + draggable sheet.
 
 **Fix Applied** (`map_page.dart`):
@@ -616,18 +616,18 @@ Wide-screen now shows: `Row([VietnamMapView (flex:3) | divider | ProvinceListBod
 ### Issue 3: KPI Card Layout Broken (Admin Home Screenshot Bug)
 
 **Root Cause**: Two compounding bugs:
-1. `KpiCard` used `showAccent: true` which wraps the child in a `Column` with `Expanded(child: child)`. But `GridView.count` constrains children to a fixed aspect-ratio box â€” `Expanded` inside a bounded box collapses to zero height, making the card body invisible.
-2. `_KpiGrid` in `admin_home_page.dart` used `childAspectRatio: columns >= 4 ? 1.4 : 1.6` but computed `columns` as 6 on wide screens (correct) and 3 on medium â€” however the 6-column layout on wide screens made cards too narrow.
+1. `KpiCard` used `showAccent: true` which wraps the child in a `Column` with `Expanded(child: child)`. But `GridView.count` constrains children to a fixed aspect-ratio box Ã¢â‚¬â€ `Expanded` inside a bounded box collapses to zero height, making the card body invisible.
+2. `_KpiGrid` in `admin_home_page.dart` used `childAspectRatio: columns >= 4 ? 1.4 : 1.6` but computed `columns` as 6 on wide screens (correct) and 3 on medium Ã¢â‚¬â€ however the 6-column layout on wide screens made cards too narrow.
 
 **Fix Applied**:
-1. `bento_card.dart` â€” `KpiCard`: removed `showAccent` + `accentColor` prop from `BentoCard`. Added accent as a simple 3Ã—32px colored bar at the top of the card body (inside the `Column`, before the icon row). No more `Expanded` conflict.
-2. All 4 home pages â€” `_KpiGrid`/`_KpiRow`: replaced `GridView.count` (fixed aspect ratio) with `Wrap` (free height) + `SizedBox(width: cardWidth)` per card. Cards now size to their content.
+1. `bento_card.dart` Ã¢â‚¬â€ `KpiCard`: removed `showAccent` + `accentColor` prop from `BentoCard`. Added accent as a simple 3Ãƒâ€”32px colored bar at the top of the card body (inside the `Column`, before the icon row). No more `Expanded` conflict.
+2. All 4 home pages Ã¢â‚¬â€ `_KpiGrid`/`_KpiRow`: replaced `GridView.count` (fixed aspect ratio) with `Wrap` (free height) + `SizedBox(width: cardWidth)` per card. Cards now size to their content.
 
 **Affected files**: `admin_home_page.dart`, `manager_home_page.dart`, `staff_home_page.dart`, `student_home_page.dart`, `bento_card.dart`
 
-### Issue 4: Blank Body â€” Double-Expanded Bug
+### Issue 4: Blank Body Ã¢â‚¬â€ Double-Expanded Bug
 
-**Root Cause**: `HomePageShell` wraps its `child` in `Expanded(child: child)`. But `HomePageShell` is already passed as `body` to `AppShellScaffold`, which ALSO wraps `body` in `Expanded(child: body)`. Two `Expanded` widgets in sequence gives the inner `Expanded` zero available space â€” entire body collapses to zero height, completely blank.
+**Root Cause**: `HomePageShell` wraps its `child` in `Expanded(child: child)`. But `HomePageShell` is already passed as `body` to `AppShellScaffold`, which ALSO wraps `body` in `Expanded(child: body)`. Two `Expanded` widgets in sequence gives the inner `Expanded` zero available space Ã¢â‚¬â€ entire body collapses to zero height, completely blank.
 
 **Fix Applied**: Removed the inner `Expanded(` from `home_page_shell.dart` line 97. The `Expanded` from `AppShellScaffold` is sufficient.
 
@@ -641,44 +641,44 @@ Wide-screen now shows: `Row([VietnamMapView (flex:3) | divider | ProvinceListBod
 
 **Affected files**: `admin_home_page.dart`
 
-### Issue 6: RenderFlex Assertion â€” IntrinsicHeight + Row + stretch
+### Issue 6: RenderFlex Assertion Ã¢â‚¬â€ IntrinsicHeight + Row + stretch
 
-**Root Cause**: `home_grid.dart` used `IntrinsicHeight(child: Row(crossAxisAlignment.stretch, children: [Expanded...] ))`. `IntrinsicHeight` asks a `Row` to compute its intrinsic height, but `Row` with `Expanded` children has unbounded height â€” `CrossAxisAlignment.stretch` then forces all children to fill that unbounded height, triggering:
+**Root Cause**: `home_grid.dart` used `IntrinsicHeight(child: Row(crossAxisAlignment.stretch, children: [Expanded...] ))`. `IntrinsicHeight` asks a `Row` to compute its intrinsic height, but `Row` with `Expanded` children has unbounded height Ã¢â‚¬â€ `CrossAxisAlignment.stretch` then forces all children to fill that unbounded height, triggering:
 `RenderFlex children have non-zero flex but incoming height constraints are unbounded`.
 
 **Fix Applied**:
-- `home_grid.dart`: removed `IntrinsicHeight` wrapper; changed `crossAxisAlignment.stretch` â†’ `crossAxisAlignment.start` on both the `Row` in `_buildRows` and `HomeGridRow`.
-- `responsive_sidebar_layout.dart`: changed `Row(crossAxisAlignment.stretch)` â†’ `Row(crossAxisAlignment.start)` in `_WideLayout`.
+- `home_grid.dart`: removed `IntrinsicHeight` wrapper; changed `crossAxisAlignment.stretch` Ã¢â€ â€™ `crossAxisAlignment.start` on both the `Row` in `_buildRows` and `HomeGridRow`.
+- `responsive_sidebar_layout.dart`: changed `Row(crossAxisAlignment.stretch)` Ã¢â€ â€™ `Row(crossAxisAlignment.start)` in `_WideLayout`.
 
 **Affected files**: `home_grid.dart`, `responsive_sidebar_layout.dart`
 
-### Issue 7: Unbounded chartSize NaN â†’ RenderFlex Cascade
+### Issue 7: Unbounded chartSize NaN Ã¢â€ â€™ RenderFlex Cascade
 
-**Root Cause**: `_UserRoleCard` used `LayoutBuilder` to compute `chartSize = c.maxWidth < c.maxHeight ? c.maxWidth : c.maxHeight`. But `_UserRoleCard` was inside `Expanded` in a `Row`, giving unbounded height. So `c.maxHeight = Infinity`, `chartSize = Infinity`, `SizedBox(width: Infinity, height: Infinity)` â†’ NaN â†’ 0. The downstream `Column` with `Expanded(child: chart)` then caused RenderFlex with unbounded height constraints.
+**Root Cause**: `_UserRoleCard` used `LayoutBuilder` to compute `chartSize = c.maxWidth < c.maxHeight ? c.maxWidth : c.maxHeight`. But `_UserRoleCard` was inside `Expanded` in a `Row`, giving unbounded height. So `c.maxHeight = Infinity`, `chartSize = Infinity`, `SizedBox(width: Infinity, height: Infinity)` Ã¢â€ â€™ NaN Ã¢â€ â€™ 0. The downstream `Column` with `Expanded(child: chart)` then caused RenderFlex with unbounded height constraints.
 
-`_CampaignStatusCard` had `Expanded(child: Column(...))` inside a `BentoCard` which is inside `Expanded` in `Row` â†’ unbounded height â†’ RenderFlex.
+`_CampaignStatusCard` had `Expanded(child: Column(...))` inside a `BentoCard` which is inside `Expanded` in `Row` Ã¢â€ â€™ unbounded height Ã¢â€ â€™ RenderFlex.
 
 **Fix Applied**:
-- `_UserRoleCard`: replaced unbounded `LayoutBuilder` with a fixed `SizedBox(height: 160)` containing a 160Ã—160 `PieChart` with fixed `centerSpaceRadius: 24` and `radius: 28`. Removed `LayoutBuilder` entirely.
+- `_UserRoleCard`: replaced unbounded `LayoutBuilder` with a fixed `SizedBox(height: 160)` containing a 160Ãƒâ€”160 `PieChart` with fixed `centerSpaceRadius: 24` and `radius: 28`. Removed `LayoutBuilder` entirely.
 - `_CampaignStatusCard`: removed the outer `Expanded(` wrapping the inner `Column(...)`.
 
 **Affected files**: `admin_home_page.dart`
 
-### Issue 8: BentoCard Container 0-height Collapse â†’ RenderFlex Cascade
+### Issue 8: BentoCard Container 0-height Collapse Ã¢â€ â€™ RenderFlex Cascade
 
-**Root Cause**: `BentoCard` used a plain `Container` (no explicit width/height). When placed inside `Expanded` in a `Row`, the `Container` had constraints `(0 <= h <= Infinity)`. The internal `Column` had `mainAxisSize: max`, so it tried to expand to fill the **Infinity** height â€” triggering RenderFlex with unbounded constraints. Then `SizedBox(BoxConstraints.loose)` at `box.dart:2251` capped `Infinity â†’ 0`, creating NaN cascade.
+**Root Cause**: `BentoCard` used a plain `Container` (no explicit width/height). When placed inside `Expanded` in a `Row`, the `Container` had constraints `(0 <= h <= Infinity)`. The internal `Column` had `mainAxisSize: max`, so it tried to expand to fill the **Infinity** height Ã¢â‚¬â€ triggering RenderFlex with unbounded constraints. Then `SizedBox(BoxConstraints.loose)` at `box.dart:2251` capped `Infinity Ã¢â€ â€™ 0`, creating NaN cascade.
 
-**Fix Applied**: Wrapped both `Container` variants in `BentoCard` with `ConstrainedBox(constraints: BoxConstraints.tightForFinite())`. This forces the Container to adopt the **allocated** height from its parent (the Row's flexed space), rather than trying to determine its own size. Height is finite (from the Row), width is determined by flex weights â€” both are now bounded.
+**Fix Applied**: Wrapped both `Container` variants in `BentoCard` with `ConstrainedBox(constraints: BoxConstraints.tightForFinite())`. This forces the Container to adopt the **allocated** height from its parent (the Row's flexed space), rather than trying to determine its own size. Height is finite (from the Row), width is determined by flex weights Ã¢â‚¬â€ both are now bounded.
 
 **Affected files**: `bento_card.dart`
 
 ### Issue 9: Column+Expanded(ListView) RenderFlex in All Home Pages
 
-**Root Cause**: All home pages (admin, staff, student, manager) had BentoCard containing a Column with `mainAxisSize: max` (default) and a child widget using `Expanded(child: ListView/Column)`. When BentoCard's Container had no explicit size and the Row passed `(0 <= h <= Infinity)`, the Column with `mainAxisSize: max` tried to fill infinity â†’ RenderFlex fired â†’ box.dart:2251 capped `Infinity â†’ 0` â†’ cascade of MISSING sizes.
+**Root Cause**: All home pages (admin, staff, student, manager) had BentoCard containing a Column with `mainAxisSize: max` (default) and a child widget using `Expanded(child: ListView/Column)`. When BentoCard's Container had no explicit size and the Row passed `(0 <= h <= Infinity)`, the Column with `mainAxisSize: max` tried to fill infinity Ã¢â€ â€™ RenderFlex fired Ã¢â€ â€™ box.dart:2251 capped `Infinity Ã¢â€ â€™ 0` Ã¢â€ â€™ cascade of MISSING sizes.
 
 **Fix Applied** (all 4 home pages):
 1. Set `mainAxisSize: MainAxisSize.min` on all BentoCard inner Columns
-2. Replaced `Expanded(child: ListView)` with `Flexible(child: SizedBox(height: 220))` â€” gives the scrollable a fixed bounded height, eliminating the unbounded constraint problem
+2. Replaced `Expanded(child: ListView)` with `Flexible(child: SizedBox(height: 220))` Ã¢â‚¬â€ gives the scrollable a fixed bounded height, eliminating the unbounded constraint problem
 3. Replaced `Expanded(child: Column)` with `Flexible(child: SizedBox(height: 160/200))`
 
 **Cards Fixed**:
@@ -778,14 +778,14 @@ Wide-screen now shows: `Row([VietnamMapView (flex:3) | divider | ProvinceListBod
 **Fix Applied**:
 - `analytics_repository.dart`: changed `getSchools()` to accept `page`, `limit`, and `query`, and return `SchoolSummaryPage` with `items`, `page`, `totalItems`, and `totalPages` from `/api/v1/schools`.
 - `analytics_provider.dart`: added `selectedSchoolNameProvider` so the field can show the selected school label after a paginated picker selection.
-- `filter_section.dart`: replaced the school dropdown menu with a dropdown-like bottom-sheet picker that loads 50 rows at a time, supports API search via `q`, shows the loaded/total count, and appends pages with `Táº£i thÃªm`.
+- `filter_section.dart`: replaced the school dropdown menu with a dropdown-like bottom-sheet picker that loads 50 rows at a time, supports API search via `q`, shows the loaded/total count, and appends pages with `TÃ¡ÂºÂ£i thÃƒÂªm`.
 - Replaced the problematic bullet separator in school subtitles with `-` to avoid encoding regressions in the web bundle.
 
 **Verification**:
 - `dart format` on changed Analytics files: success.
 - `flutter analyze lib/features/analytics/presentation/widgets/filter_section.dart lib/features/analytics/presentation/providers/analytics_provider.dart lib/features/analytics/data/repositories/analytics_repository.dart`: **No issues found**.
 - `flutter build web --release`: **Built build\web**.
-- Browser release smoke on `http://localhost:3002` with cache-busting URL: school picker opens with `50/4943` schools, `Táº£i thÃªm` increases to `100/4943`, searching `FPT` returns `24/24`, and selecting `Cao Ä‘áº³ng FPT Polytechnic - HÃ  Ná»™i` refetches Analytics by `schoolUid`.
+- Browser release smoke on `http://localhost:3002` with cache-busting URL: school picker opens with `50/4943` schools, `TÃ¡ÂºÂ£i thÃƒÂªm` increases to `100/4943`, searching `FPT` returns `24/24`, and selecting `Cao Ã„â€˜Ã¡ÂºÂ³ng FPT Polytechnic - HÃƒÂ  NÃ¡Â»â„¢i` refetches Analytics by `schoolUid`.
 ---
 
 ### Backend Sonar/Coverage Verification - 2026-07-01
@@ -847,52 +847,52 @@ Wide-screen now shows: `Row([VietnamMapView (flex:3) | divider | ProvinceListBod
 
 ---
 
-## Firebase + MVVM Integration â€” 2026-07-01 (feat-062 to feat-071)
+## Firebase + MVVM Integration Ã¢â‚¬â€ 2026-07-01 (feat-062 to feat-071)
 
 All 10 phases implemented and committed. Summary below.
 
-### Phase 1 â€” Firebase Setup + MVVM Convention (feat-062)
+### Phase 1 Ã¢â‚¬â€ Firebase Setup + MVVM Convention (feat-062)
 - FE: pubspec.yaml packages, .env DEV/PROD Firebase keys, firebase_options.dart, firebase_initializer.dart
 - BE: firebase-admin 9.3.0, FirebaseConfig.java (Storage Bean), application.yml firebase section
 - FE/docs/MVVM_CONVENTION.md
 
-### Phase 2 â€” Analytics + Monitoring (feat-063)
+### Phase 2 Ã¢â‚¬â€ Analytics + Monitoring (feat-063)
 - Analytics events taxonomy + consent-gated AnalyticsService
 - SentryService (web) + CrashlyticsService (mobile)
 - AnalyticsNavigationObserver for GoRouter screen_view tracking
 - Wired into main.dart + router.dart
 
-### Phase 3 â€” MVVM Base + Auth Refactor (feat-064)
+### Phase 3 Ã¢â‚¬â€ MVVM Base + Auth Refactor (feat-064)
 - ViewState sealed base, abstract ViewModel (StateNotifier)
 - AuthViewState sealed, AuthViewModel (StateNotifier, replaces AuthController)
 - login_page.dart refactored to MVVM
 
-### Phase 4 â€” Google Sign-In (feat-065)
+### Phase 4 Ã¢â‚¬â€ Google Sign-In (feat-065)
 - BE: GoogleAuthController / GoogleAuthService / tokeninfo verification / user provisioning
 - BE: migration_google_auth.sql (google_subject column)
 - FE: auth_repository.googleSignIn() + login_page Google button
 
-### Phase 5 â€” Firebase Remote Config (feat-066)
+### Phase 5 Ã¢â‚¬â€ Firebase Remote Config (feat-066)
 - RemoteConfigKeys, RemoteConfigDefaults, RemoteConfigSnapshot
 - RemoteConfigService (initialize/fetch) + RemoteConfigNotifier provider
 - Google Sign-In button gated behind `remoteConfigProvider.googleSignInEnabled`
 
-### Phase 6 â€” Firebase Storage (feat-067)
+### Phase 6 Ã¢â‚¬â€ Firebase Storage (feat-067)
 - BE: StorageController POST /api/v1/storage/upload-url, StorageService (MinIO/S3 pre-signed PUT URL, 15-min expiry)
 - FE: StorageRepository (URL generation + direct MinIO PUT via Dio), StorageImage widget
 
-### Phase 7 â€” FCM Push Notifications (feat-068)
+### Phase 7 Ã¢â‚¬â€ FCM Push Notifications (feat-068)
 - BE: NotificationService (saveToken/deleteToken/sendToUser/sendBroadcast), NotificationController, SecurityConfig rules
 - FE: MessagingService (init, permission, token registration, foreground/background handlers), NotificationCenter singleton, NotificationCenterPage
 
-### Phase 8 â€” Integration Test Suite (feat-069)
+### Phase 8 Ã¢â‚¬â€ Integration Test Suite (feat-069)
 - 4 test flows: login, campaign list, map page, settings
 - GitHub Actions workflow with macOS runner, docker compose backend, screenshot upload on failure
 
-### Phase 9 â€” AI Code Review (feat-070)
+### Phase 9 Ã¢â‚¬â€ AI Code Review (feat-070)
 - .github/workflows/ai-review.yml with templates for CodeRabbit, DeepReview, ReviewNB
 
-### Phase 10 â€” Final Verification (feat-071)
+### Phase 10 Ã¢â‚¬â€ Final Verification (feat-071)
 - flutter analyze lib/: **0 errors** (118 info hints, all pre-existing)
 - feature_list.json + progress.md updated
 - 10 commits total for the Firebase integration
@@ -911,16 +911,16 @@ All 10 phases implemented and committed. Summary below.
 ### Git Commits (all phases)
 | Commit | Phase |
 |--------|-------|
-| `firebase-setup` | Phase 1 â€” Firebase project setup + MVVM convention |
-| `analytics-monitoring` | Phase 2 â€” Firebase Analytics + Sentry + Crashlytics |
-| `mvvm-architecture` | Phase 3 â€” MVVM base + Auth refactor |
-| `google-signin` | Phase 4 â€” Google Sign-In backend + FE button |
-| `remote-config` | Phase 5 â€” Firebase Remote Config |
+| `firebase-setup` | Phase 1 Ã¢â‚¬â€ Firebase project setup + MVVM convention |
+| `analytics-monitoring` | Phase 2 Ã¢â‚¬â€ Firebase Analytics + Sentry + Crashlytics |
+| `mvvm-architecture` | Phase 3 Ã¢â‚¬â€ MVVM base + Auth refactor |
+| `google-signin` | Phase 4 Ã¢â‚¬â€ Google Sign-In backend + FE button |
+| `remote-config` | Phase 5 Ã¢â‚¬â€ Firebase Remote Config |
 | `minio-storage` | Phase 6 - MinIO Object Storage |
-| `fcm-notifications` | Phase 7 â€” FCM push notifications |
-| `integration-test-suite` | Phase 8 â€” Integration tests |
-| `ai-review-workflow` | Phase 9 â€” AI code review workflow |
-| `final-verification` | Phase 10 â€” Docs update |
+| `fcm-notifications` | Phase 7 Ã¢â‚¬â€ FCM push notifications |
+| `integration-test-suite` | Phase 8 Ã¢â‚¬â€ Integration tests |
+| `ai-review-workflow` | Phase 9 Ã¢â‚¬â€ AI code review workflow |
+| `final-verification` | Phase 10 Ã¢â‚¬â€ Docs update |
 
 ### Prerequisites for Full Activation
 | Service | Required Setup |
@@ -941,7 +941,7 @@ All 10 phases implemented and committed. Summary below.
 - GitHub Actions E2E workflow requires self-hosted macOS runner or macOS-large GitHub runner
 
 
-## MinIO Storage Migration — 2026-07-02 (feat-072)
+## MinIO Storage Migration â€” 2026-07-02 (feat-072)
 
 Reason: Firebase Cloud Storage now requires Blaze for storage bucket API access/new default bucket provisioning, while this project should stay on Spark for Firebase Auth, Analytics, Crashlytics, Remote Config, and FCM.
 
@@ -990,7 +990,7 @@ Remaining risks / manual checks:
 
 ---
 
-## Docker Compose Rewrite — 2026-07-03
+## Docker Compose Rewrite â€” 2026-07-03
 
 ### Root Cause
 The previous `docker-compose.yml` (root) had several structural issues:
@@ -1008,7 +1008,7 @@ The previous `docker-compose.yml` (root) had several structural issues:
 - **`minio-init`**: Replaced `command: |` block scalar with `command: [...]` single-element list so the entire sh script stays together. CORS commands made non-fatal with `2>/dev/null || true`.
 - **Network**: All services explicitly use `vnmap_network`. Import containers now correctly resolve `host=vnmap_postgres`.
 - **`import-schools`**: New dedicated service that directly calls `import_schools_campaign.py --host vnmap_postgres --excel ...` (no more entrypoint confusion). Replaces the broken `campaign-import`.
-- **`seed`**: Single service replaces `sample-data` + `seed-admin`. Runs in order: schema migrations (firebase_uid, notifications, report_exports) → seed admin accounts → sample data → generate interactions. All SQL files mounted with numbered prefixes so postgres runs them in sequence.
+- **`seed`**: Single service replaces `sample-data` + `seed-admin`. Runs in order: schema migrations (firebase_uid, notifications, report_exports) â†’ seed admin accounts â†’ sample data â†’ generate interactions. All SQL files mounted with numbered prefixes so postgres runs them in sequence.
 - **`backend`**: Now depends on `postgres + redis + minio-init + seed` (all init jobs complete before backend starts).
 - **`redis`**: Added `restart: unless-stopped`.
 - **`postgres`**: Added `restart: unless-stopped`.
@@ -1025,46 +1025,46 @@ The previous `docker-compose.yml` (root) had several structural issues:
 
 ### Service Start Order (new compose)
 ```
-postgres (healthy)          ─────────────────────────────┐
-minio (healthy)             ──→ minio-init (exit 0) ──┤
-redis (healthy)             ────────────────────────────┤
+postgres (healthy)          â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+minio (healthy)             â”€â”€â†’ minio-init (exit 0) â”€â”€â”¤
+redis (healthy)             â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
                                                               backend (healthy)
-import (exit 0)              ──→ import-schools (exit 0) ─→ seed (exit 0)
+import (exit 0)              â”€â”€â†’ import-schools (exit 0) â”€â†’ seed (exit 0)
 ```
 
 ### Verification
-- `docker compose config --services`: 9 services ✓
-- All 9 containers created, started in correct order ✓
-- `vnmap_backend`: `healthy` ✓
-- `vnmap_frontend`: `Up` ✓
-- `vnmap_minio`: `healthy` ✓
-- `vnmap_postgres`: `healthy` ✓
-- `vnmap_redis`: `healthy` ✓
-- `minio-init`: `Exited (0)` ✓
-- `import`, `import-schools`, `seed`: `Exited (0)` ✓
-- Backend health: `{"status":"UP"}` ✓
-- Frontend: HTTP `200` ✓
-- MinIO upload: `PUT 200` ✓
-- MinIO download: `GET 200` ✓
+- `docker compose config --services`: 9 services âœ“
+- All 9 containers created, started in correct order âœ“
+- `vnmap_backend`: `healthy` âœ“
+- `vnmap_frontend`: `Up` âœ“
+- `vnmap_minio`: `healthy` âœ“
+- `vnmap_postgres`: `healthy` âœ“
+- `vnmap_redis`: `healthy` âœ“
+- `minio-init`: `Exited (0)` âœ“
+- `import`, `import-schools`, `seed`: `Exited (0)` âœ“
+- Backend health: `{"status":"UP"}` âœ“
+- Frontend: HTTP `200` âœ“
+- MinIO upload: `PUT 200` âœ“
+- MinIO download: `GET 200` âœ“
 
 ### Files Changed
-- `docker-compose.yml` (root) — complete rewrite
-- `BE/docker-compose.yml` — updated to match root compose structure
+- `docker-compose.yml` (root) â€” complete rewrite
+- `BE/docker-compose.yml` â€” updated to match root compose structure
 
 ---
 
-## PDF Report + Firebase Login + User List Fixes — 2026-07-03
+## PDF Report + Firebase Login + User List Fixes â€” 2026-07-03
 
-### Issue 1: PDF API 500 — GeneratedKeyHolder multiple keys
+### Issue 1: PDF API 500 â€” GeneratedKeyHolder multiple keys
 
 **Root Cause**: PostgreSQL trigger on `report_exports` table caused `GeneratedKeyHolder.getKey()` to return multiple keys (id, created_by_user_id, etc.), throwing `InvalidDataAccessApiUsageException`.
 
 **Fix Applied**:
 - `CampaignReportService.java`: Changed from `keyHolder.getKey().longValue()` to `keyHolder.getKeyList().get(0).get("id")` for safe extraction.
 - `CampaignService.java` (`generatedId` helper): Same fix applied to all 8 callers using this shared helper.
-- `CampaignReportService.java` (`map()`): Added `toLocalDateTime()` helper to safely handle `java.sql.Timestamp` → `LocalDateTime` conversion.
+- `CampaignReportService.java` (`map()`): Added `toLocalDateTime()` helper to safely handle `java.sql.Timestamp` â†’ `LocalDateTime` conversion.
 
-**Verification**: `POST /api/v1/reports/campaigns/pdf` → 200 OK, report ID 8, PDF uploaded to MinIO. `GET /api/v1/reports/8/download-url` → 200 OK with presigned URL.
+**Verification**: `POST /api/v1/reports/campaigns/pdf` â†’ 200 OK, report ID 8, PDF uploaded to MinIO. `GET /api/v1/reports/8/download-url` â†’ 200 OK with presigned URL.
 
 ### Issue 2: Firebase Google Login Failure
 
@@ -1072,9 +1072,9 @@ import (exit 0)              ──→ import-schools (exit 0) ─→ seed (exit
 
 **Fix Applied**:
 - `docker-compose.yml` (root): Added `FIREBASE_SERVICE_ACCOUNT_FILE: /app/firebase-service-account.json` to backend env block. Volume mount for `firebase-service-account.json` preserved.
-- Backend logs now show: `Firebase initialized for Auth, FCM, Analytics, Crashlytics, and Remote Config` ✓
+- Backend logs now show: `Firebase initialized for Auth, FCM, Analytics, Crashlytics, and Remote Config` âœ“
 
-### Issue 3: User List — Firebase Users Not Visible
+### Issue 3: User List â€” Firebase Users Not Visible
 
 **Root Cause**: `UserDto` and `CampaignService.getUsers()` SELECT did not include `firebase_uid` column.
 
@@ -1109,9 +1109,9 @@ import (exit 0)              ──→ import-schools (exit 0) ─→ seed (exit
 **Verification**:
 - `flutter analyze lib/features/reports/ lib/features/admin/...`: 0 errors, 26 info hints
 - `docker compose build backend`: SUCCESS
-- Backend health: `UP` ✓
-- PDF create + download URL: 200 OK ✓
-- User list with firebaseUid: verified ✓
+- Backend health: `UP` âœ“
+- PDF create + download URL: 200 OK âœ“
+- User list with firebaseUid: verified âœ“
 
 
 ---
@@ -1149,7 +1149,7 @@ import (exit 0)              ──→ import-schools (exit 0) ─→ seed (exit
 ### Scope
 - Add notification bell with unread badge to AppShell (mobile AppBar + desktop top-right floating overlay).
 - Bottom-sheet preview with recent notifications (10 latest from backend), mark-as-read on tap, deep-link to event/campaign detail.
-- Header action "Đọc tất cả", footer link "Xem tất cả" -> /notifications route.
+- Header action "Äá»c táº¥t cáº£", footer link "Xem táº¥t cáº£" -> /notifications route.
 
 ### Files Added
 - `FE/lib/features/notifications/domain/models/notification_models.dart` - `NotificationItem` immutable model (id, title, body, triggerType, status, createdAt, readAt, data Map).
@@ -1186,7 +1186,7 @@ import (exit 0)              ──→ import-schools (exit 0) ─→ seed (exit
 
 ### Scope
 - New `/profile` page with avatar (initial fallback or uploaded image), info card, password change form.
-- Mobile AppBar action: account_circle icon (replaces settings gear). Sidebar nav: "Hồ sơ" entry for all logged-in roles.
+- Mobile AppBar action: account_circle icon (replaces settings gear). Sidebar nav: "Há»“ sÆ¡" entry for all logged-in roles.
 - Password change is hidden for Google Sign-In users (firebaseUser = true).
 
 ### Backend Changes
@@ -1217,7 +1217,7 @@ import (exit 0)              ──→ import-schools (exit 0) ─→ seed (exit
   - Web file picker via `dart:html.FileUploadInputElement` + `FileReader.readAsArrayBuffer`. On mobile, shows fallback toast (no `image_picker` package yet).
   - `ref.listen<ProfileState>` surfaces snackbar on success/error.
   - Resets password form on success.
-- `FE/lib/app/router.dart`: added `/profile` route, added `_NavItem('/profile', 'Hồ sơ', ...)` for all logged-in roles, added `/profile` to `_activeNavPath`.
+- `FE/lib/app/router.dart`: added `/profile` route, added `_NavItem('/profile', 'Há»“ sÆ¡', ...)` for all logged-in roles, added `/profile` to `_activeNavPath`.
 - `FE/lib/app/widgets/app_shell_scaffold.dart`: replaced settings `IconButton(Icons.settings_outlined)` with `IconButton(Icons.account_circle_outlined)` -> `/profile`.
 
 ### Verification
@@ -1254,7 +1254,7 @@ import (exit 0)              ──→ import-schools (exit 0) ─→ seed (exit
 - `FE/lib/features/campaign/shared/repositories/campaign_repository.dart`: `listStaffRegistrations(...)` and `bulkUpdateRegistrationStatus(ids, status)`.
 - `FE/lib/features/staff/presentation/providers/staff_registrations_provider.dart`: filter `StateProvider` (`status`, `q`) + `FutureProvider.autoDispose<StaffRegistrationsPage>` exposing items + total count.
 - `FE/lib/features/staff/presentation/pages/staff_registrations_page.dart`: Scaffold + AppBar refresh; toolbar with text search, status dropdown, and bulk Approve/Reject buttons (disabled when 0 rows selected or in-flight). `PaginatedDataTable2` with columns ID / Full name / Email / Phone / School / Class / Status / Created at / Actions. Actions: phone/email (copies `tel:` / `mailto:` to clipboard on web), per-row approve/reject. `_StatusChip` color-codes PENDING/APPROVED/REJECTED/CANCELLED.
-- `FE/lib/app/router.dart`: new route `/staff/registrations` gated by `_RoleGate(STAFF, MANAGER, ADMIN)`. Sidebar nav adds "Duyệt đơn" item for staff/manager/admin. `_activeNavPath` updated for highlight.
+- `FE/lib/app/router.dart`: new route `/staff/registrations` gated by `_RoleGate(STAFF, MANAGER, ADMIN)`. Sidebar nav adds "Duyá»‡t Ä‘Æ¡n" item for staff/manager/admin. `_activeNavPath` updated for highlight.
 
 ### Verification
 - `docker build -t vnmap-backend:feat-081 .` -> BUILD SUCCESS.
@@ -1400,7 +1400,7 @@ Features implemented since 2026-07-02:
   No support for `fullName`, `phone`, or other profile fields.
 - **Impact:** User cannot update personal info (name, phone) via the API.
   The profile_page.dart also has no name/phone fields.
-- **User intent:** Original ask was "cập nhật thông tin cá nhân (name, phone)".
+- **User intent:** Original ask was "cáº­p nháº­t thÃ´ng tin cÃ¡ nhÃ¢n (name, phone)".
   This was scoped down to avatar+password only.
 - **Severity:** Medium. Documented but not in current scope.
 
@@ -1445,7 +1445,7 @@ No new bugs introduced since feat-082. All 2 known issues from 2/7 smoke test
 
 **Root cause:**
 - `UpdateProfileRequest` DTO only contained `avatarObjectKey`.
-- The user's original ask for feat-079 was "cập nhật thông tin cá nhân (name, phone)" but the scope was narrowed to avatar+password only.
+- The user's original ask for feat-079 was "cáº­p nháº­t thÃ´ng tin cÃ¡ nhÃ¢n (name, phone)" but the scope was narrowed to avatar+password only.
 - Smoke test PUT /auth/me with `{fullName: ...}` produced `JSON parse error: Unrecognized field "fullName"` -> 500.
 
 ### Fix scope
@@ -1464,7 +1464,7 @@ No new bugs introduced since feat-082. All 2 known issues from 2/7 smoke test
 - `ProfileViewModel`: added `isUpdatingInfo` state, new `updateInfo({fullName, phone})` method, and `friendlyError` extended to surface field-specific validation messages.
 - `profile_page.dart`:
   - `_InfoCard`: shows phone row for student accounts.
-  - New `_EditInfoCard` widget: form with fullName (always editable) + phone (only for students, with phone regex validator); "Lưu thông tin" button; on success, invalidates the active user provider so the rest of the app sees the new name.
+  - New `_EditInfoCard` widget: form with fullName (always editable) + phone (only for students, with phone regex validator); "LÆ°u thÃ´ng tin" button; on success, invalidates the active user provider so the rest of the app sees the new name.
   - _EditInfoCard wired into the page between `_InfoCard` and `_PasswordCard`.
 
 ### Verification
@@ -1494,3 +1494,88 @@ No new bugs introduced since feat-082. All 2 known issues from 2/7 smoke test
 - [x] Backend rebuilds, container starts healthy
 - [x] flutter analyze + flutter build web both pass
 - [x] Smoke test confirms fix
+
+
+## 2026-07-05 -- feat-084 (Bug fixes: Trends API + Report filter dropdowns)
+
+### Read
+- DOCKER_FLOW_API_TEST_REPORT_20260705.md (the user-reported 2026-07-05 inspection report)
+- BE/src/main/java/com/vnmap/campaign/service/AnalyticsService.java
+- FE/lib/features/reports/data/repositories/report_repository.dart
+- FE/lib/features/reports/presentation/pages/reports_landing_page.dart,
+  eport_form_scaffold.dart, eport_filter_providers.dart,
+  campaign_report_type_page.dart
+- FE/lib/features/analytics/presentation/widgets/charts_section.dart,
+  	rend_line_chart.dart, providers/analytics_provider.dart,
+  data/repositories/analytics_repository.dart
+- BE/src/main/java/com/vnmap/campaign/controller/AnalyticsController.java
+- BE/src/main/java/com/vnmap/common/config/SecurityConfig.java
+- Live verification via Invoke-WebRequest against the running Docker backend.
+
+### Summarize
+- The 2026-07-05 report was an *inspection* (no code changes). The user
+  separately reported two follow-up bugs that I reproduced live against
+  the running stack:
+  1. GET /api/analytics/trend?days=30 -> HTTP 500 with PSQLException:
+     could not determine data type of parameter . The static
+     TREND_SQL in AnalyticsService used bare ? placeholders inside
+     expressions like (? IS NULL OR i.campaign_id = ?). PostgreSQL
+     can't infer types for those.
+  2. The PDF report tab filter dropdowns crashed on load. Root cause:
+     ReportRepository.getCampaigns() / getEmployees() used
+     _client.get<List<dynamic>>(...) and treated es.data as the list.
+     But the backend wraps every list response in ApiResponse
+     ({ success, message, data: [...] }), so es.data was the
+     envelope (a Map), not the list. .map(...) on a Map throws
+     	ype 'String' is not a subtype of type 'Map<String, dynamic>'.
+     The same file also called /api/v1/campaigns?size=100 (the
+     size param is silently ignored -- the endpoint only accepts
+     includeArchived) and /api/v1/schools?size=50 (should be
+     limit, not size).
+
+### Plan
+- One feature (eat-084) covering both bugs, per AGENTS.md "one
+  feature at a time".
+- Bug 1: rewrite AnalyticsService.getInteractionsTrend to use the
+  same dynamic WHERE-clause builder (ppendScopeFilters) that the
+  sibling methods getChannelBreakdown and getTopEmployees already
+  use. Drop the TREND_SQL constant.
+- Bug 2: unwrap ApiResponse in getCampaigns / getEmployees (mirror
+  getSchools), drop the size=100 param, and fix size -> limit
+  in getSchools.
+
+### Implement
+- BE/src/main/java/com/vnmap/campaign/service/AnalyticsService.java:
+  removed TREND_SQL constant; rewrote getInteractionsTrend to use
+  ppendScopeFilters for the optional campaign / school filters.
+- FE/lib/features/reports/data/repositories/report_repository.dart:
+  changed getCampaigns and getEmployees to call
+  _client.get<Map<String, dynamic>>(...) and unwrap es.data!['data']
+  as List<dynamic>. Removed size=100. Renamed size -> limit in
+  getSchools.
+
+### Verify
+- docker compose up -d --build backend -> BUILD SUCCESS, container
+  healthy.
+- GET /api/analytics/trend?days=30 -> 200 OK with 30 daily data
+  points (sample: {date:"2026-06-06",total:0}).
+- GET /api/analytics/trend?days=7&campaignId=10 -> 200 OK with 7
+  points and the filter applied.
+- Backend log no longer reports BadSqlGrammarException for the trend
+  endpoint.
+- Admin end-to-end smoke: /api/v1/campaigns -> 10 campaigns
+  (id=10 name="Chien dich Khanh Hoa"); /api/v1/employees -> 10
+  employees; /api/v1/schools?page=0&limit=10 -> 10 schools on page 0,
+  	otalItems=4922. All envelope unwraps succeed.
+- lutter analyze lib/features/reports/data/repositories/report_repository.dart
+  -> "No issues found!".
+- lutter analyze lib/ -> 182 issues (all pre-existing info/warning,
+  0 errors -- no new issues introduced).
+
+### Definition of Done
+- [x] Trends API no longer 500s (verified with and without filters)
+- [x] Report filter dropdowns load correctly (campaigns / employees /
+      schools all return populated lists)
+- [x] lutter analyze is clean on touched file, no new errors project-wide
+- [x] Backend container is healthy
+- [x] progress.md and eature_list.json updated for feat-084
