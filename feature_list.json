@@ -1333,15 +1333,27 @@
                            "note":  "User asked about auto-grading approach based on interaction/outcome data"
                        }
                    ],
-    "pendingFeatures": [
+    "pendingFeatures": [],
+    "completedFeatures": [
         {
             "id": "feat-083",
-            "name": "TBD next",
-            "status": "queued",
-            "scope": "Reserved"
-        }
-    ],
-    "completedFeatures": [
+            "name": "Fix BUG-1: profile update supports fullName + phone",
+            "description": "The original feat-079 ask included 'update personal info (name, phone)' but the implementation only supported avatar. PUT /auth/me with any non-avatar field returned 500 (JSON parse error). Added fullName and phone to UpdateProfileRequest. AuthService.updateProfile routes fullName to employees.full_name (if employeeId) or students.full_name (if studentId); phone only valid for students (employees table has no phone column). AuthUserDto now exposes phone (joined from students). FE: AuthUserModel.phone + canEditPhone, AuthRepository.updateProfile(fullName, phone), ProfileViewModel.updateInfo(), new _EditInfoCard widget in profile_page.dart with phone field shown only for students.",
+            "dependencies": ["feat-079"],
+            "status": "completed",
+            "evidence": "BE docker build: BUILD SUCCESS | FE flutter analyze lib: 0 errors / 0 warnings | FE flutter build web --release: success | End-to-end: admin PUT fullName=200, admin PUT phone=400 (correct guard 'Phone can only be updated for student accounts'), student PUT fullName+phone=200 (verified via DB: students.full_name + students.phone updated), empty phone=200 (null), whitespace name=400 (validation).",
+            "files": [
+                "BE/src/main/java/com/vnmap/auth/dto/UpdateProfileRequest.java",
+                "BE/src/main/java/com/vnmap/auth/dto/AuthUserDto.java",
+                "BE/src/main/java/com/vnmap/auth/service/AuthService.java",
+                "BE/src/test/java/com/vnmap/auth/controller/AuthControllerTest.java",
+                "FE/lib/features/auth/shared/models/auth_models.dart",
+                "FE/lib/features/auth/shared/repositories/auth_repository.dart",
+                "FE/lib/features/auth/presentation/pages/profile_page.dart",
+                "FE/lib/features/auth/presentation/providers/profile_viewmodel.dart",
+                "progress.md"
+            ]
+        },
         {
             "id": "feat-082",
             "name": "Bug fixes: MinIO storage migration + 404 handler + reports list",
