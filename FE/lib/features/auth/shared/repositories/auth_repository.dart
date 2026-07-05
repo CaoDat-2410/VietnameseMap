@@ -72,6 +72,35 @@ class AuthRepository {
     return token != null && token.isNotEmpty;
   }
 
+  Future<AuthUserModel> updateProfile({
+    String? avatarObjectKey,
+    String? fullName,
+    String? phone,
+  }) async {
+    final body = <String, dynamic>{};
+    if (avatarObjectKey != null) body['avatarObjectKey'] = avatarObjectKey;
+    if (fullName != null) body['fullName'] = fullName;
+    if (phone != null) body['phone'] = phone;
+    final res = await _client.put<Map<String, dynamic>>(
+      '/api/v1/auth/me',
+      data: body,
+    );
+    return AuthUserModel.fromJson(res.data!['data'] as Map<String, dynamic>);
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    await _client.put<Map<String, dynamic>>(
+      '/api/v1/auth/me/password',
+      data: {
+        'currentPassword': currentPassword,
+        'newPassword': newPassword,
+      },
+    );
+  }
+
   Future<AuthUserModel> registerWithPassword({
     required String email,
     required String password,

@@ -6,6 +6,10 @@ public record AuthUserDto(
         String role,
         String status,
         Long employeeId,
-        Long studentId
+        Long studentId,
+        String avatarObjectKey,
+        String fullName,
+        String phone,
+        Boolean firebaseUser
 ) {
 }

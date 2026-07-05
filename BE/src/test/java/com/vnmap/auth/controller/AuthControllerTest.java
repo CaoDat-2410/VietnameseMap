@@ -64,7 +64,7 @@ class AuthControllerTest {
     @Test
     void meWrapsCurrentUser() {
         CurrentUser currentUser = new CurrentUser(1L, "admin@vnmap.local", "ADMIN", "ACTIVE", 1L, null);
-        AuthUserDto dto = new AuthUserDto(1L, "admin@vnmap.local", "ADMIN", "ACTIVE", 1L, null);
+        AuthUserDto dto = new AuthUserDto(1L, "admin@vnmap.local", "ADMIN", "ACTIVE", 1L, null, null, "Admin User", null, false);
         when(authService.me(currentUser)).thenReturn(dto);
 
         var response = controller.me(currentUser);
@@ -80,7 +80,7 @@ class AuthControllerTest {
                 "refresh",
                 "Bearer",
                 3600,
-                new AuthUserDto(1L, "staff@vnmap.local", "STAFF", "ACTIVE", 1L, null)
+                new AuthUserDto(1L, "staff@vnmap.local", "STAFF", "ACTIVE", 1L, null, null, "Staff User", null, false)
         );
     }
 }

@@ -6,6 +6,10 @@ class AuthUserModel {
     required this.status,
     this.employeeId,
     this.studentId,
+    this.avatarObjectKey,
+    this.fullName,
+    this.phone,
+    this.firebaseUser = false,
   });
 
   final int id;
@@ -14,6 +18,49 @@ class AuthUserModel {
   final String status;
   final int? employeeId;
   final int? studentId;
+  final String? avatarObjectKey;
+  final String? fullName;
+  final String? phone;
+  final bool firebaseUser;
+
+  String get displayName {
+    if (fullName != null && fullName!.trim().isNotEmpty) return fullName!.trim();
+    return email.split('@').first;
+  }
+
+  String get initials {
+    final name = displayName;
+    final parts = name.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return '?';
+    if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
+    return (parts.first.substring(0, 1) + parts.last.substring(0, 1)).toUpperCase();
+  }
+
+  bool get hasPassword => !firebaseUser;
+
+  /// True for student accounts that can edit their phone.
+  bool get canEditPhone => role == 'STUDENT';
+
+  AuthUserModel copyWith({
+    String? email,
+    String? status,
+    String? avatarObjectKey,
+    String? fullName,
+    String? phone,
+  }) {
+    return AuthUserModel(
+      id: id,
+      email: email ?? this.email,
+      role: role,
+      status: status ?? this.status,
+      employeeId: employeeId,
+      studentId: studentId,
+      avatarObjectKey: avatarObjectKey ?? this.avatarObjectKey,
+      fullName: fullName ?? this.fullName,
+      phone: phone ?? this.phone,
+      firebaseUser: firebaseUser,
+    );
+  }
 
   factory AuthUserModel.fromJson(Map<String, dynamic> json) => AuthUserModel(
         id: json['id'] as int? ?? 0,
@@ -22,6 +69,10 @@ class AuthUserModel {
         status: json['status'] as String? ?? '',
         employeeId: json['employeeId'] as int?,
         studentId: json['studentId'] as int?,
+        avatarObjectKey: json['avatarObjectKey'] as String?,
+        fullName: json['fullName'] as String?,
+        phone: json['phone'] as String?,
+        firebaseUser: json['firebaseUser'] as bool? ?? false,
       );
 }
 

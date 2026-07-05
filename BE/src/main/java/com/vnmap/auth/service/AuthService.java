@@ -2,6 +2,8 @@ package com.vnmap.auth.service;
 
 import com.vnmap.auth.dto.AuthResponse;
 import com.vnmap.auth.dto.AuthUserDto;
+import com.vnmap.auth.dto.ChangePasswordRequest;
+import com.vnmap.auth.dto.UpdateProfileRequest;
 import com.vnmap.common.security.CurrentUser;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -18,6 +20,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Base64;
+import java.util.Map;
 
 @Service
 public class AuthService {
@@ -86,7 +89,147 @@ public class AuthService {
     }
 
     public AuthUserDto me(CurrentUser user) {
-        return new AuthUserDto(user.id(), user.email(), user.role(), user.status(), user.employeeId(), user.studentId());
+        return loadUserDto(user.id());
+    }
+
+    @Transactional
+    public AuthUserDto updateProfile(CurrentUser user, UpdateProfileRequest request) {
+        // avatarObjectKey always targets app_users
+        if (request.avatarObjectKey() != null) {
+            String avatar = request.avatarObjectKey().isBlank() ? null : request.avatarObjectKey();
+            if (avatar != null && avatar.length() > 255) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "avatarObjectKey is too long");
+            }
+            jdbc.update(
+                    "UPDATE app_users SET avatar_object_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    avatar,
+                    user.id()
+            );
+        }
+
+        // fullName: trim and validate, then route to employees or students
+        if (request.fullName() != null) {
+            String name = request.fullName().trim();
+            if (name.isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fullName must not be blank");
+            }
+            if (name.length() > 255) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fullName is too long");
+            }
+            int updated;
+            if (user.employeeId() != null) {
+                updated = jdbc.update(
+                        "UPDATE employees SET full_name = ? WHERE id = ?",
+                        name,
+                        user.employeeId()
+                );
+            } else if (user.studentId() != null) {
+                updated = jdbc.update(
+                        "UPDATE students SET full_name = ? WHERE id = ?",
+                        name,
+                        user.studentId()
+                );
+            } else {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Cannot update fullName: user has no associated employee or student record");
+            }
+            if (updated == 0) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Associated employee/student record not found");
+            }
+            jdbc.update(
+                    "UPDATE app_users SET updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    user.id()
+            );
+        }
+
+        // phone: only applies to students (employees table has no phone column)
+        if (request.phone() != null) {
+            if (user.studentId() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Phone can only be updated for student accounts");
+            }
+            String phone = request.phone().trim();
+            if (phone.length() > 50) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "phone is too long");
+            }
+            jdbc.update(
+                    "UPDATE students SET phone = ? WHERE id = ?",
+                    phone.isEmpty() ? null : phone,
+                    user.studentId()
+            );
+            jdbc.update(
+                    "UPDATE app_users SET updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    user.id()
+            );
+        }
+
+        return loadUserDto(user.id());
+    }
+
+    @Transactional
+    public void changePassword(CurrentUser user, ChangePasswordRequest request) {
+        if (request.newPassword().equals(request.currentPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "New password must be different from the current password");
+        }
+        Map<String, Object> row = jdbc.queryForMap(
+                """
+                SELECT password_hash, firebase_uid
+                FROM app_users
+                WHERE id = ?
+                """,
+                user.id()
+        );
+        String currentHash = (String) row.get("password_hash");
+        Object firebaseUid = row.get("firebase_uid");
+        if (firebaseUid != null || currentHash == null || currentHash.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Password cannot be changed for accounts signed in with Google"
+            );
+        }
+        if (!passwordEncoder.matches(request.currentPassword(), currentHash)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Current password is incorrect");
+        }
+        jdbc.update(
+                "UPDATE app_users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                passwordEncoder.encode(request.newPassword()),
+                user.id()
+        );
+    }
+
+    private AuthUserDto loadUserDto(long userId) {
+        Map<String, Object> row = jdbc.queryForMap(
+                """
+                SELECT u.id, u.email, u.role, u.status, u.employee_id, u.student_id,
+                       u.avatar_object_key, u.firebase_uid,
+                       e.full_name AS employee_name,
+                       s.full_name AS student_name,
+                       s.phone AS student_phone
+                FROM app_users u
+                LEFT JOIN employees e ON e.id = u.employee_id
+                LEFT JOIN students s ON s.id = u.student_id
+                WHERE u.id = ?
+                """,
+                userId
+        );
+        String fullName = (String) row.get("employee_name");
+        if (fullName == null || fullName.isBlank()) {
+            fullName = (String) row.get("student_name");
+        }
+        Object firebaseUid = row.get("firebase_uid");
+        return new AuthUserDto(
+                ((Number) row.get("id")).longValue(),
+                (String) row.get("email"),
+                (String) row.get("role"),
+                (String) row.get("status"),
+                row.get("employee_id") == null ? null : ((Number) row.get("employee_id")).longValue(),
+                row.get("student_id") == null ? null : ((Number) row.get("student_id")).longValue(),
+                (String) row.get("avatar_object_key"),
+                fullName,
+                (String) row.get("student_phone"),
+                firebaseUid != null
+        );
     }
 
     public UserWithPassword findUserByEmail(String email) {
@@ -110,7 +253,7 @@ public class AuthService {
                 new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Email or password is incorrect"));
     }
 
-    private UserWithPassword findUserById(long id) {
+    UserWithPassword findUserById(long id) {
         return jdbc.query(
                 """
                 SELECT id, email, password_hash, role, status, employee_id, student_id
@@ -131,7 +274,7 @@ public class AuthService {
                 new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token"));
     }
 
-    private AuthResponse issueTokens(CurrentUser user) {
+    AuthResponse issueTokens(CurrentUser user) {
         String accessToken = jwtService.createAccessToken(user);
         String refreshToken = createRefreshToken();
         jdbc.update(
@@ -148,7 +291,7 @@ public class AuthService {
                 refreshToken,
                 "Bearer",
                 jwtService.accessTokenExpiresInSeconds(),
-                me(user)
+                loadUserDto(user.id())
         );
     }
 
