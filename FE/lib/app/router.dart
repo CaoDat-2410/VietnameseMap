@@ -471,6 +471,7 @@ class _AppShell extends ConsumerWidget {
       return '/student/my-registrations';
     }
     if (location.startsWith('/admin/users')) return '/admin/users';
+    if (location.startsWith('/analytics')) return '/analytics';
     if (location.startsWith('/home/')) {
       return location; // Return the actual role-specific path so sidebar highlights correctly
     }
@@ -512,6 +513,10 @@ class _AppShell extends ConsumerWidget {
     items.add(_NavItem('/profile', 'Hồ sơ', Icons.account_circle_outlined, Icons.account_circle));
 
     if (role == 'STUDENT') {
+      items.add(_NavItem(
+          '/campaigns', l10n.campaigns, Icons.campaign_outlined, Icons.campaign));
+      items.add(_NavItem(
+          '/schools', l10n.schools, Icons.school_outlined, Icons.school));
       items.add(_NavItem('/student/my-registrations', l10n.mine,
           Icons.assignment_ind_outlined, Icons.assignment_ind));
       items.add(_NavItem('/settings', l10n.settings,
@@ -529,9 +534,11 @@ class _AppShell extends ConsumerWidget {
       items.add(_NavItem('/staff/registrations', 'Duyệt đơn',
           Icons.assignment_turned_in_outlined, Icons.assignment_turned_in));
       items.add(_NavItem(
-          '/reports', 'Báo cáo', Icons.summarize_outlined, Icons.summarize));
-      items.add(_NavItem(
           '/schools', l10n.schools, Icons.school_outlined, Icons.school));
+    }
+    if (role == 'MANAGER' || role == 'ADMIN') {
+      items.add(_NavItem(
+          '/reports', 'Báo cáo', Icons.summarize_outlined, Icons.summarize));
     }
     if (role == 'ADMIN') {
       items.add(_NavItem('/admin/users', l10n.users,

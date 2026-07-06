@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/providers/remote_config_provider.dart';
@@ -44,11 +44,17 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   Future<void> _handleGoogleSignIn() async {
     try {
-      final googleUser = await GoogleSignIn().signIn();
-      if (googleUser == null) return;
-      final auth = await googleUser.authentication;
-      final idToken = auth.idToken;
-      if (idToken == null) return;
+      final provider = GoogleAuthProvider()
+        ..addScope('email')
+        ..addScope('profile');
+      final credential = await FirebaseAuth.instance.signInWithPopup(provider);
+      final idToken = await credential.user?.getIdToken(true);
+      if (idToken == null || idToken.isEmpty) {
+        throw FirebaseAuthException(
+          code: 'missing-id-token',
+          message: 'Google sign-in did not return an ID token.',
+        );
+      }
       await ref.read(authViewModelProvider.notifier).loginWithGoogle(idToken);
     } catch (e) {
       if (mounted) {

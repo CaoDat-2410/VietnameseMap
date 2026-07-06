@@ -25,34 +25,30 @@ class ReportRepository {
   }
 
   Future<List<CampaignSummary>> getCampaigns() async {
-    // Backend wraps the list in the standard ApiResponse envelope
-    // (`{ success, message, data: [...] }`). The `size` query param is not
-    // supported by GET /api/v1/campaigns (which only accepts includeArchived)
-    // so we just hit the endpoint without it.
     final res = await _client.get<Map<String, dynamic>>('/api/v1/campaigns');
-    final items = res.data!['data'] as List<dynamic>? ?? const <dynamic>[];
+    final items = _itemsFromEnvelope(res.data);
     return items.map((e) {
       final map = e as Map<String, dynamic>;
       return CampaignSummary(
-        id: (map['id'] as num).toInt(),
-        name: map['name']?.toString() ?? 'N/A',
+        id: ((map['id'] ?? map['campaignId']) as num).toInt(),
+        name: map['name']?.toString() ?? map['campaignName']?.toString() ?? map['title']?.toString() ?? 'N/A',
         status: map['status']?.toString() ?? 'DRAFT',
       );
     }).toList();
   }
 
   Future<PagedSchoolsResponse> getSchools({required int page, String? query}) async {
-    // Backend uses `limit` (not `size`) and returns a PagedResponse
-    // (`{ items, page, limit, totalItems, totalPages }`).
     final params = <String, dynamic>{
       'page': page,
       'limit': 50,
     };
     if (query != null && query.isNotEmpty) params['q'] = query;
     final res = await _client.get<Map<String, dynamic>>('/api/v1/schools', queryParameters: params);
-    final data = res.data!['data'] as Map<String, dynamic>;
-    final content = (data['content'] ?? data['items'] ?? []) as List;
-    final total = (data['totalElements'] ?? data['totalItems'] ?? 0) as int;
+    final data = res.data?['data'];
+    final content = _itemsFromEnvelope(res.data);
+    final total = data is Map<String, dynamic>
+        ? ((data['totalElements'] ?? data['totalItems'] ?? content.length) as num).toInt()
+        : content.length;
     return PagedSchoolsResponse(
       items: content.map((s) => SchoolSummary(
         uid: s['uid'] ?? s['schoolUid'] ?? '',
@@ -67,17 +63,26 @@ class ReportRepository {
   }
 
   Future<List<EmployeeSummary>> getEmployees() async {
-    // Same envelope unwrap as getCampaigns() above.
     final res = await _client.get<Map<String, dynamic>>('/api/v1/employees');
-    final items = res.data!['data'] as List<dynamic>? ?? const <dynamic>[];
+    final items = _itemsFromEnvelope(res.data);
     return items.map((e) {
       final map = e as Map<String, dynamic>;
       return EmployeeSummary(
         id: (map['id'] as num).toInt(),
-        name: map['fullName']?.toString() ?? 'N/A',
+        name: map['fullName']?.toString() ?? map['name']?.toString() ?? 'N/A',
         role: map['role']?.toString() ?? 'STAFF',
       );
     }).toList();
+  }
+
+  List<dynamic> _itemsFromEnvelope(Map<String, dynamic>? envelope) {
+    final data = envelope?['data'];
+    if (data is List) return data;
+    if (data is Map<String, dynamic>) {
+      final items = data['items'] ?? data['content'] ?? data['data'];
+      if (items is List) return items;
+    }
+    return const <dynamic>[];
   }
 }
 

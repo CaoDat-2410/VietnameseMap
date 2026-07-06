@@ -24,9 +24,12 @@ class AdminUsersPage extends ConsumerWidget {
       body: users.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text(error.toString())),
-        data: (items) => UserAdminTable(
-          users: items,
-          onAction: (user, action) => _handleAction(context, ref, user, action),
+        data: (items) => Padding(
+          padding: const EdgeInsets.only(bottom: 72),
+          child: UserAdminTable(
+            users: items,
+            onAction: (user, action) => _handleAction(context, ref, user, action),
+          ),
         ),
       ),
     );

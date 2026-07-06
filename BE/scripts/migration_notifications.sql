@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS user_fcm_tokens (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+  token TEXT NOT NULL UNIQUE,
+  platform VARCHAR(30) NOT NULL,
+  device_id VARCHAR(120) NOT NULL,
+  last_seen_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, device_id)
+);
+
+CREATE TABLE IF NOT EXISTS notification_audit (
+  id BIGSERIAL PRIMARY KEY,
+  target_user_id BIGINT REFERENCES app_users(id),
+  trigger_type VARCHAR(80) NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  body TEXT NOT NULL,
+  data_json TEXT,
+  fcm_result TEXT,
+  status VARCHAR(30) NOT NULL,
+  read_at TIMESTAMP,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

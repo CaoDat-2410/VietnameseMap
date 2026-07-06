@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/theme/app_colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../auth/shared/providers/auth_provider.dart';
 import '../../shared/models/campaign_models.dart';
@@ -231,28 +232,24 @@ class _CampaignCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            Text(
+              campaign.name,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Expanded(
-                  child: Text(
-                    campaign.name,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
+                _CampaignStatusChip(status: campaign.status),
+                _CampaignCardActions(
+                  canManage: canManage,
+                  editTooltip: l10n.edit,
+                  archiveTooltip: l10n.archive,
+                  onEdit: onEdit,
+                  onArchive: onArchive,
                 ),
-                Chip(label: Text(campaign.status)),
-                if (canManage) ...[
-                  const SizedBox(width: 4),
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined),
-                    tooltip: l10n.edit,
-                    onPressed: onEdit,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.archive_outlined),
-                    tooltip: l10n.archive,
-                    onPressed: onArchive,
-                  ),
-                ],
               ],
             ),
             const SizedBox(height: 8),
@@ -345,4 +342,112 @@ void _showError(BuildContext context, Object error) {
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(content: Text(error.toString())),
   );
+}
+class _CampaignCardActions extends StatelessWidget {
+  const _CampaignCardActions({
+    required this.canManage,
+    required this.editTooltip,
+    required this.archiveTooltip,
+    required this.onEdit,
+    required this.onArchive,
+  });
+
+  final bool canManage;
+  final String editTooltip;
+  final String archiveTooltip;
+  final VoidCallback onEdit;
+  final VoidCallback onArchive;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!canManage) return const SizedBox.shrink();
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(width: 4),
+        IconButton(
+          icon: const Icon(Icons.edit_outlined),
+          tooltip: editTooltip,
+          onPressed: onEdit,
+        ),
+        IconButton(
+          icon: const Icon(Icons.archive_outlined),
+          tooltip: archiveTooltip,
+          onPressed: onArchive,
+        ),
+      ],
+    );
+  }
+}
+
+class _CampaignStatusChip extends StatelessWidget {
+  const _CampaignStatusChip({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = _colorsFor(status);
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 120),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colors.background,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: colors.border),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Text(
+            status,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: colors.foreground,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  _StatusBadgeColors _colorsFor(String value) {
+    return switch (value.toUpperCase()) {
+      'ACTIVE' => const _StatusBadgeColors(
+          foreground: Color(0xFF166534),
+          background: Color(0xFFDCFCE7),
+          border: Color(0xFF86EFAC),
+        ),
+      'COMPLETED' || 'DONE' => const _StatusBadgeColors(
+          foreground: Color(0xFF1E40AF),
+          background: Color(0xFFDBEAFE),
+          border: Color(0xFF93C5FD),
+        ),
+      'CANCELLED' || 'ARCHIVED' => const _StatusBadgeColors(
+          foreground: Color(0xFF991B1B),
+          background: Color(0xFFFEE2E2),
+          border: Color(0xFFFCA5A5),
+        ),
+      _ => const _StatusBadgeColors(
+          foreground: Color(0xFF334155),
+          background: Color(0xFFE2E8F0),
+          border: Color(0xFF94A3B8),
+        ),
+    };
+  }
+}
+
+class _StatusBadgeColors {
+  const _StatusBadgeColors({
+    required this.foreground,
+    required this.background,
+    required this.border,
+  });
+
+  final Color foreground;
+  final Color background;
+  final Color border;
 }

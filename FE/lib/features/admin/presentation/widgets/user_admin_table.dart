@@ -611,6 +611,11 @@ class _DesktopUserTable extends StatelessWidget {
         ),
         Expanded(
           child: PaginatedDataTable2(
+            minWidth: 1080,
+            columnSpacing: 14,
+            horizontalMargin: 14,
+            headingRowHeight: 48,
+            dataRowHeight: 58,
             header: Text(
               'Danh sách người dùng (${rows.length})',
               style: Theme.of(context).textTheme.titleMedium,
@@ -619,6 +624,7 @@ class _DesktopUserTable extends StatelessWidget {
               DataColumn2(
                 label: const Text('ID'),
                 size: ColumnSize.S,
+                fixedWidth: 64,
                 onSort: (i, asc) => onSort(i, asc),
               ),
               DataColumn2(
@@ -629,31 +635,36 @@ class _DesktopUserTable extends StatelessWidget {
               DataColumn2(
                 label: const Text('Vai trò'),
                 size: ColumnSize.S,
+                fixedWidth: 112,
                 onSort: (i, asc) => onSort(i, asc),
               ),
               DataColumn2(
                 label: const Text('Trạng thái'),
                 size: ColumnSize.S,
+                fixedWidth: 128,
                 onSort: (i, asc) => onSort(i, asc),
               ),
               DataColumn2(
                 label: const Text('Employee ID'),
                 size: ColumnSize.S,
+                fixedWidth: 116,
                 onSort: (i, asc) => onSort(i, asc),
               ),
               DataColumn2(
                 label: const Text('Student ID'),
                 size: ColumnSize.S,
+                fixedWidth: 108,
                 onSort: (i, asc) => onSort(i, asc),
               ),
               const DataColumn2(
                 label: Text('Google'),
                 size: ColumnSize.S,
+                fixedWidth: 76,
               ),
               const DataColumn2(
                 label: Text('Thao tác'),
                 size: ColumnSize.S,
-                fixedWidth: 120,
+                fixedWidth: 132,
               ),
             ],
             source: _UserDataSource(rows: rows, onAction: onAction, colorScheme: colorScheme),
@@ -688,7 +699,12 @@ class _UserDataSource extends DataTableSource {
     return DataRow(
       cells: [
         DataCell(Text('${user['id']}')),
-        DataCell(Text(user['email'] as String? ?? '', overflow: TextOverflow.ellipsis)),
+        DataCell(Text(
+          user['email'] as String? ?? '',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          softWrap: false,
+        )),
         DataCell(UserRoleChip(role: user['role'] as String? ?? '')),
         DataCell(UserStatusChip(status: user['status'] as String? ?? '')),
         DataCell(Text('${user['employeeId'] ?? '-'}', textAlign: TextAlign.center)),
@@ -703,13 +719,15 @@ class _UserDataSource extends DataTableSource {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton(icon: const Icon(Icons.edit, size: 20), tooltip: 'Sửa', onPressed: () => onAction(user, UserAction.edit)),
+              IconButton(constraints: const BoxConstraints.tightFor(width: 36, height: 36), padding: EdgeInsets.zero, icon: const Icon(Icons.edit, size: 20), tooltip: 'Sửa', onPressed: () => onAction(user, UserAction.edit)),
               IconButton(
+                constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+                padding: EdgeInsets.zero,
                 icon: Icon(user['status'] == 'ACTIVE' ? Icons.block : Icons.check_circle, size: 20),
                 tooltip: user['status'] == 'ACTIVE' ? 'Vô hiệu hóa' : 'Kích hoạt',
                 onPressed: () => onAction(user, UserAction.toggleStatus),
               ),
-              IconButton(icon: const Icon(Icons.delete, size: 20, color: AppColors.error), tooltip: 'Xóa', onPressed: () => onAction(user, UserAction.delete)),
+              IconButton(constraints: const BoxConstraints.tightFor(width: 36, height: 36), padding: EdgeInsets.zero, icon: const Icon(Icons.delete, size: 20, color: AppColors.error), tooltip: 'Xóa', onPressed: () => onAction(user, UserAction.delete)),
             ],
           ),
         ),

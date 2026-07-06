@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app_sidebar.dart';
+import '../../features/notifications/presentation/widgets/notification_bell.dart';
 
 const _kSidebarPrefKey = 'app.nav.sidebar.expanded';
 
@@ -49,7 +50,7 @@ class AppShellScaffold extends ConsumerWidget {
 
     return LayoutBuilder(
       builder: (context, c) {
-        // Desktop: sidebar + content row
+        // Desktop: sidebar + reserved content action bar.
         if (c.maxWidth >= 900) {
           return Scaffold(
             body: Row(
@@ -68,7 +69,38 @@ class AppShellScaffold extends ConsumerWidget {
                   ),
                 ),
                 Container(width: 1, color: Theme.of(context).dividerColor),
-                Expanded(child: body),
+                Expanded(
+                  child: Column(
+                    children: [
+                      Material(
+                        color: Theme.of(context).colorScheme.surface,
+                        child: SafeArea(
+                          left: false,
+                          bottom: false,
+                          child: SizedBox(
+                            height: 56,
+                            child: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: const [
+                                  NotificationBellButton(),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Container(
+                        width: double.infinity,
+                        height: 1,
+                        color: Theme.of(context).dividerColor,
+                      ),
+                      Expanded(child: body),
+                    ],
+                  ),
+                ),
               ],
             ),
           );
@@ -84,13 +116,18 @@ class AppShellScaffold extends ConsumerWidget {
                 onPressed: () => Scaffold.of(ctx).openDrawer(),
               ),
             ),
-            title: Text(_labelFor(selectedPath, items)),
+            title: Text(
+              _labelFor(selectedPath, items),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             automaticallyImplyLeading: false,
             actions: [
+              const NotificationBellButton(),
               IconButton(
-                tooltip: 'Cài đặt',
-                icon: const Icon(Icons.settings_outlined),
-                onPressed: () => context.go('/settings'),
+                tooltip: 'Hồ sơ',
+                icon: const Icon(Icons.account_circle_outlined),
+                onPressed: () => context.go('/profile'),
               ),
             ],
           ),

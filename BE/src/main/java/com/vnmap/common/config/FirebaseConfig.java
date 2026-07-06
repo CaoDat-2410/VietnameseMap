@@ -5,6 +5,8 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.messaging.FirebaseMessaging;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,32 +35,40 @@ public class FirebaseConfig {
     private String storageBucket;
 
     @Bean
-    public FirebaseApp firebaseApp() {
+    public GoogleCredentials firebaseCredentials() throws IOException {
+        try (InputStream serviceAccount = resolveServiceAccount()) {
+            return GoogleCredentials.fromStream(serviceAccount);
+        }
+    }
+
+    @Bean
+    public FirebaseApp firebaseApp(GoogleCredentials firebaseCredentials) {
         if (FirebaseApp.getApps().isEmpty()) {
-            try {
-                InputStream serviceAccount = resolveServiceAccount();
-                GoogleCredentials credentials = GoogleCredentials.fromStream(serviceAccount);
-                FirebaseOptions options = FirebaseOptions.builder()
-                        .setCredentials(credentials)
-                        .setStorageBucket(storageBucket)
-                        .build();
-                FirebaseApp app = FirebaseApp.initializeApp(options);
-                log.info("Firebase initialized with storage bucket: {}", storageBucket);
-                return app;
-            } catch (IOException e) {
-                log.error("Failed to initialize Firebase. "
-                    + "Set FIREBASE_SERVICE_ACCOUNT_JSON env var or FIREBASE_SERVICE_ACCOUNT_FILE path. "
-                    + "Error: {}", e.getMessage());
-                throw new IllegalStateException("Firebase initialization failed", e);
-            }
+            FirebaseOptions options = FirebaseOptions.builder()
+                    .setCredentials(firebaseCredentials)
+                    .setStorageBucket(storageBucket)
+                    .build();
+            FirebaseApp app = FirebaseApp.initializeApp(options);
+            log.info("Firebase initialized with storage bucket: {}", storageBucket);
+            return app;
         }
         return FirebaseApp.getInstance();
     }
 
     @Bean
-    public Storage firebaseStorage(FirebaseApp firebaseApp) {
+    public FirebaseMessaging firebaseMessaging(FirebaseApp firebaseApp) {
+        return FirebaseMessaging.getInstance(firebaseApp);
+    }
+
+    @Bean
+    public FirebaseAuth firebaseAuth(FirebaseApp firebaseApp) {
+        return FirebaseAuth.getInstance(firebaseApp);
+    }
+
+    @Bean
+    public Storage firebaseStorage(FirebaseApp firebaseApp, GoogleCredentials firebaseCredentials) {
         return StorageOptions.newBuilder()
-                .setCredentials(GoogleCredentials.getApplicationDefault())
+                .setCredentials(firebaseCredentials)
                 .setProjectId(firebaseApp.getOptions().getProjectId())
                 .build()
                 .getService();
@@ -71,6 +81,16 @@ public class FirebaseConfig {
         }
         if (StringUtils.hasText(serviceAccountFile)) {
             log.info("Loading Firebase service account from file: {}", serviceAccountFile);
+            // Absolute filesystem paths (e.g. /run/secrets/*.json in Docker) take precedence
+            // over classpath resources — spring's ClassPathResource tries to resolve relative
+            // to the classpath, which fails for absolute paths.
+            if (serviceAccountFile.startsWith("/") || serviceAccountFile.contains(":")) {
+                java.io.File f = new java.io.File(serviceAccountFile);
+                if (!f.isFile()) {
+                    throw new java.io.FileNotFoundException("Firebase service account file not found at " + serviceAccountFile);
+                }
+                return new java.io.FileInputStream(f);
+            }
             return new ClassPathResource(serviceAccountFile).getInputStream();
         }
         log.warn("Firebase service account not configured. "

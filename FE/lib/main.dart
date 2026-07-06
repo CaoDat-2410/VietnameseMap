@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/router.dart';
+import 'core/config/app_config.dart';
 import 'core/config/firebase_initializer.dart';
 import 'core/monitoring/crashlytics_service.dart';
 import 'core/monitoring/sentry_service.dart';
@@ -14,7 +15,11 @@ import 'l10n/app_localizations.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load();
+  try {
+    await dotenv.load();
+  } catch (_) {
+    debugPrint('[Config] .env asset not found; using dart-define/defaults.');
+  }
 
   // Firebase: Web only (throws on mobile unless platform files are present)
   try {
@@ -25,7 +30,7 @@ Future<void> main() async {
 
   // Sentry: Production only
   if (shouldInitializeSentry) {
-    final env = dotenv.env['ENV_MODE'] ?? 'development';
+    final env = AppConfig.envMode;
     await initializeSentry(environment: env);
   }
 

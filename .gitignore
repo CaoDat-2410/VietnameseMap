@@ -22,6 +22,8 @@ docker-compose.override.yml
 .env
 .env.local
 .env.*.local
+.env.bak
+.env.*.bak
 
 # Cursor agent skills and hooks (not needed for project runtime)
 .agents/
@@ -34,11 +36,21 @@ docker-compose.override.yml
 # Generated build artifacts and test outputs
 FE/build/
 FE/.dart_tool/
+FE/.flutter_appdata/
+FE/ios/Flutter/ephemeral/
 FE/.pub-cache/
 FE/.pub/
 BE/target/
 BE/.mvn/
 BE/jacoco-backend.xml
+
+# Local browser/smoke-test probes
+/login_no_inputs.png
+/test_*.png
+/check_bundle.ps1
+/check_localstorage.py
+/scan_bundle*.py
+/smoke_reports*.py
 
 # Backend dev scripts and helpers (not part of the app)
 BE/scripts/admin_hash.txt

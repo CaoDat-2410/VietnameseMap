@@ -48,46 +48,48 @@ class ReportsLandingPage extends ConsumerWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Báo cáo PDF')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Chọn loại báo cáo',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Mỗi loại báo cáo có một bộ lọc riêng và các biểu đồ tương ứng được nhúng vào PDF.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
-            ),
-            const SizedBox(height: 24),
-            LayoutBuilder(builder: (context, c) {
-              final cols = c.maxWidth >= 1100 ? 4 : c.maxWidth >= 700 ? 2 : 1;
-              return Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                children: types
-                    .map((t) => SizedBox(
-                          width: cols == 1 ? double.infinity : (c.maxWidth - (cols - 1) * 16) / cols,
-                          child: _ReportTypeCard(info: t),
-                        ))
-                    .toList(),
-              );
-            }),
-            const SizedBox(height: 24),
-            Text(
-              'Lưu ý',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Báo cáo PDF được tạo ở chế độ nền. Khi sẵn sàng, bạn có thể tải xuống từ trang chi tiết của từng báo cáo.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
-            ),
-          ],
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Báo cáo PDF',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Chọn loại báo cáo, thiết lập bộ lọc riêng và xuất file PDF có biểu đồ nhúng sẵn.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 24),
+              LayoutBuilder(builder: (context, c) {
+                final cols = c.maxWidth >= 1100 ? 4 : c.maxWidth >= 700 ? 2 : 1;
+                return Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: types
+                      .map((t) => SizedBox(
+                            width: cols == 1 ? double.infinity : (c.maxWidth - (cols - 1) * 16) / cols,
+                            child: _ReportTypeCard(info: t),
+                          ))
+                      .toList(),
+                );
+              }),
+              const SizedBox(height: 24),
+              Text(
+                'Lưu ý',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Báo cáo PDF được tạo ở chế độ nền. Khi sẵn sàng, bạn có thể tải xuống từ trang chi tiết của từng báo cáo.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -128,10 +130,11 @@ class _ReportTypeCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               color: info.color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(info.icon, color: info.color, size: 28),
           ),
@@ -142,12 +145,7 @@ class _ReportTypeCard extends StatelessWidget {
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerLeft,
-            child: Wrap(
-              spacing: 6,
-              children: [
-                _Pill(text: info.type, color: info.color),
-              ],
-            ),
+            child: _Pill(text: info.type, color: info.color),
           ),
         ],
       ),
@@ -157,8 +155,10 @@ class _ReportTypeCard extends StatelessWidget {
 
 class _Pill extends StatelessWidget {
   const _Pill({required this.text, required this.color});
+
   final String text;
   final Color color;
+
   @override
   Widget build(BuildContext context) {
     return Container(

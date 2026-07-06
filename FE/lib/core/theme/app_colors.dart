@@ -9,9 +9,9 @@ class AppColors {
   // ============================================
   // PRIMARY PALETTE - Muted Indigo
   // ============================================
-  static const Color primary = Color(0xFF6366F1);        // Indigo-500
+  static const Color primary = Color(0xFF4F46E5);        // Indigo-600
   static const Color primaryLight = Color(0xFF818CF8);   // Indigo-400
-  static const Color primaryDark = Color(0xFF4F46E5);     // Indigo-600
+  static const Color primaryDark = Color(0xFF4338CA);     // Indigo-700
   static const Color primaryContainer = Color(0xFFEEF2FF); // Indigo-50
   static const Color onPrimaryContainer = Color(0xFF312E81);
 
@@ -50,9 +50,9 @@ class AppColors {
   // TEXT COLORS - Light Mode
   // ============================================
   static const Color textPrimaryLight = Color(0xFF0F172A);   // Slate-900
-  static const Color textSecondaryLight = Color(0xFF475569);   // Slate-600
-  static const Color textTertiaryLight = Color(0xFF94A3B8);   // Slate-400
-  static const Color textDisabledLight = Color(0xFFCBD5E1);    // Slate-300
+  static const Color textSecondaryLight = Color(0xFF334155);   // Slate-700
+  static const Color textTertiaryLight = Color(0xFF64748B);   // Slate-500
+  static const Color textDisabledLight = Color(0xFF64748B);    // Slate-500
 
   // ============================================
   // TEXT COLORS - Dark Mode
@@ -65,9 +65,9 @@ class AppColors {
   // ============================================
   // BORDER COLORS
   // ============================================
-  static const Color borderLight = Color(0xFFE2E8F0);     // Slate-200
+  static const Color borderLight = Color(0xFFCBD5E1);     // Slate-300
   static const Color borderDark = Color(0xFF334155);     // Slate-700
-  static const Color borderFocused = Color(0xFF6366F1);  // Primary
+  static const Color borderFocused = Color(0xFF4F46E5);  // Primary
 
   // ============================================
   // STATUS COLORS

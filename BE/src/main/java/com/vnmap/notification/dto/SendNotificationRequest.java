@@ -8,8 +8,6 @@ import jakarta.validation.constraints.NotBlank;
  */
 public record SendNotificationRequest(
         Long targetUserId,
-        /** Comma-separated user IDs, or 'ALL' for broadcast. */
-        String? targetUsers,
         @NotBlank String title,
         @NotBlank String body,
         /** Arbitrary key-value data payload (e.g. { "type": "event_reminder", "eventId": 5 }) */

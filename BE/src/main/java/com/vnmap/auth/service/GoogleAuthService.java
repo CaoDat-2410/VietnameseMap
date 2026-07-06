@@ -2,6 +2,8 @@ package com.vnmap.auth.service;
 
 import com.vnmap.auth.dto.AuthResponse;
 import com.vnmap.auth.dto.GoogleIdTokenPayload;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -12,7 +14,6 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.sql.PreparedStatement;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -20,8 +21,8 @@ import java.util.Optional;
  * Handles Google ID Token verification and user provisioning.
  *
  * Flow:
- *  1. Verify token via Google's tokeninfo endpoint
- *  2. Look up existing user by google_subject (sub) or email
+ *  1. Verify Firebase ID token first, then fall back to Google tokeninfo
+ *  2. Look up existing user by firebase_uid or email
  *  3. Auto-provision new user with role=STUDENT if not found
  *  4. Reuse existing token-issuing logic in AuthService
  */
@@ -34,15 +35,18 @@ public class GoogleAuthService {
 
     private final JdbcTemplate jdbc;
     private final AuthService authService;
+    private final FirebaseAuth firebaseAuth;
     private final RestTemplate restTemplate;
 
     public GoogleAuthService(
             JdbcTemplate jdbc,
             AuthService authService,
+            FirebaseAuth firebaseAuth,
             RestTemplate restTemplate
     ) {
         this.jdbc = jdbc;
         this.authService = authService;
+        this.firebaseAuth = firebaseAuth;
         this.restTemplate = restTemplate;
     }
 
@@ -60,15 +64,20 @@ public class GoogleAuthService {
                     "Google account email is not verified");
         }
 
-        Long userId = findUserByGoogleSubject(payload.sub())
-                .or(() -> findUserByEmail(payload.email()))
-                .orElse(null);
+        Long userId = findUserByFirebaseUid(payload.sub()).orElse(null);
 
         if (userId == null) {
-            userId = provisionUser(payload);
-            log.info("Auto-provisioned new Google user: {} (id={})", payload.email(), userId);
+            Optional<Long> existingUserId = findUserByEmail(payload.email());
+            if (existingUserId.isPresent()) {
+                userId = existingUserId.get();
+                linkFirebaseUid(userId, payload.sub());
+            } else {
+                userId = provisionUser(payload);
+                log.info("Auto-provisioned new Firebase user: {} (id={})", payload.email(), userId);
+            }
         }
 
+        jdbc.update("UPDATE app_users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?", userId);
         AuthService.UserWithPassword user = authService.findUserById(userId);
         return authService.issueTokens(user.toCurrentUser());
     }
@@ -79,6 +88,11 @@ public class GoogleAuthService {
      */
     @SuppressWarnings("unchecked")
     private GoogleIdTokenPayload verifyAndDecode(String idToken) {
+        GoogleIdTokenPayload firebasePayload = verifyFirebaseIdToken(idToken);
+        if (firebasePayload != null) {
+            return firebasePayload;
+        }
+
         try {
             String tokenInfoUrl = GOOGLE_TOKENINFO_URL + "?id_token=" + idToken;
             Map<String, Object> tokenInfo = restTemplate.getForObject(tokenInfoUrl, Map.class);
@@ -108,11 +122,38 @@ public class GoogleAuthService {
         }
     }
 
-    private Optional<Long> findUserByGoogleSubject(String subject) {
+    private GoogleIdTokenPayload verifyFirebaseIdToken(String idToken) {
+        try {
+            FirebaseToken token = firebaseAuth.verifyIdToken(idToken);
+            String email = token.getEmail();
+            if (email == null || email.isBlank()) {
+                throw new ResponseStatusException(
+                        org.springframework.http.HttpStatus.BAD_REQUEST,
+                        "Firebase ID token does not contain an email");
+            }
+            String name = stringClaim(token, "name");
+            String picture = stringClaim(token, "picture");
+            boolean emailVerified = Boolean.TRUE.equals(token.isEmailVerified());
+
+            return new GoogleIdTokenPayload(token.getUid(), email, name, picture, emailVerified);
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            log.debug("Token is not a Firebase ID token: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private String stringClaim(FirebaseToken token, String key) {
+        Object value = token.getClaims().get(key);
+        return value == null ? null : String.valueOf(value);
+    }
+
+    private Optional<Long> findUserByFirebaseUid(String uid) {
         return jdbc.query(
-                "SELECT id FROM app_users WHERE google_subject = ?",
+                "SELECT id FROM app_users WHERE firebase_uid = ?",
                 (rs, rowNum) -> rs.getLong("id"),
-                subject
+                uid
         ).stream().findFirst();
     }
 
@@ -124,17 +165,29 @@ public class GoogleAuthService {
         ).stream().findFirst();
     }
 
+    private void linkFirebaseUid(long userId, String uid) {
+        jdbc.update(
+                """
+                UPDATE app_users
+                SET firebase_uid = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ? AND firebase_uid IS NULL
+                """,
+                uid,
+                userId
+        );
+    }
+
     /**
-     * Creates a new app_users row for a Google-authenticated user.
-     * Role defaults to STUDENT — ADMIN can upgrade via the admin panel.
+     * Creates a new app_users row for a Firebase-authenticated user.
+     * Role defaults to STUDENT - ADMIN can upgrade via the admin panel.
      */
     private long provisionUser(GoogleIdTokenPayload payload) {
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
         jdbc.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(
                     """
-                    INSERT INTO app_users (email, google_subject, role, status)
-                    VALUES (?, ?, 'STUDENT', 'ACTIVE')
+                    INSERT INTO app_users (email, password_hash, firebase_uid, role, status)
+                    VALUES (?, '', ?, 'STUDENT', 'ACTIVE')
                     """,
                     PreparedStatement.RETURN_GENERATED_KEYS
             );

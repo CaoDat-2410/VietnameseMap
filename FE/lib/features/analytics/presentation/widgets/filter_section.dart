@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -52,17 +52,17 @@ class FilterSection extends ConsumerWidget {
                 segments: const [
                   ButtonSegment(
                     value: AnalyticsFilterType.none,
-                    label: Text('T\u{1EA5}t c\u{1EA3}'),
+                    label: Text('T\u{1EA5}t c\u{1EA3}', maxLines: 1, softWrap: false),
                     icon: Icon(Icons.all_inclusive, size: 18),
                   ),
                   ButtonSegment(
                     value: AnalyticsFilterType.campaign,
-                    label: Text('Chi\u{1EBF}n d\u{1ECB}ch'),
+                    label: Text('Chi\u{1EBF}n d\u{1ECB}ch', maxLines: 1, softWrap: false),
                     icon: Icon(Icons.campaign_outlined, size: 18),
                   ),
                   ButtonSegment(
                     value: AnalyticsFilterType.school,
-                    label: Text('Tr\u{01B0}\u{1EDD}ng'),
+                    label: Text('Tr\u{01B0}\u{1EDD}ng', maxLines: 1, softWrap: false),
                     icon: Icon(Icons.school_outlined, size: 18),
                   ),
                 ],
@@ -77,9 +77,11 @@ class FilterSection extends ConsumerWidget {
                 },
                 style: ButtonStyle(
                   visualDensity: VisualDensity.compact,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  minimumSize: WidgetStateProperty.all(const Size(0, 36)),
                   padding: WidgetStateProperty.all(
                     EdgeInsets.symmetric(
-                      horizontal: isMobile ? 8 : 12,
+                      horizontal: isMobile ? 6 : 8,
                       vertical: isMobile ? 6 : 8,
                     ),
                   ),

@@ -134,7 +134,7 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.primary,
-          side: BorderSide(color: AppColors.primary.withValues(alpha: 0.5)),
+          side: BorderSide(color: AppColors.primary.withValues(alpha: 0.75)),
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.lg,
             vertical: AppSpacing.md,
@@ -183,7 +183,7 @@ class AppTheme {
           vertical: AppSpacing.md,
         ),
         hintStyle: AppTypography.bodyMedium.copyWith(
-          color: AppColors.textTertiaryLight,
+          color: AppColors.textSecondaryLight,
         ),
       ),
 
@@ -464,7 +464,7 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.primary.withValues(alpha: 0.15),
         labelStyle: AppTypography.labelSmall.copyWith(
-          color: const Color(0xFFF87171),
+          color: AppColors.primaryContainer,
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
@@ -571,8 +571,8 @@ class AppTheme {
         onSurface: AppColors.textPrimaryLight,
         surfaceContainerHighest: AppColors.surfaceContainerHighestLight,
         onSurfaceVariant: AppColors.textSecondaryLight,
-        outline: AppColors.borderLight,
-        outlineVariant: AppColors.textTertiaryLight,
+        outline: AppColors.textTertiaryLight,
+        outlineVariant: AppColors.borderLight,
         shadow: Color(0xFF000000),
         scrim: Color(0xFF000000),
         inverseSurface: AppColors.textPrimaryLight,

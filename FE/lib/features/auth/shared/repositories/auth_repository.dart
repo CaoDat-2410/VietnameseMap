@@ -25,7 +25,7 @@ class AuthRepository {
       '/api/v1/auth/login',
       data: {'email': email, 'password': password},
     );
-    final data = res.data!['data'] as Map<String, dynamic>;
+    final data = _responseData(res);
     final auth = AuthResponseModel.fromJson(data);
     await _storage.saveTokens(
       accessToken: auth.accessToken,
@@ -36,7 +36,7 @@ class AuthRepository {
 
   Future<AuthUserModel> me() async {
     final res = await _client.get<Map<String, dynamic>>('/api/v1/auth/me');
-    return AuthUserModel.fromJson(res.data!['data'] as Map<String, dynamic>);
+    return AuthUserModel.fromJson(_responseData(res));
   }
 
   Future<void> logout() async {
@@ -58,7 +58,7 @@ class AuthRepository {
       '/api/v1/auth/google',
       data: {'idToken': idToken},
     );
-    final data = res.data!['data'] as Map<String, dynamic>;
+    final data = _responseData(res);
     final auth = AuthResponseModel.fromJson(data);
     await _storage.saveTokens(
       accessToken: auth.accessToken,
@@ -67,6 +67,12 @@ class AuthRepository {
     return auth.user;
   }
 
+
+  Map<String, dynamic> _responseData(Response<Map<String, dynamic>> res) {
+    final payload = res.data?['data'];
+    if (payload is Map<String, dynamic>) return payload;
+    throw StateError('Invalid auth response: missing data payload');
+  }
   Future<bool> hasAccessToken() async {
     final token = await _storage.readAccessToken();
     return token != null && token.isNotEmpty;
@@ -85,7 +91,7 @@ class AuthRepository {
       '/api/v1/auth/me',
       data: body,
     );
-    return AuthUserModel.fromJson(res.data!['data'] as Map<String, dynamic>);
+    return AuthUserModel.fromJson(_responseData(res));
   }
 
   Future<void> changePassword({
@@ -109,7 +115,7 @@ class AuthRepository {
       '/api/v1/auth/register',
       data: {'email': email, 'password': password},
     );
-    final data = res.data!['data'] as Map<String, dynamic>;
+    final data = _responseData(res);
     final auth = AuthResponseModel.fromJson(data);
     await _storage.saveTokens(
       accessToken: auth.accessToken,

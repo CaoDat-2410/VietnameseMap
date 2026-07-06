@@ -18,13 +18,21 @@ class SchoolReportTypePage extends ConsumerWidget {
         key: 'schoolUid',
         label: 'Trường học',
         initial: null,
-        build: (values, enabled, onChanged) => _SchoolField(value: values['schoolUid'] as SchoolSummary?, enabled: enabled, onChanged: onChanged),
+        build: (values, enabled, onChanged) => _SchoolField(
+          value: values['schoolUid'] as SchoolSummary?,
+          enabled: enabled,
+          onChanged: (value) => onChanged(value),
+        ),
       ),
       ReportFilterDescriptor(
         key: 'provinceCode',
         label: 'Tỉnh/Thành phố',
         initial: null,
-        build: (values, enabled, onChanged) => _ProvinceField(value: values['provinceCode'] as String?, enabled: enabled, onChanged: onChanged),
+        build: (values, enabled, onChanged) => _ProvinceField(
+          value: values['provinceCode'] as String?,
+          enabled: enabled,
+          onChanged: (value) => onChanged(value),
+        ),
       ),
     ];
 
@@ -34,8 +42,8 @@ class SchoolReportTypePage extends ConsumerWidget {
       sections: CampaignReportRequest.schoolSections,
       filters: filters,
       chartSpecs: [
-        ChartSpec(section: 'summary', builder: (ctx) => _SchoolSummaryPreview()),
-        ChartSpec(section: 'events', builder: (ctx) => _SchoolEventsPreview()),
+        ChartSpec(section: 'summary', builder: (ctx) => const _SchoolSummaryPreview()),
+        ChartSpec(section: 'events', builder: (ctx) => const _SchoolEventsPreview()),
       ],
     );
   }
@@ -43,14 +51,16 @@ class SchoolReportTypePage extends ConsumerWidget {
 
 class _SchoolField extends ConsumerWidget {
   const _SchoolField({required this.value, required this.enabled, required this.onChanged});
+
   final SchoolSummary? value;
   final bool enabled;
   final ValueChanged<SchoolSummary?> onChanged;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(reportSchoolsProvider(null));
     return async.when(
-      data: (items) => DropdownButtonFormField<SchoolSummary>(
+      data: (items) => DropdownButtonFormField<SchoolSummary?>(
         value: items.any((s) => s.uid == value?.uid) ? value : null,
         isExpanded: true,
         decoration: const InputDecoration(
@@ -59,25 +69,27 @@ class _SchoolField extends ConsumerWidget {
           border: OutlineInputBorder(),
         ),
         items: [
-          const DropdownMenuItem<SchoolSummary>(value: null, child: Text('Tất cả trường')),
-          ...items.take(50).map((s) => DropdownMenuItem(value: s, child: Text(s.name, overflow: TextOverflow.ellipsis))),
+          const DropdownMenuItem<SchoolSummary?>(value: null, child: Text('Tất cả trường')),
+          ...items.take(50).map((s) => DropdownMenuItem<SchoolSummary?>(value: s, child: Text(s.name, overflow: TextOverflow.ellipsis))),
         ],
         onChanged: enabled ? onChanged : null,
       ),
-      loading: () => const _DisabledField(label: 'Trường học'),
-      error: (_, __) => const _DisabledField(label: 'Trường học', error: true),
+      loading: () => const _LoadingField(label: 'Trường học'),
+      error: (_, __) => _LoadErrorField(label: 'Trường học', onRetry: () => ref.invalidate(reportSchoolsProvider(null))),
     );
   }
 }
 
 class _ProvinceField extends StatelessWidget {
   const _ProvinceField({required this.value, required this.enabled, required this.onChanged});
+
   final String? value;
   final bool enabled;
   final ValueChanged<String?> onChanged;
+
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<String>(
+    return DropdownButtonFormField<String?>(
       value: value,
       isExpanded: true,
       decoration: const InputDecoration(
@@ -86,20 +98,21 @@ class _ProvinceField extends StatelessWidget {
         border: OutlineInputBorder(),
       ),
       items: const [
-        DropdownMenuItem<String>(value: null, child: Text('Tất cả tỉnh/thành')),
-        DropdownMenuItem<String>(value: '01', child: Text('Ha Noi')),
-        DropdownMenuItem<String>(value: '77', child: Text('Ho Chi Minh')),
-        DropdownMenuItem<String>(value: '48', child: Text('Da Nang')),
+        DropdownMenuItem<String?>(value: null, child: Text('Tất cả tỉnh/thành')),
+        DropdownMenuItem<String?>(value: '01', child: Text('Hà Nội')),
+        DropdownMenuItem<String?>(value: '77', child: Text('Hồ Chí Minh')),
+        DropdownMenuItem<String?>(value: '48', child: Text('Đà Nẵng')),
       ],
       onChanged: enabled ? onChanged : null,
     );
   }
 }
 
-class _DisabledField extends StatelessWidget {
-  const _DisabledField({required this.label, this.error = false});
+class _LoadingField extends StatelessWidget {
+  const _LoadingField({required this.label});
+
   final String label;
-  final bool error;
+
   @override
   Widget build(BuildContext context) {
     return TextField(
@@ -108,18 +121,35 @@ class _DisabledField extends StatelessWidget {
         labelText: label,
         prefixIcon: const Icon(Icons.hourglass_empty),
         border: const OutlineInputBorder(),
-        errorText: error ? 'Lỗi tải' : null,
       ),
+    );
+  }
+}
+
+class _LoadErrorField extends StatelessWidget {
+  const _LoadErrorField({required this.label, required this.onRetry});
+
+  final String label;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onRetry,
+      icon: const Icon(Icons.refresh),
+      label: Text('Tải lại $label'),
+      style: OutlinedButton.styleFrom(alignment: Alignment.centerLeft, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18)),
     );
   }
 }
 
 class _SchoolSummaryPreview extends StatelessWidget {
   const _SchoolSummaryPreview();
+
   @override
   Widget build(BuildContext context) {
     return BentoCard(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -134,10 +164,11 @@ class _SchoolSummaryPreview extends StatelessWidget {
 
 class _SchoolEventsPreview extends StatelessWidget {
   const _SchoolEventsPreview();
+
   @override
   Widget build(BuildContext context) {
     return BentoCard(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -49,57 +49,75 @@ class _ReportFormScaffoldState extends ConsumerState<ReportFormScaffold> {
     final state = ref.watch(campaignReportViewModelProvider);
     final report = state.valueOrNull;
     final isPending = report?.isPending == true || state.isLoading;
+    final scheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            BentoCard(
-              padding: const EdgeInsets.all(20),
+      body: SafeArea(
+        top: false,
+        child: LayoutBuilder(
+          builder: (context, viewport) {
+            final isCompact = viewport.maxWidth < 700;
+            final horizontalPadding = isCompact ? 16.0 : 24.0;
+            return SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(horizontalPadding, 18, horizontalPadding, 32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    'Bộ lọc',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildFilters(isPending),
+                  _PageHeader(title: widget.title, reportType: widget.reportType),
                   const SizedBox(height: 16),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Bao gồm chiến dịch đã lưu trữ'),
-                    value: _includeArchived,
-                    onChanged: isPending ? null : (v) => setState(() => _includeArchived = v),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildChartsPreview(),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      FilledButton.icon(
-                        onPressed: isPending ? null : _onExport,
-                        icon: const Icon(Icons.picture_as_pdf),
-                        label: Text(isPending ? 'Đang tạo...' : 'Xuất PDF'),
-                      ),
-                      if (report?.isReady == true) ...[
-                        const SizedBox(width: 12),
-                        OutlinedButton.icon(
-                          onPressed: _onDownload,
-                          icon: const Icon(Icons.download),
-                          label: const Text('Tải xuống'),
+                  BentoCard(
+                    padding: EdgeInsets.all(isCompact ? 16 : 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _SectionTitle(
+                          icon: Icons.tune,
+                          title: 'Bộ lọc báo cáo',
+                          subtitle: 'Chọn phạm vi dữ liệu trước khi tạo PDF.',
+                        ),
+                        const SizedBox(height: 14),
+                        _buildFilters(isPending),
+                        const SizedBox(height: 10),
+                        SwitchListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Bao gồm dữ liệu đã lưu trữ'),
+                          subtitle: Text(
+                            'Bật khi cần xuất cả các bản ghi đã archive.',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                          ),
+                          value: _includeArchived,
+                          onChanged: isPending ? null : (v) => setState(() => _includeArchived = v),
+                        ),
+                        const SizedBox(height: 18),
+                        _buildChartsPreview(),
+                        const SizedBox(height: 18),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 10,
+                          children: [
+                            FilledButton.icon(
+                              onPressed: isPending ? null : _onExport,
+                              icon: const Icon(Icons.picture_as_pdf),
+                              label: Text(isPending ? 'Đang tạo...' : 'Xuất PDF'),
+                            ),
+                            if (report?.isReady == true)
+                              OutlinedButton.icon(
+                                onPressed: _onDownload,
+                                icon: const Icon(Icons.download),
+                                label: const Text('Tải xuống'),
+                              ),
+                          ],
                         ),
                       ],
-                    ],
+                    ),
                   ),
+                  const SizedBox(height: 16),
+                  _StatusPanel(state: state, report: report),
                 ],
               ),
-            ),
-            const SizedBox(height: 20),
-            _StatusPanel(state: state, report: report),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -107,25 +125,32 @@ class _ReportFormScaffoldState extends ConsumerState<ReportFormScaffold> {
 
   Widget _buildFilters(bool isPending) {
     if (widget.filters.isEmpty) {
-      return const Text('Không có bộ lọc cho loại báo cáo này.');
+      return Text(
+        'Không có bộ lọc cho loại báo cáo này.',
+        style: Theme.of(context).textTheme.bodyMedium,
+      );
     }
+
     return LayoutBuilder(builder: (context, c) {
-      final wide = c.maxWidth >= 700;
-      if (wide) {
-        final children = <Widget>[];
-        for (var i = 0; i < widget.filters.length; i++) {
-          if (i > 0) children.add(const SizedBox(width: 16));
-          children.add(Expanded(child: widget.filters[i].build(_values, isPending, (v) => setState(() => _values[widget.filters[i].key] = v))));
-        }
-        return Row(crossAxisAlignment: CrossAxisAlignment.start, children: children);
-      }
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      final columns = c.maxWidth >= 960
+          ? (widget.filters.length >= 3 ? 3 : widget.filters.length)
+          : c.maxWidth >= 640
+              ? (widget.filters.length >= 2 ? 2 : widget.filters.length)
+              : 1;
+      final itemWidth = columns == 1 ? c.maxWidth : (c.maxWidth - (columns - 1) * 12) / columns;
+
+      return Wrap(
+        spacing: 12,
+        runSpacing: 12,
         children: [
           for (final f in widget.filters)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: f.build(_values, isPending, (v) => setState(() => _values[f.key] = v)),
+            SizedBox(
+              width: itemWidth,
+              child: f.build(
+                _values,
+                !isPending,
+                (v) => setState(() => _values[f.key] = v),
+              ),
             ),
         ],
       );
@@ -134,21 +159,36 @@ class _ReportFormScaffoldState extends ConsumerState<ReportFormScaffold> {
 
   Widget _buildChartsPreview() {
     if (widget.chartSpecs.isEmpty) return const SizedBox.shrink();
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: widget.chartSpecs
-          .map((spec) => Container(
-                padding: const EdgeInsets.all(8),
-                width: 320,
-                height: 200,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: spec.builder(context),
-              ))
-          .toList(),
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _SectionTitle(
+          icon: Icons.insert_chart_outlined,
+          title: 'Biểu đồ trong PDF',
+          subtitle: 'Các preview này sẽ được render thành ảnh và nhúng vào file xuất.',
+        ),
+        const SizedBox(height: 12),
+        LayoutBuilder(builder: (context, c) {
+          final columns = c.maxWidth >= 960
+              ? (widget.chartSpecs.length >= 3 ? 3 : widget.chartSpecs.length)
+              : c.maxWidth >= 620
+                  ? (widget.chartSpecs.length >= 2 ? 2 : widget.chartSpecs.length)
+                  : 1;
+          final itemWidth = columns == 1 ? c.maxWidth : (c.maxWidth - (columns - 1) * 12) / columns;
+          return Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: widget.chartSpecs
+                .map((spec) => SizedBox(
+                      width: itemWidth,
+                      height: c.maxWidth < 620 ? 168 : 190,
+                      child: spec.builder(context),
+                    ))
+                .toList(),
+          );
+        }),
+      ],
     );
   }
 
@@ -160,8 +200,8 @@ class _ReportFormScaffoldState extends ConsumerState<ReportFormScaffold> {
     }
     final request = CampaignReportRequest(
       reportType: widget.reportType,
-      campaignId: _values['campaignId'] as int?,
-      eventId: _values['eventId'] as int?,
+      campaignId: _intValue('campaignId'),
+      eventId: _intValue('eventId'),
       fromDate: _values['fromDate'] as DateTime?,
       toDate: _values['toDate'] as DateTime?,
       eventStatus: _values['eventStatus'] as String?,
@@ -176,6 +216,16 @@ class _ReportFormScaffoldState extends ConsumerState<ReportFormScaffold> {
       chartImages: charts,
     );
     await ref.read(campaignReportViewModelProvider.notifier).export(request);
+  }
+
+  int? _intValue(String key) {
+    final value = _values[key];
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is CampaignSummary) return value.id;
+    if (value is EmployeeSummary) return value.id;
+    return int.tryParse(value.toString());
   }
 
   Future<void> _onDownload() async {
@@ -208,6 +258,76 @@ class ChartSpec {
   ChartSpec({required this.section, required this.builder});
   final String section;
   final Widget Function(BuildContext) builder;
+}
+
+class _PageHeader extends StatelessWidget {
+  const _PageHeader({required this.title, required this.reportType});
+
+  final String title;
+  final String reportType;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: scheme.primary.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(Icons.picture_as_pdf_outlined, color: scheme.primary),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 4),
+              Text(
+                'Mẫu $reportType - thiết lập bộ lọc, xem nhanh biểu đồ và xuất PDF.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.icon, required this.title, required this.subtitle});
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: scheme.primary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 2),
+              Text(subtitle, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _StatusPanel extends StatelessWidget {
@@ -269,6 +389,7 @@ class _Panel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
+        color: colorScheme.surface,
         border: Border.all(color: colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(8),
       ),
@@ -281,7 +402,7 @@ class _Panel extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: Theme.of(context).textTheme.titleMedium),
+                Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
                 Text(message),
               ],

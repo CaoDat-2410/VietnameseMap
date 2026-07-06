@@ -10,13 +10,13 @@ class MyRegistrationsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final registrations = ref.watch(myRegistrationsProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('My registrations')),
+      appBar: AppBar(title: const Text('Đăng ký của tôi')),
       body: registrations.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text(error.toString())),
         data: (items) {
           if (items.isEmpty) {
-            return const Center(child: Text('No registrations yet'));
+            return const Center(child: Text('Bạn chưa có đơn đăng ký nào'));
           }
           return ListView.separated(
             padding: const EdgeInsets.all(16),

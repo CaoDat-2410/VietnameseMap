@@ -2,9 +2,11 @@ package com.vnmap.auth.controller;
 
 import com.vnmap.auth.dto.AuthResponse;
 import com.vnmap.auth.dto.AuthUserDto;
+import com.vnmap.auth.dto.ChangePasswordRequest;
 import com.vnmap.auth.dto.LoginRequest;
 import com.vnmap.auth.dto.LogoutRequest;
 import com.vnmap.auth.dto.RefreshRequest;
+import com.vnmap.auth.dto.UpdateProfileRequest;
 import com.vnmap.auth.service.AuthService;
 import com.vnmap.common.model.ApiResponse;
 import com.vnmap.common.security.CurrentUser;
@@ -13,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -52,5 +55,25 @@ public class AuthController {
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<AuthUserDto>> me(@AuthenticationPrincipal CurrentUser user) {
         return ResponseEntity.ok(ApiResponse.success(authService.me(user), "Current user retrieved successfully"));
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<ApiResponse<AuthUserDto>> updateProfile(
+            @AuthenticationPrincipal CurrentUser user,
+            @Valid @RequestBody UpdateProfileRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                authService.updateProfile(user, request),
+                "Profile updated"
+        ));
+    }
+
+    @PutMapping("/me/password")
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @AuthenticationPrincipal CurrentUser user,
+            @Valid @RequestBody ChangePasswordRequest request
+    ) {
+        authService.changePassword(user, request);
+        return ResponseEntity.ok(ApiResponse.success(null, "Password changed successfully"));
     }
 }

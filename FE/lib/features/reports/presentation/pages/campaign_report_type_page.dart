@@ -17,25 +17,37 @@ class CampaignReportTypePage extends ConsumerWidget {
         key: 'campaignId',
         label: 'Chiến dịch',
         initial: null,
-        build: (values, enabled, onChanged) => _CampaignFilterField(value: values['campaignId'], enabled: enabled, onChanged: onChanged),
+        build: (values, enabled, onChanged) => _CampaignFilterField(
+          value: values['campaignId'] as CampaignSummary?,
+          enabled: enabled,
+          onChanged: (value) => onChanged(value),
+        ),
       ),
       ReportFilterDescriptor(
         key: 'fromDate',
         label: 'Từ ngày',
         initial: null,
-        build: (values, enabled, onChanged) => _DateField(value: values['fromDate'] as DateTime?, enabled: enabled, onChanged: onChanged),
+        build: (values, enabled, onChanged) => _DateField(
+          value: values['fromDate'] as DateTime?,
+          enabled: enabled,
+          onChanged: (value) => onChanged(value),
+        ),
       ),
       ReportFilterDescriptor(
         key: 'toDate',
         label: 'Đến ngày',
         initial: null,
-        build: (values, enabled, onChanged) => _DateField(value: values['toDate'] as DateTime?, enabled: enabled, onChanged: onChanged),
+        build: (values, enabled, onChanged) => _DateField(
+          value: values['toDate'] as DateTime?,
+          enabled: enabled,
+          onChanged: (value) => onChanged(value),
+        ),
       ),
     ];
 
     final chartSpecs = <ChartSpec>[
-      ChartSpec(section: 'summary', builder: (ctx) => _SummaryPreview()),
-      ChartSpec(section: 'interactions', builder: (ctx) => _OutcomeDonutPreview()),
+      ChartSpec(section: 'summary', builder: (ctx) => const _SummaryPreview()),
+      ChartSpec(section: 'interactions', builder: (ctx) => const _OutcomeDonutPreview()),
     ];
 
     return ReportFormScaffold(
@@ -50,14 +62,16 @@ class CampaignReportTypePage extends ConsumerWidget {
 
 class _CampaignFilterField extends ConsumerWidget {
   const _CampaignFilterField({required this.value, required this.enabled, required this.onChanged});
+
   final CampaignSummary? value;
   final bool enabled;
   final ValueChanged<CampaignSummary?> onChanged;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final campaignsAsync = ref.watch(reportCampaignsProvider);
     return campaignsAsync.when(
-      data: (items) => DropdownButtonFormField<CampaignSummary>(
+      data: (items) => DropdownButtonFormField<CampaignSummary?>(
         value: items.any((c) => c.id == value?.id) ? value : null,
         isExpanded: true,
         decoration: const InputDecoration(
@@ -66,25 +80,28 @@ class _CampaignFilterField extends ConsumerWidget {
           border: OutlineInputBorder(),
         ),
         items: [
-          const DropdownMenuItem<CampaignSummary>(value: null, child: Text('Tất cả chiến dịch')),
-          ...items.map((c) => DropdownMenuItem(value: c, child: Text(c.name, overflow: TextOverflow.ellipsis))),
+          const DropdownMenuItem<CampaignSummary?>(value: null, child: Text('Tất cả chiến dịch')),
+          ...items.map((c) => DropdownMenuItem<CampaignSummary?>(value: c, child: Text(c.name, overflow: TextOverflow.ellipsis))),
         ],
         onChanged: enabled ? onChanged : null,
       ),
-      loading: () => const _DisabledField(label: 'Chiến dịch'),
-      error: (_, __) => const _DisabledField(label: 'Chiến dịch', error: true),
+      loading: () => const _LoadingField(label: 'Chiến dịch'),
+      error: (_, __) => _LoadErrorField(label: 'Chiến dịch', onRetry: () => ref.invalidate(reportCampaignsProvider)),
     );
   }
 }
 
 class _DateField extends StatelessWidget {
   const _DateField({required this.value, required this.enabled, required this.onChanged});
+
   final DateTime? value;
   final bool enabled;
   final ValueChanged<DateTime?> onChanged;
+
   @override
   Widget build(BuildContext context) {
     return InkWell(
+      borderRadius: BorderRadius.circular(8),
       onTap: enabled
           ? () async {
               final picked = await showDatePicker(
@@ -114,10 +131,11 @@ class _DateField extends StatelessWidget {
   }
 }
 
-class _DisabledField extends StatelessWidget {
-  const _DisabledField({required this.label, this.error = false});
+class _LoadingField extends StatelessWidget {
+  const _LoadingField({required this.label});
+
   final String label;
-  final bool error;
+
   @override
   Widget build(BuildContext context) {
     return TextField(
@@ -126,23 +144,41 @@ class _DisabledField extends StatelessWidget {
         labelText: label,
         prefixIcon: const Icon(Icons.hourglass_empty),
         border: const OutlineInputBorder(),
-        errorText: error ? 'Lỗi tải' : null,
       ),
     );
   }
 }
 
+class _LoadErrorField extends StatelessWidget {
+  const _LoadErrorField({required this.label, required this.onRetry});
+
+  final String label;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: onRetry,
+      icon: const Icon(Icons.refresh),
+      label: Text('Tải lại $label'),
+      style: OutlinedButton.styleFrom(alignment: Alignment.centerLeft, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18)),
+    );
+  }
+}
+
 class _SummaryPreview extends StatelessWidget {
+  const _SummaryPreview();
+
   @override
   Widget build(BuildContext context) {
     return BentoCard(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('KPI tổng hợp', style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
-          const Text('Sự kiện / Tương tác / Trường / Đăng ký', style: TextStyle(fontSize: 10)),
+          const Text('Sự kiện / Tương tác / Trường / Đăng ký', style: TextStyle(fontSize: 11)),
           const Spacer(),
           Center(child: Icon(Icons.dashboard_outlined, size: 36, color: Theme.of(context).colorScheme.primary)),
         ],
@@ -152,10 +188,12 @@ class _SummaryPreview extends StatelessWidget {
 }
 
 class _OutcomeDonutPreview extends StatelessWidget {
+  const _OutcomeDonutPreview();
+
   @override
   Widget build(BuildContext context) {
     return BentoCard(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

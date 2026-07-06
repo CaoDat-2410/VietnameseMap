@@ -50,30 +50,21 @@ class AppSidebar extends StatelessWidget {
       child: SafeArea(
         child: Column(
           children: [
-            // Header: logo + collapse toggle
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
-              child: Row(
-                children: [
-                  Icon(Icons.map_rounded, color: scheme.primary, size: 28),
-                  if (!collapsed) ...[
-                    const SizedBox(width: 8),
-                    Text(
-                      'VN Map',
-                      style: Theme.of(context)
-                          .textTheme
-                          .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                  ],
-                  const Spacer(),
-                  if (onToggleCollapsed != null)
-                    IconButton(
-                      tooltip: collapsed ? 'Mở rộng' : 'Thu gọn',
-                      icon: Icon(collapsed ? Icons.menu_open : Icons.menu),
-                      onPressed: onToggleCollapsed,
-                    ),
-                ],
+            // Header: collapse toggle only. The product name lives in the app bar,
+            // so the sidebar can collapse without the toggle overlapping branding.
+            SizedBox(
+              height: 64,
+              child: Align(
+                alignment: collapsed ? Alignment.center : Alignment.centerRight,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: IconButton(
+                    tooltip: collapsed ? 'Mở rộng' : 'Thu gọn',
+                    icon: Icon(collapsed ? Icons.menu_open : Icons.menu),
+                    color: scheme.onSurfaceVariant,
+                    onPressed: onToggleCollapsed,
+                  ),
+                ),
               ),
             ),
             const Divider(height: 1),

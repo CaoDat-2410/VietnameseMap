@@ -247,18 +247,21 @@ class _RegistrationsTable extends StatelessWidget {
     final theme = Theme.of(context);
     final allSelected = items.isNotEmpty && items.every((r) => selectedIds.contains(r.id));
     return PaginatedDataTable2(
+      minWidth: 1180,
+      columnSpacing: 14,
+      horizontalMargin: 14,
       headingRowHeight: 48,
-      dataRowHeight: 56,
+      dataRowHeight: 62,
       columns: const [
-        DataColumn2(label: Text('ID'), size: ColumnSize.S),
+        DataColumn2(label: Text('ID'), size: ColumnSize.S, fixedWidth: 64),
         DataColumn2(label: Text('Họ tên'), size: ColumnSize.L),
-        DataColumn2(label: Text('Email')),
-        DataColumn2(label: Text('SĐT'), size: ColumnSize.S),
+        DataColumn2(label: Text('Email'), size: ColumnSize.L),
+        DataColumn2(label: Text('SĐT'), size: ColumnSize.S, fixedWidth: 112),
         DataColumn2(label: Text('Trường'), size: ColumnSize.L),
-        DataColumn2(label: Text('Lớp'), size: ColumnSize.S),
-        DataColumn2(label: Text('Trạng thái'), size: ColumnSize.S),
-        DataColumn2(label: Text('Ngày tạo'), size: ColumnSize.M),
-        DataColumn2(label: Text('Thao tác'), size: ColumnSize.L, fixedWidth: 220),
+        DataColumn2(label: Text('Lớp'), size: ColumnSize.S, fixedWidth: 72),
+        DataColumn2(label: Text('Trạng thái'), size: ColumnSize.S, fixedWidth: 120),
+        DataColumn2(label: Text('Ngày tạo'), size: ColumnSize.M, fixedWidth: 132),
+        DataColumn2(label: Text('Thao tác'), size: ColumnSize.L, fixedWidth: 168),
       ],
       rowsPerPage: 25,
       availableRowsPerPage: const [10, 25, 50, 100],
@@ -320,17 +323,34 @@ class _RegistrationDataSource extends DataTableSource {
           style: const TextStyle(fontWeight: FontWeight.w600),
         )),
         DataCell(Text(r.student.email, overflow: TextOverflow.ellipsis)),
-        DataCell(Text(r.student.phone)),
+        DataCell(Text(
+          r.student.phone.isEmpty ? '-' : r.student.phone,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          softWrap: false,
+        )),
         DataCell(Text(
           r.school.schoolName,
           overflow: TextOverflow.ellipsis,
         )),
-        DataCell(Text('${r.student.grade}-${r.student.className}')),
+        DataCell(Text(
+          '${r.student.grade}-${r.student.className}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          softWrap: false,
+        )),
         DataCell(_StatusChip(status: r.status)),
-        DataCell(Text(_formatDate(r.createdAt))),
-        DataCell(Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+        DataCell(Text(
+          _formatDate(r.createdAt),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          softWrap: false,
+        )),
+        DataCell(SizedBox(
+          width: 160,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
             if (r.student.phone.isNotEmpty)
               IconButton(
                 tooltip: 'Gọi',
@@ -353,7 +373,8 @@ class _RegistrationDataSource extends DataTableSource {
               icon: Icon(Icons.cancel, size: 20, color: Colors.red.shade700),
               onPressed: r.status == 'REJECTED' ? null : () => onReject(r.id),
             ),
-          ],
+            ],
+          ),
         )),
       ],
     );
@@ -367,9 +388,11 @@ class _RegistrationDataSource extends DataTableSource {
   String _formatDate(String iso) {
     if (iso.isEmpty) return '-';
     try {
-      return iso.substring(0, 16).replaceFirst('T', ' ');
+      final parsed = DateTime.parse(iso).toLocal();
+      String two(int value) => value.toString().padLeft(2, '0');
+      return '${two(parsed.day)}/${two(parsed.month)}/${parsed.year} ${two(parsed.hour)}:${two(parsed.minute)}';
     } catch (_) {
-      return iso;
+      return iso.length > 16 ? iso.substring(0, 16).replaceFirst('T', ' ') : iso;
     }
   }
 

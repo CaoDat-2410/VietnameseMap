@@ -217,10 +217,12 @@ class _RegistrationsCard extends StatelessWidget {
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final r = registrations[index];
-                      final schoolName = r.school?.schoolName ?? 'N/A';
-                      final createdAt = r.createdAt != null
-                          ? DateFormat('d/M/yyyy').format(r.createdAt!)
-                          : 'N/A';
+                      final schoolName =
+                          (r.school?.schoolName?.toString().isNotEmpty == true)
+                              ? r.school.schoolName.toString()
+                              : 'N/A';
+                      final status = r.status?.toString() ?? 'PENDING';
+                      final createdAt = _formatDate(r.createdAt);
                       return ListTile(
                         dense: true,
                         leading: CircleAvatar(
@@ -245,8 +247,8 @@ class _RegistrationsCard extends StatelessWidget {
                           ),
                         ),
                         trailing: StatusChip(
-                          label: r.status,
-                          status: _statusType(r.status),
+                          label: status,
+                          status: _statusType(status),
                         ),
                       );
                     },
@@ -257,6 +259,17 @@ class _RegistrationsCard extends StatelessWidget {
     );
   }
 
+  String _formatDate(Object? value) {
+    if (value == null) return 'N/A';
+    if (value is DateTime) return DateFormat('d/M/yyyy').format(value);
+    final raw = value.toString();
+    if (raw.isEmpty) return 'N/A';
+    try {
+      return DateFormat('d/M/yyyy').format(DateTime.parse(raw).toLocal());
+    } catch (_) {
+      return raw.length > 10 ? raw.substring(0, 10) : raw;
+    }
+  }
   StatusType _statusType(String status) {
     return switch (status.toUpperCase()) {
       'APPROVED' => StatusType.active,
@@ -290,7 +303,7 @@ class _ProfileCard extends StatelessWidget {
               radius: 32,
               backgroundColor: AppColors.primary.withValues(alpha: 0.1),
               child: Text(
-                (user?.email ?? 'S')[0].toUpperCase(),
+                _avatarInitial(user?.email),
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -333,6 +346,10 @@ class _ProfileCard extends StatelessWidget {
   }
 }
 
+  String _avatarInitial(Object? email) {
+    final value = email?.toString().trim() ?? '';
+    return value.isEmpty ? 'S' : value[0].toUpperCase();
+  }
 class _InfoRow extends StatelessWidget {
   const _InfoRow({required this.icon, required this.label});
   final IconData icon;

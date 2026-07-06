@@ -3,9 +3,17 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 class AppConfig {
   AppConfig._();
 
+  static String? env(String key) {
+    try {
+      return dotenv.env[key];
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Environment mode: 'development', 'staging', or 'production'
   static String get envMode {
-    return dotenv.env['ENV_MODE'] ?? 'development';
+    return env('ENV_MODE') ?? 'development';
   }
 
   /// Check if running in development mode
@@ -17,7 +25,7 @@ class AppConfig {
   /// Firebase environment: 'dev' or 'prod'
   /// Used to select the correct Firebase project (FirebaseOptions)
   static String get firebaseEnv {
-    return dotenv.env['FIREBASE_ENV'] ?? 'dev';
+    return env('FIREBASE_ENV') ?? 'dev';
   }
 
   /// Backend API base URL
@@ -32,9 +40,7 @@ class AppConfig {
     const legacyBaseUrl = String.fromEnvironment('BASE_URL');
     if (legacyBaseUrl.isNotEmpty) return legacyBaseUrl;
 
-    return dotenv.env['API_BASE_URL'] ??
-        dotenv.env['BASE_URL'] ??
-        'http://localhost:8080';
+    return env('API_BASE_URL') ?? env('BASE_URL') ?? 'http://localhost:8080';
   }
 
   static const Duration connectTimeout = Duration(seconds: 10);
