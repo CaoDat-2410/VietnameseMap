@@ -135,7 +135,8 @@ class BatchProcessor<T> {
 
   void dispose() {
     _timer?.cancel();
-    _flush();
+    _timer = null;
+    _buffer.clear();
   }
 }
 
