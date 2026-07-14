@@ -1,18 +1,14 @@
-import 'dart:async';
-import 'dart:typed_data';
-
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
-
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
+import '../../../../core/config/app_config.dart';
 import '../../shared/models/auth_models.dart';
 import '../providers/auth_viewmodel.dart';
 import '../providers/profile_viewmodel.dart';
+import '../utils/avatar_file_picker.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -43,7 +39,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     // Listen for the viewmodel state to surface success/error toasts.
     ref.listen<ProfileState>(profileProvider, (previous, next) {
       if (!mounted) return;
-      if (next.errorMessage != null && next.errorMessage != previous?.errorMessage) {
+      if (next.errorMessage != null &&
+          next.errorMessage != previous?.errorMessage) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(next.errorMessage!),
@@ -138,11 +135,15 @@ class _AvatarCard extends ConsumerWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
-        child: Row(
+        child: Wrap(
+          spacing: 12,
+          runSpacing: 16,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             _Avatar(user: user, size: 80),
             const SizedBox(width: 20),
-            Expanded(
+            SizedBox(
+              width: 260,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -162,8 +163,7 @@ class _AvatarCard extends ConsumerWidget {
                     children: [
                       Chip(
                         label: Text(_roleLabel(user.role)),
-                        backgroundColor:
-                            theme.colorScheme.primaryContainer,
+                        backgroundColor: theme.colorScheme.primaryContainer,
                         labelStyle: TextStyle(
                           color: theme.colorScheme.onPrimaryContainer,
                         ),
@@ -172,8 +172,7 @@ class _AvatarCard extends ConsumerWidget {
                       if (user.firebaseUser)
                         Chip(
                           label: const Text('Google Sign-In'),
-                          backgroundColor:
-                              theme.colorScheme.secondaryContainer,
+                          backgroundColor: theme.colorScheme.secondaryContainer,
                           labelStyle: TextStyle(
                             color: theme.colorScheme.onSecondaryContainer,
                           ),
@@ -192,9 +191,7 @@ class _AvatarCard extends ConsumerWidget {
               icon: const Icon(Icons.photo_camera_outlined, size: 18),
               label: Text(profileState.isUploading
                   ? 'Đang tải...'
-                  : (user.avatarObjectKey == null
-                      ? 'Thêm ảnh'
-                      : 'Đổi ảnh')),
+                  : (user.avatarObjectKey == null ? 'Thêm ảnh' : 'Đổi ảnh')),
             ),
           ],
         ),
@@ -202,17 +199,17 @@ class _AvatarCard extends ConsumerWidget {
     );
   }
 
-  Future<void> _pickAndUploadAvatar(
-      BuildContext context, WidgetRef ref) async {
+  Future<void> _pickAndUploadAvatar(BuildContext context, WidgetRef ref) async {
     if (kIsWeb) {
-      final result = await _pickFileWeb();
+      final result = await pickAvatarFile();
       if (result == null) return;
       final (fileName, bytes, contentType) = result;
-      final updated = await ref.read(profileProvider.notifier).uploadAvatarBytes(
-            bytes: bytes,
-            fileName: fileName,
-            contentType: contentType,
-          );
+      final updated =
+          await ref.read(profileProvider.notifier).uploadAvatarBytes(
+                bytes: bytes,
+                fileName: fileName,
+                contentType: contentType,
+              );
       if (updated != null) {
         // Refresh the active user state so the avatar rebuilds everywhere.
         ref.invalidate(authViewModelProvider);
@@ -262,7 +259,8 @@ class _Avatar extends StatelessWidget {
     // MinIO URL from the bucket. For now, fall back to the storage path
     // directly served via the campaign bucket public read policy.
     // Object key already includes the folder (e.g. "avatars/1234567_name.jpg").
-    return 'http://localhost:9000/vnmap-campaign/$objectKey';
+    final api = Uri.parse(AppConfig.baseUrl);
+    return '${api.scheme}://${api.host}:9000/vnmap-campaign/$objectKey';
   }
 }
 
@@ -341,21 +339,30 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final labelText = Text(
+      label,
+      style: theme.textTheme.bodyMedium
+          ?.copyWith(color: theme.colorScheme.outline),
+    );
+    final valueText = Text(value, style: theme.textTheme.bodyMedium);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(label,
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: theme.colorScheme.outline)),
-          ),
-          Expanded(
-            child: Text(value, style: theme.textTheme.bodyMedium),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 360) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [labelText, const SizedBox(height: 2), valueText],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(width: 120, child: labelText),
+              Expanded(child: valueText),
+            ],
+          );
+        },
       ),
     );
   }
@@ -565,7 +572,8 @@ class _PasswordCard extends ConsumerWidget {
                   prefixIcon: Icon(Icons.lock_outline),
                 ),
                 validator: (v) {
-                  if (v == null || v.isEmpty) return 'Vui lòng nhập mật khẩu mới';
+                  if (v == null || v.isEmpty)
+                    return 'Vui lòng nhập mật khẩu mới';
                   if (v.length < 8) return 'Mật khẩu phải có ít nhất 8 ký tự';
                   if (v == currentCtrl.text) {
                     return 'Mật khẩu mới phải khác mật khẩu hiện tại';
@@ -675,37 +683,4 @@ String _roleLabel(String role) {
     default:
       return role;
   }
-}
-
-Future<(String, Uint8List, String)?> _pickFileWeb() async {
-  final completer = Completer<(String, Uint8List, String)?>();
-  final input = html.FileUploadInputElement();
-  input.accept = 'image/png,image/jpeg,image/webp';
-  input.click();
-  input.onChange.listen((event) async {
-    final files = input.files;
-    if (files == null || files.isEmpty) {
-      completer.complete(null);
-      return;
-    }
-    final file = files.first;
-    final reader = html.FileReader();
-    reader.onLoadEnd.listen((_) {
-      final result = reader.result;
-      if (result == null) {
-        completer.complete(null);
-        return;
-      }
-      // For web, result is a ByteBuffer; convert to bytes and return.
-      final buffer = result as List<int>;
-      completer.complete((
-        file.name,
-        Uint8List.fromList(buffer),
-        file.type.isNotEmpty ? file.type : 'image/jpeg',
-      ));
-    });
-    reader.onError.listen((_) => completer.complete(null));
-    reader.readAsArrayBuffer(file);
-  });
-  return completer.future;
 }

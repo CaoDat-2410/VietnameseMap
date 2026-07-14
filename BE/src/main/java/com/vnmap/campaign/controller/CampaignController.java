@@ -383,10 +383,11 @@ public class CampaignController {
     @PutMapping("/student-registrations/{id}/status")
     public ResponseEntity<ApiResponse<StudentRegistrationDto>> updateRegistrationStatus(
             @PathVariable long id,
-            @Valid @RequestBody UpdateRegistrationStatusRequest request
+            @Valid @RequestBody UpdateRegistrationStatusRequest request,
+            @AuthenticationPrincipal CurrentUser user
     ) {
         return ResponseEntity.ok(ApiResponse.success(
-                campaignService.updateRegistrationStatus(id, request.status()),
+                campaignService.updateRegistrationStatus(id, request.status(), user),
                 "Student registration status updated successfully"
         ));
     }
@@ -409,9 +410,10 @@ public class CampaignController {
 
     @PostMapping("/student-registrations/bulk-status")
     public ResponseEntity<ApiResponse<Map<String, Object>>> bulkUpdateRegistrationStatus(
-            @Valid @RequestBody BulkRegistrationStatusRequest request
+            @Valid @RequestBody BulkRegistrationStatusRequest request,
+            @AuthenticationPrincipal CurrentUser user
     ) {
-        int updated = campaignService.bulkUpdateRegistrationStatus(request);
+        int updated = campaignService.bulkUpdateRegistrationStatus(request, user);
         return ResponseEntity.ok(ApiResponse.success(
                 Map.of("updated", updated, "status", request.status()),
                 "Bulk registration status updated successfully"

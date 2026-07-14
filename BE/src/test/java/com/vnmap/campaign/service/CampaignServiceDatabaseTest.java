@@ -167,12 +167,12 @@ class CampaignServiceDatabaseTest {
         assertThat(service.getMyRegistrations(new CurrentUser(9L, runId + "@student.local", "STUDENT", "ACTIVE", null, registration.studentId())))
                 .extracting(StudentRegistrationDto::id)
                 .contains(registration.id());
-        assertThat(service.updateRegistrationStatus(registration.id(), "APPROVED").status()).isEqualTo("APPROVED");
+        assertThat(service.updateRegistrationStatus(registration.id(), "APPROVED", new CurrentUser(1L, "admin@test.local", "ADMIN", "ACTIVE", null, null)).status()).isEqualTo("APPROVED");
         assertThatThrownBy(() -> service.registerStudent(campaign.id(), registrationRequest, null))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Registration already exists");
 
-        service.updateRegistrationStatus(registration.id(), "REJECTED");
+        service.updateRegistrationStatus(registration.id(), "REJECTED", new CurrentUser(1L, "admin@test.local", "ADMIN", "ACTIVE", null, null));
         StudentRegistrationDto reopened = service.registerStudent(campaign.id(), registrationRequest, null);
         assertThat(reopened.status()).isEqualTo("PENDING");
         StudentRegistrationRequest wrongPassword = new StudentRegistrationRequest(
@@ -301,7 +301,7 @@ class CampaignServiceDatabaseTest {
         assertThat(service.updateUserRole(user.id(), "ADMIN").role()).isEqualTo("ADMIN");
         assertThat(service.updateUserStatus(user.id(), "DISABLED").status()).isEqualTo("DISABLED");
         assertThatThrownBy(() -> service.updateUserRole(user.id(), "ROOT"))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Invalid value");
 
         EmployeeDto updatedEmployee = service.updateEmployee(staff.id(), new EmployeeDto(staff.id(), runId + " Staff Updated", "STAFF"));
@@ -320,8 +320,8 @@ class CampaignServiceDatabaseTest {
 
         assertThatThrownBy(() -> service.deleteEmployee(99999999L))
                 .isInstanceOf(ResourceNotFoundException.class);
-        assertThatThrownBy(() -> service.updateRegistrationStatus(registration.id(), "UNKNOWN"))
-                .isInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> service.updateRegistrationStatus(registration.id(), "UNKNOWN", new CurrentUser(1L, "admin@test.local", "ADMIN", "ACTIVE", null, null)))
+                .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Invalid value");
     }
 

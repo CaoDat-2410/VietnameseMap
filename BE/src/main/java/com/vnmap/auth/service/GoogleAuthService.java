@@ -195,10 +195,13 @@ public class GoogleAuthService {
             ps.setString(2, payload.sub());
             return ps;
         }, keyHolder);
-        Number key = keyHolder.getKey();
-        if (key == null) {
-            throw new IllegalStateException("Insert did not return generated key");
+        var keys = keyHolder.getKeyList();
+        if (keys != null && !keys.isEmpty()) {
+            Object id = keys.get(0).get("id");
+            if (id instanceof Number number) {
+                return number.longValue();
+            }
         }
-        return key.longValue();
+        throw new IllegalStateException("Insert did not return generated id");
     }
 }

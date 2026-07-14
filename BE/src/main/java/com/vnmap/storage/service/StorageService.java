@@ -2,6 +2,7 @@ package com.vnmap.storage.service;
 
 import com.vnmap.common.util.SigV4Presigner;
 import com.vnmap.storage.dto.UploadUrlResponse;
+import com.vnmap.common.security.CurrentUser;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpPut;
@@ -77,17 +78,26 @@ public class StorageService {
      * against the public endpoint so the browser can use it directly.
      */
     public UploadUrlResponse generateUploadUrl(
-            String folder, String fileName, String contentType, Long userId
+            String folder, String fileName, String contentType, CurrentUser user
     ) {
+        if (user == null) {
+            throw new IllegalArgumentException("Authenticated user is required");
+        }
+        if (!"avatars".equals(folder)) {
+            throw new IllegalArgumentException("Unsupported upload folder");
+        }
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new IllegalArgumentException("Only image uploads are allowed");
+        }
         String sanitizedFileName = sanitizeFileName(fileName);
-        String path = folder + "/" + sanitizedFileName;
+        String path = "avatars/" + user.id() + "/" + sanitizedFileName;
 
         String uploadUrl = SigV4Presigner.presign(
                 publicEndpoint, bucket, path, "PUT", accessKey, secretKey, region,
                 (int) URL_EXPIRY_SECONDS);
         String publicUrl = publicEndpoint + "/" + bucket + "/" + path;
         long expiresAtSeconds = (System.currentTimeMillis() / 1000) + URL_EXPIRY_SECONDS;
-        log.info("Generated upload URL for path={}, userId={}", path, userId);
+        log.info("Generated upload URL for path={}, userId={}", path, user.id());
         return new UploadUrlResponse(uploadUrl, publicUrl, path, expiresAtSeconds);
     }
 

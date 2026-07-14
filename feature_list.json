@@ -1387,6 +1387,23 @@
                 "BE/docker-compose.yml",
                 "verify_feat_082.py"
             ]
+        },
+        {
+            "id": "feat-085",
+            "name": "Security and registration-flow hardening",
+            "description": "Locked analytics and administrative centroid mutation behind role-based access. Scoped student-registration status updates to assigned staff or manager/admin, validated campaign state and date window before accepting student registrations, validated campaign status/date range, bound FCM token deletion to the token owner, and restricted presigned uploads to authenticated users' avatar image paths.",
+            "dependencies": ["feat-077", "feat-082"],
+            "status": "completed",
+            "evidence": "docker compose up -d --build backend: healthy. Runtime: unauthenticated analytics/geo-write/storage all return 401; admin analytics returns 200; invalid campaign returns 400; unsupported upload folder returns 400. Docker targeted test: mvn -q -Dtest=CampaignServiceDatabaseTest test passed.",
+            "files": [
+                "BE/src/main/java/com/vnmap/common/config/SecurityConfig.java",
+                "BE/src/main/java/com/vnmap/campaign/controller/CampaignController.java",
+                "BE/src/main/java/com/vnmap/campaign/service/CampaignService.java",
+                "BE/src/main/java/com/vnmap/storage/controller/StorageController.java",
+                "BE/src/main/java/com/vnmap/storage/service/StorageService.java",
+                "BE/src/main/java/com/vnmap/notification/controller/NotificationController.java",
+                "BE/src/main/java/com/vnmap/notification/service/NotificationService.java"
+            ]
         }
     ]
 }

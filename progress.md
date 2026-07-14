@@ -1578,4 +1578,10 @@ No new bugs introduced since feat-082. All 2 known issues from 2/7 smoke test
       schools all return populated lists)
 - [x] lutter analyze is clean on touched file, no new errors project-wide
 - [x] Backend container is healthy
-- [x] progress.md and eature_list.json updated for feat-084
+- [x] progress.md and feature_list.json updated for feat-084
+### 2026-07-14 - feat-085 Security and registration-flow hardening
+- Locked analytics and centroid recomputation behind role checks; public requests now return 401.
+- Student registration is accepted only for an ACTIVE campaign inside its date window. STAFF status updates are now constrained to their assigned campaign or school; MANAGER/ADMIN retain full access.
+- Upload URL requests now ignore client-provided userId, allow only image avatars, and write below avatars/{authenticatedUserId}/. FCM token deletion is owner-scoped.
+- Verified: backend Docker healthy; unauth analytics/geo-write/storage = 401; admin analytics = 200; invalid campaign and disallowed upload folder = 400; Docker CampaignServiceDatabaseTest passed.
+- No commit created because the worktree contains unrelated pre-existing Android/PDF changes.

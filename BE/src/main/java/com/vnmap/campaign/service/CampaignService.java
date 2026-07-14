@@ -354,6 +354,7 @@ public class CampaignService {
 
     @Transactional
     public CampaignDto createCampaign(CampaignRequest request) {
+        validateCampaignRequest(request);
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbc.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(
@@ -382,6 +383,7 @@ public class CampaignService {
 
     @Transactional
     public CampaignDto updateCampaign(long id, CampaignRequest request) {
+        validateCampaignRequest(request);
         int updated = jdbc.update(
                 """
                 UPDATE campaigns
@@ -770,7 +772,8 @@ public class CampaignService {
 
     @Transactional
     public StudentRegistrationDto registerStudent(long campaignId, StudentRegistrationRequest request, CurrentUser currentUser) {
-        getCampaign(campaignId);
+        CampaignDto campaign = getCampaign(campaignId);
+        ensureCampaignAcceptsStudentRegistrations(campaign);
         SchoolDto school = getSchool(request.schoolUid());
         boolean authenticatedAsStudent = currentUser != null
                 && "STUDENT".equals(currentUser.role())
@@ -888,14 +891,18 @@ public class CampaignService {
             return List.of();
         }
         return jdbc.query(
-                REGISTRATION_SELECT_SQL + " WHERE r.student_id = ? ORDER BY r.created_at DESC, r.id DESC",
+                REGISTRATION_SELECT_SQL + " JOIN campaigns c ON c.id = r.campaign_id " +
+                        "WHERE r.student_id = ? AND c.status = 'ACTIVE' " +
+                        "AND (c.end_date IS NULL OR c.end_date >= CURRENT_DATE) " +
+                        "ORDER BY r.created_at DESC, r.id DESC",
                 this::mapRegistration,
                 user.studentId()
         );
     }
 
     @Transactional
-    public StudentRegistrationDto updateRegistrationStatus(long id, String status) {
+    public StudentRegistrationDto updateRegistrationStatus(long id, String status, CurrentUser user) {
+        ensureRegistrationManagedByUser(id, user);
         validateIn(status, "PENDING", "APPROVED", "REJECTED", "CANCELLED");
         int updated = jdbc.update(
                 "UPDATE campaign_student_registrations SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
@@ -973,10 +980,13 @@ public class CampaignService {
     }
 
     @Transactional
-    public int bulkUpdateRegistrationStatus(BulkRegistrationStatusRequest request) {
+    public int bulkUpdateRegistrationStatus(BulkRegistrationStatusRequest request, CurrentUser user) {
         validateIn(request.status(), "PENDING", "APPROVED", "REJECTED", "CANCELLED");
         if (request.ids() == null || request.ids().isEmpty()) {
             return 0;
+        }
+        for (Long id : request.ids()) {
+            ensureRegistrationManagedByUser(id, user);
         }
         String placeholders = String.join(",", Collections.nCopies(request.ids().size(), "?"));
         return jdbc.update(
@@ -1490,6 +1500,55 @@ public class CampaignService {
         }
     }
 
+    private void validateCampaignRequest(CampaignRequest request) {
+        validateIn(request.status(), "DRAFT", ACTIVE_STATUS, "COMPLETED", "ARCHIVED");
+        if (request.startDate() != null && request.endDate() != null && request.endDate().isBefore(request.startDate())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Campaign end date must not be before start date");
+        }
+    }
+
+    private void ensureCampaignAcceptsStudentRegistrations(CampaignDto campaign) {
+        if (!ACTIVE_STATUS.equals(campaign.status())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Campaign is not accepting registrations");
+        }
+        LocalDate today = LocalDate.now();
+        if (campaign.startDate() != null && campaign.startDate().isAfter(today)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Campaign registration has not opened");
+        }
+        if (campaign.endDate() != null && campaign.endDate().isBefore(today)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Campaign registration has closed");
+        }
+    }
+
+    private void ensureRegistrationManagedByUser(long registrationId, CurrentUser user) {
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
+        }
+        if ("MANAGER".equals(user.role()) || "ADMIN".equals(user.role())) {
+            return;
+        }
+        if (!"STAFF".equals(user.role()) || user.employeeId() == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
+        }
+        Integer count = jdbc.queryForObject("""
+                SELECT COUNT(*)
+                FROM campaign_student_registrations r
+                WHERE r.id = ?
+                  AND (r.campaign_id IN (
+                         SELECT e.campaign_id FROM event_assignments ea
+                         JOIN campaign_events e ON e.id = ea.event_id
+                         WHERE ea.employee_id = ?
+                      ) OR r.school_uid IN (
+                         SELECT es.school_uid FROM event_assignments ea
+                         JOIN campaign_events e ON e.id = ea.event_id
+                         JOIN event_schools es ON es.event_id = e.id
+                         WHERE ea.employee_id = ?
+                      ))
+                """, Integer.class, registrationId, user.employeeId(), user.employeeId());
+        if (count == null || count == 0) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
+        }
+    }
     private void validateRole(String role) {
         validateIn(role, "ADMIN", "MANAGER", "STAFF", "STUDENT");
     }
@@ -1500,7 +1559,7 @@ public class CampaignService {
                 return;
             }
         }
-        throw new IllegalArgumentException("Invalid value: " + value);
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid value: " + value);
     }
 
     private UserDto updateUserColumn(long id, String column, String value) {
