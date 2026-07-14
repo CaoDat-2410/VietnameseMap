@@ -1225,6 +1225,7 @@ public class CampaignService {
     @Transactional
     public UserDto createUser(UserRequest request) {
         validateRole(request.role());
+        requirePasswordForCreate(request.password());
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbc.update(connection -> {
             PreparedStatement ps = connection.prepareStatement(
@@ -1237,7 +1238,7 @@ public class CampaignService {
             ps.setString(1, request.email());
             ps.setString(2, passwordEncoder.encode(request.password()));
             ps.setString(3, request.role());
-            ps.setString(4, request.status() == null || request.status().isBlank() ? ACTIVE_STATUS : request.status());
+            ps.setString(4, normalizeUserStatus(request.status()));
             ps.setObject(5, request.employeeId());
             ps.setObject(6, request.studentId());
             return ps;
@@ -1251,14 +1252,16 @@ public class CampaignService {
         int updated = jdbc.update(
                 """
                 UPDATE app_users
-                SET email = ?, password_hash = ?, role = ?, status = ?, employee_id = ?,
+                SET email = ?, password_hash = COALESCE(?, password_hash), role = ?, status = ?, employee_id = ?,
                     student_id = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
                 """,
                 request.email(),
-                passwordEncoder.encode(request.password()),
+                request.password() == null || request.password().isBlank()
+                        ? null
+                        : passwordEncoder.encode(request.password()),
                 request.role(),
-                request.status() == null || request.status().isBlank() ? ACTIVE_STATUS : request.status(),
+                normalizeUserStatus(request.status()),
                 request.employeeId(),
                 request.studentId(),
                 id
@@ -1500,6 +1503,17 @@ public class CampaignService {
         }
     }
 
+    private String normalizeUserStatus(String status) {
+        String value = status == null || status.isBlank() ? ACTIVE_STATUS : status;
+        validateIn(value, ACTIVE_STATUS, "DISABLED");
+        return value;
+    }
+
+    private void requirePasswordForCreate(String password) {
+        if (password == null || password.isBlank() || password.length() < 8) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must be at least 8 characters");
+        }
+    }
     private void validateCampaignRequest(CampaignRequest request) {
         validateIn(request.status(), "DRAFT", ACTIVE_STATUS, "COMPLETED", "ARCHIVED");
         if (request.startDate() != null && request.endDate() != null && request.endDate().isBefore(request.startDate())) {

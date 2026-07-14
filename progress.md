@@ -1585,3 +1585,9 @@ No new bugs introduced since feat-082. All 2 known issues from 2/7 smoke test
 - Upload URL requests now ignore client-provided userId, allow only image avatars, and write below avatars/{authenticatedUserId}/. FCM token deletion is owner-scoped.
 - Verified: backend Docker healthy; unauth analytics/geo-write/storage = 401; admin analytics = 200; invalid campaign and disallowed upload folder = 400; Docker CampaignServiceDatabaseTest passed.
 - No commit created because the worktree contains unrelated pre-existing Android/PDF changes.
+
+### 2026-07-14 - feat-086 Standardized API error envelope and admin-user edit repair
+- All failed requests now return `ApiResponse<ApiError>`: `success=false`, stable top-level `message`, `timestamp`, and `traceId`; `data` includes `status`, stable uppercase `code`, `path`, the same `traceId`, and `fieldErrors` for request validation.
+- Applied the envelope both in `GlobalExceptionHandler` and in Spring Security's 401/403 writer, so Flutter can continue reading the top-level `message` while also using structured error details.
+- Admin edits no longer require a replacement password; absent/blank password preserves the existing hash. Account status is normalized to `ACTIVE` or `DISABLED` across the admin UI and backend.
+- Verified: Docker targeted `GlobalExceptionHandlerTest` + `CampaignServiceDatabaseTest` passed; runtime unauth analytics returned `401 UNAUTHORIZED`; blank login returned `400 VALIDATION_FAILED` with `email` and `password` field errors; backend container is healthy.

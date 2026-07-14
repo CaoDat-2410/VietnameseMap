@@ -299,6 +299,14 @@ class CampaignServiceDatabaseTest {
                 null
         )).role()).isEqualTo("MANAGER");
         assertThat(service.updateUserRole(user.id(), "ADMIN").role()).isEqualTo("ADMIN");
+        assertThat(service.updateUser(user.id(), new UserRequest(
+                runId + "@staff.local",
+                null,
+                "ADMIN",
+                "ACTIVE",
+                staff.id(),
+                null
+        )).role()).isEqualTo("ADMIN");
         assertThat(service.updateUserStatus(user.id(), "DISABLED").status()).isEqualTo("DISABLED");
         assertThatThrownBy(() -> service.updateUserRole(user.id(), "ROOT"))
                 .isInstanceOf(ResponseStatusException.class)

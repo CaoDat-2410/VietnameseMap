@@ -11,7 +11,7 @@ class UserFormDialog extends StatefulWidget {
   final Future<void> Function(Map<String, dynamic> data) onSubmit;
 
   static const _roles = ['ADMIN', 'MANAGER', 'STAFF', 'STUDENT'];
-  static const _statuses = ['ACTIVE', 'INACTIVE'];
+  static const _statuses = ['ACTIVE', 'DISABLED'];
 
   @override
   State<UserFormDialog> createState() => _UserFormDialogState();
@@ -41,7 +41,8 @@ class _UserFormDialogState extends State<UserFormDialog> {
       text: widget.initial?['studentId']?.toString() ?? '',
     );
     _role = widget.initial?['role'] as String? ?? 'STAFF';
-    _status = widget.initial?['status'] as String? ?? 'ACTIVE';
+    final initialStatus = widget.initial?['status'] as String? ?? 'ACTIVE';
+    _status = initialStatus == 'INACTIVE' ? 'DISABLED' : initialStatus;
   }
 
   @override

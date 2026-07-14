@@ -1,8 +1,10 @@
 package com.vnmap.common.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.vnmap.common.model.ApiError;
 import com.vnmap.common.model.ApiResponse;
 import com.vnmap.common.security.JwtAuthenticationFilter;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -16,6 +18,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import java.io.IOException;
+import java.util.UUID;
 
 @Configuration
 public class SecurityConfig {
@@ -39,9 +42,9 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, authException) ->
-                                writeError(response, objectMapper, HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized"))
+                                writeError(request, response, objectMapper, HttpServletResponse.SC_UNAUTHORIZED, "UNAUTHORIZED", "Unauthorized"))
                         .accessDeniedHandler((request, response, accessDeniedException) ->
-                                writeError(response, objectMapper, HttpServletResponse.SC_FORBIDDEN, "Forbidden"))
+                                writeError(request, response, objectMapper, HttpServletResponse.SC_FORBIDDEN, "FORBIDDEN", "Forbidden"))
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login", "/api/v1/auth/refresh", "/api/v1/auth/google").permitAll()
@@ -89,10 +92,13 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    private void writeError(HttpServletResponse response, ObjectMapper objectMapper, int status, String message) throws IOException {
+    private void writeError(HttpServletRequest request, HttpServletResponse response, ObjectMapper objectMapper,
+                            int status, String code, String message) throws IOException {
+        String traceId = UUID.randomUUID().toString().substring(0, 8);
+        ApiError details = new ApiError(status, code, request.getRequestURI(), traceId, null);
         response.setStatus(status);
         response.setContentType("application/json");
-        objectMapper.writeValue(response.getWriter(), ApiResponse.error(message));
+        objectMapper.writeValue(response.getWriter(), ApiResponse.error(message, details, traceId));
     }
 }
 

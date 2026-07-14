@@ -76,7 +76,7 @@ class AdminUsersPage extends ConsumerWidget {
     final repo = ref.read(campaignRepositoryProvider);
     final id = user['id'] as int;
     final currentStatus = user['status'] as String? ?? 'ACTIVE';
-    final newStatus = currentStatus == 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
+    final newStatus = currentStatus == 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
     final confirmed = await _confirm(
       context,
       title: '$newStatus User?',

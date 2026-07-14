@@ -1404,6 +1404,26 @@
                 "BE/src/main/java/com/vnmap/notification/controller/NotificationController.java",
                 "BE/src/main/java/com/vnmap/notification/service/NotificationService.java"
             ]
+        },
+        {
+            "id": "feat-086",
+            "name": "Standardized API error envelope and admin-user edit repair",
+            "description": "All API failures now use the ApiResponse envelope: success=false, top-level message/timestamp/traceId, and data containing status, code, path, traceId, and fieldErrors when validation fails. This applies to controller advice and Spring Security 401/403 responses. Also repaired admin user edits with no replacement password and normalized the disabled account status.",
+            "dependencies": ["feat-085"],
+            "status": "completed",
+            "evidence": "Docker targeted tests GlobalExceptionHandlerTest and CampaignServiceDatabaseTest passed. Runtime backend verification: unauthenticated GET /api/analytics/aggregate returned 401 UNAUTHORIZED envelope; POST /api/v1/auth/login with {} returned 400 VALIDATION_FAILED including email/password fieldErrors. Backend container healthy.",
+            "files": [
+                "BE/src/main/java/com/vnmap/common/model/ApiResponse.java",
+                "BE/src/main/java/com/vnmap/common/model/ApiError.java",
+                "BE/src/main/java/com/vnmap/common/exception/GlobalExceptionHandler.java",
+                "BE/src/main/java/com/vnmap/common/config/SecurityConfig.java",
+                "BE/src/test/java/com/vnmap/common/exception/GlobalExceptionHandlerTest.java",
+                "BE/src/main/java/com/vnmap/campaign/dto/UserRequest.java",
+                "BE/src/main/java/com/vnmap/campaign/service/CampaignService.java",
+                "FE/lib/features/admin/presentation/pages/admin_users_page.dart",
+                "FE/lib/features/admin/presentation/widgets/user_form_dialog.dart",
+                "FE/lib/features/admin/presentation/widgets/user_admin_table.dart"
+            ]
         }
     ]
 }
