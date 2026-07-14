@@ -49,6 +49,11 @@ Thumbs.db
 # Docker
 .docker/
 
+# Firebase service account JSON (NEVER commit — contains private key)
+*firebase*.json
+*google-services*.json
+service-account*.json
+
 # Credentials and secrets
 *.pem
 *.key

@@ -1,0 +1,69 @@
+name: Flutter E2E Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  API_BASE_URL: http://localhost:8080
+  FIREBASE_PROJECT_ID: vnmap-campaign-dev
+
+jobs:
+  integration_tests:
+    runs-on: macos-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: flutter-action/setup-flutter@v3
+        with:
+          flutter-version: '3.22.0'
+          channel: stable
+
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Install dependencies
+        run: cd FE && flutter pub get
+
+      - name: Build web (release to test production-like behaviour)
+        run: cd FE && flutter build web --release
+        continue-on-error: true
+
+      - name: Start backend services
+        run: |
+          cd BE
+          docker compose up -d postgres redis
+          sleep 15
+          docker compose up -d --build backend
+          sleep 10
+          curl -f http://localhost:8080/actuator/health
+
+      - name: Run E2E integration tests
+        env:
+          FLUTTER_TEST: true
+        run: |
+          cd FE
+          flutter test integration_test/ \
+            --no-pub \
+            -d chrome \
+            --dart-define=ENV_MODE=development \
+            --dart-define=API_BASE_URL=http://localhost:8080
+        continue-on-error: true
+
+      - name: Upload test screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: FE/test/screenshots/
+          retention-days: 7

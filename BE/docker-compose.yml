@@ -8,6 +8,8 @@ services:
       POSTGRES_DB: vnmapdb
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: "123456"
+    ports:
+      - "15432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -32,6 +34,7 @@ services:
     networks:
       - vnmap_network
 
+  # Import base data (provinces, communes, administrative units)
   import:
     build:
       context: .
@@ -45,6 +48,7 @@ services:
     networks:
       - vnmap_network
 
+  # Import school campaign data from Excel
   campaign-import:
     build:
       context: .
@@ -68,6 +72,45 @@ services:
     networks:
       - vnmap_network
 
+  # Import sample campaign, event, interaction data
+  sample-data:
+    image: postgres:16-alpine
+    container_name: vnmap_sample_data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      campaign-import:
+        condition: service_completed_successfully
+    environment:
+      PGPASSWORD: "123456"
+    volumes:
+      - ./scripts/sample_data.sql:/docker-entrypoint-initdb.d/99-sample-data.sql:ro
+    entrypoint: ["sh", "-c"]
+    command:
+      [
+        "echo 'Waiting for postgres...' && sleep 5 && psql -h vnmap_postgres -U postgres -d vnmapdb -f /docker-entrypoint-initdb.d/99-sample-data.sql && echo 'Sample data imported successfully'"
+      ]
+    networks:
+      - vnmap_network
+
+  # Create SonarQube database
+  sonar-db-init:
+    image: postgres:16-alpine
+    profiles: ["sonar"]
+    container_name: vnmap_sonar_db_init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: "123456"
+    entrypoint: ["sh", "-c"]
+    command:
+      [
+        "echo 'Creating sonar database...' && psql -h vnmap_postgres -U postgres -c \"CREATE DATABASE sonar;\" 2>/dev/null || echo 'Database may already exist' && echo 'Done'"
+      ]
+    networks:
+      - vnmap_network
+
   backend:
     build:
       context: .
@@ -87,6 +130,12 @@ services:
       OWM_API_KEY: ${OWM_API_KEY}
       SPRING_PROFILES_ACTIVE: dev
       CORS_ALLOWED_ORIGINS: "*"
+      MINIO_ENDPOINT: ${MINIO_INTERNAL_ENDPOINT:-http://minio:9000}
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-http://localhost:9000}
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-vnmapminio}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-vnmapminio123}
+      MINIO_BUCKET: ${MINIO_BUCKET:-vnmap-campaign}
+      MINIO_REPORTS_BUCKET: ${MINIO_REPORTS_BUCKET:-vnmap-campaign-reports}
     ports:
       - "8080:8080"
     depends_on:
@@ -97,6 +146,8 @@ services:
       import:
         condition: service_completed_successfully
       campaign-import:
+        condition: service_completed_successfully
+      sample-data:
         condition: service_completed_successfully
     networks:
       - vnmap_network
@@ -143,13 +194,13 @@ services:
       - sonar_logs:/opt/sonarqube/logs
       - sonar_extensions:/opt/sonarqube/extensions
     depends_on:
-      postgres:
-        condition: service_healthy
+      sonar-db-init:
+        condition: service_completed_successfully
     networks:
       - vnmap_network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--spider", "-q", "http://localhost:9000/api/system/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "-q", "http://localhost:9000/api/system/health"]
       interval: 30s
       timeout: 10s
       retries: 15

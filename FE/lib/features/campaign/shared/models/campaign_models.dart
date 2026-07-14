@@ -1,3 +1,5 @@
+import '../../../school/shared/models/school_model.dart';
+
 class CampaignModel {
   const CampaignModel({
     required this.id,
@@ -47,6 +49,11 @@ class CampaignEventModel {
     required this.startsAt,
     required this.endsAt,
     required this.note,
+    this.locationLabel = '',
+    this.latitude,
+    this.longitude,
+    this.schoolUid = '',
+    this.provinceCode = '',
   });
 
   final int id;
@@ -57,6 +64,13 @@ class CampaignEventModel {
   final String startsAt;
   final String endsAt;
   final String note;
+  final String locationLabel;
+  final double? latitude;
+  final double? longitude;
+  final String schoolUid;
+  final String provinceCode;
+
+  bool get hasLocation => latitude != null && longitude != null;
 
   factory CampaignEventModel.fromJson(Map<String, dynamic> json) =>
       CampaignEventModel(
@@ -68,6 +82,29 @@ class CampaignEventModel {
         startsAt: json['startsAt'] as String? ?? '',
         endsAt: json['endsAt'] as String? ?? '',
         note: json['note'] as String? ?? '',
+        locationLabel: json['locationLabel'] as String? ?? '',
+        latitude: (json['latitude'] as num?)?.toDouble(),
+        longitude: (json['longitude'] as num?)?.toDouble(),
+        schoolUid: json['schoolUid'] as String? ?? '',
+        provinceCode: json['provinceCode'] as String? ?? '',
+      );
+}
+
+class EmployeeModel {
+  const EmployeeModel({
+    required this.id,
+    required this.fullName,
+    required this.role,
+  });
+
+  final int id;
+  final String fullName;
+  final String role;
+
+  factory EmployeeModel.fromJson(Map<String, dynamic> json) => EmployeeModel(
+        id: json['id'] as int? ?? 0,
+        fullName: json['fullName'] as String? ?? '',
+        role: json['role'] as String? ?? '',
       );
 }
 
@@ -195,5 +232,55 @@ class InteractionModel {
         note: json['note'] as String? ?? '',
         nextFollowUpAt: json['nextFollowUpAt'] as String? ?? '',
         createdAt: json['createdAt'] as String? ?? '',
+      );
+}
+
+class StudentRegistrationModel {
+  const StudentRegistrationModel({
+    required this.id,
+    required this.campaignId,
+    required this.studentId,
+    required this.schoolUid,
+    required this.status,
+    required this.note,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.student,
+    required this.school,
+  });
+
+  final int id;
+  final int campaignId;
+  final int studentId;
+  final String schoolUid;
+  final String status;
+  final String note;
+  final String createdAt;
+  final String updatedAt;
+  final StudentModel student;
+  final SchoolModel school;
+
+  factory StudentRegistrationModel.fromJson(Map<String, dynamic> json) =>
+      StudentRegistrationModel(
+        id: json['id'] as int? ?? 0,
+        campaignId: json['campaignId'] as int? ?? 0,
+        studentId: json['studentId'] as int? ?? 0,
+        schoolUid: json['schoolUid'] as String? ?? '',
+        status: json['status'] as String? ?? '',
+        note: json['note'] as String? ?? '',
+        createdAt: json['createdAt'] as String? ?? '',
+        updatedAt: json['updatedAt'] as String? ?? '',
+        student: json['student'] == null
+            ? const StudentModel(
+                id: 0, schoolUid: '', fullName: '', email: '',
+                phone: '', dateOfBirth: '', address: '', grade: '',
+                className: '')
+            : StudentModel.fromJson(json['student'] as Map<String, dynamic>),
+        school: json['school'] == null
+            ? const SchoolModel(
+                schoolUid: '', provinceCode: '', provinceName: '',
+                communeCode: '', communeName: '', schoolCode: '',
+                schoolName: '', address: '', areaType: '')
+            : SchoolModel.fromJson(json['school'] as Map<String, dynamic>),
       );
 }

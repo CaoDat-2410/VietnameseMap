@@ -3,80 +3,78 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app/router.dart';
+import 'core/config/app_config.dart';
+import 'core/config/firebase_initializer.dart';
+import 'core/monitoring/crashlytics_service.dart';
+import 'core/monitoring/sentry_service.dart';
+import 'core/providers/locale_provider.dart';
+import 'core/providers/theme_provider.dart';
+import 'core/theme/app_theme.dart';
+import 'features/auth/presentation/providers/auth_viewmodel.dart';
+import 'l10n/app_localizations.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load();
+  try {
+    await dotenv.load();
+  } catch (_) {
+    debugPrint('[Config] .env asset not found; using dart-define/defaults.');
+  }
+
+  // Firebase: Web only (throws on mobile unless platform files are present)
+  try {
+    await FirebaseInitializer.initialize();
+  } on UnsupportedError catch (e) {
+    debugPrint('[Firebase] ${e.message}');
+  }
+
+  // Sentry: Production only
+  if (shouldInitializeSentry) {
+    final env = AppConfig.envMode;
+    await initializeSentry(environment: env);
+  }
+
   runApp(const ProviderScope(child: VietnameseMapApp()));
 }
 
-class VietnameseMapApp extends StatelessWidget {
+class VietnameseMapApp extends ConsumerStatefulWidget {
   const VietnameseMapApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'Vietnamese Map',
-      theme: _buildTheme(),
-      routerConfig: router,
+  ConsumerState<VietnameseMapApp> createState() => _VietnameseMapAppState();
+}
+
+class _VietnameseMapAppState extends ConsumerState<VietnameseMapApp> {
+  @override
+  void initState() {
+    super.initState();
+    _initializeCrashlyticsIfMobile();
+  }
+
+  void _initializeCrashlyticsIfMobile() {
+    if (!shouldInitializeCrashlytics) return;
+    final user = ref.read(activeUserProvider).valueOrNull;
+    initializeCrashlytics(
+      userId: user?.id.toString(),
+      role: user?.role,
     );
   }
 
-  ThemeData _buildTheme() {
-  const primary = Color(0xFFDA291C);
+  @override
+  Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeModeProvider);
+    final locale = ref.watch(localeProvider);
 
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primary,
-      ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: false,
-        titleTextStyle: TextStyle(
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 0.3,
-        ),
-      ),
-      navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: Colors.white,
-        indicatorColor: primary.withValues(alpha: 0.12),
-        labelTextStyle: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return const TextStyle(
-                color: primary, fontSize: 12, fontWeight: FontWeight.w600);
-          }
-          return const TextStyle(color: Colors.grey, fontSize: 12);
-        }),
-        iconTheme: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return const IconThemeData(color: primary);
-          }
-          return const IconThemeData(color: Colors.grey);
-        }),
-        elevation: 8,
-      ),
-      cardTheme: CardThemeData(
-        elevation: 2,
-        shadowColor: Colors.black12,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: Colors.white,
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      ),
-      scaffoldBackgroundColor: const Color(0xFFF2F4F7),
+    return MaterialApp.router(
+      title: 'Vietnamese Map',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: themeMode,
+      routerConfig: router,
+      locale: locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
     );
   }
 }

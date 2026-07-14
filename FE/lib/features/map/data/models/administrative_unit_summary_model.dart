@@ -23,7 +23,8 @@ class AdministrativeUnitSummaryModel {
       id: json['id'] as int?,
       code: json['code'] as String,
       name: json['name'] as String,
-      level: _parseLevel(json['level'] as String? ?? json['kind'] as String? ?? ''),
+      level: _parseLevel(
+          json['level'] as String? ?? json['kind'] as String? ?? ''),
       parentId: json['parentId'] as int?,
       parentCode: json['parentCode'] as String?,
     );

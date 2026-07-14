@@ -176,11 +176,31 @@ def seed_data(conn):
             INSERT INTO employees (id, full_name, role) VALUES
                 (1, 'Dev Staff', 'STAFF'),
                 (2, 'Dev Manager', 'MANAGER'),
-                (3, 'Dev Staff 2', 'STAFF')
+                (3, 'Dev Staff 2', 'STAFF'),
+                (4, 'Dev Admin', 'ADMIN')
             ON CONFLICT (id) DO UPDATE SET
                 full_name = EXCLUDED.full_name,
                 role = EXCLUDED.role
             """
+        )
+
+        auth_users = [
+            ("admin@vnmap.local", "$2b$10$bs3pnTXw3fRPbUoZeQ1hI..HMTKKU4nMpgk4ecEJ56yD78./JVKfe", "ADMIN", 4),
+            ("manager@vnmap.local", "$2b$10$CvXtvsYTUkffzNx24P./Ye.NKJmbtHQ4mkkhm4noU/sMlGRUUtk2S", "MANAGER", 2),
+            ("staff@vnmap.local", "$2b$10$RkYMrmpnI8Sc13OKvsowou3YXBNk6NMiQYhK.pP6csNrTf8f7I2Mi", "STAFF", 1),
+        ]
+        execute_values(
+            cur,
+            """
+            INSERT INTO app_users (email, password_hash, role, status, employee_id)
+            VALUES %s
+            ON CONFLICT (email) DO UPDATE SET
+                role = EXCLUDED.role,
+                status = EXCLUDED.status,
+                employee_id = EXCLUDED.employee_id,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            [(email, password_hash, role, "ACTIVE", employee_id) for email, password_hash, role, employee_id in auth_users],
         )
 
         school_uids = fetch_school_uids(cur, 8)
@@ -284,6 +304,71 @@ def seed_data(conn):
                 """,
                 (school_uid, f"Seed Teacher {school_uid}", school_uid, f"Seed Teacher {school_uid}"),
             )
+
+        seed_student_email = "student@vnmap.local"
+        seed_student_password_hash = "$2a$10$bz1Wo4WK3gMdR5WTfjb1oOt68CG1fyiSDKNPluReRXxSud1ohWU6m"
+        seed_student_school_uid = school_uids[0]
+        cur.execute(
+            "SELECT id FROM students WHERE LOWER(email) = LOWER(%s)",
+            (seed_student_email,),
+        )
+        row = cur.fetchone()
+        if row:
+            seed_student_id = row[0]
+            cur.execute(
+                """
+                UPDATE students
+                SET school_uid = %s,
+                    full_name = 'Dev Student',
+                    phone = '0901234567',
+                    date_of_birth = '2008-01-01',
+                    address = 'Seed student address',
+                    grade = '12',
+                    class_name = '12A1'
+                WHERE id = %s
+                """,
+                (seed_student_school_uid, seed_student_id),
+            )
+        else:
+            cur.execute(
+                """
+                INSERT INTO students (
+                    school_uid, full_name, email, phone, date_of_birth, address, grade, class_name
+                ) VALUES (%s, 'Dev Student', %s, '0901234567', '2008-01-01', 'Seed student address', '12', '12A1')
+                RETURNING id
+                """,
+                (seed_student_school_uid, seed_student_email),
+            )
+            seed_student_id = cur.fetchone()[0]
+
+        cur.execute(
+            """
+            INSERT INTO app_users (email, password_hash, role, status, student_id)
+            VALUES (%s, %s, 'STUDENT', 'ACTIVE', %s)
+            ON CONFLICT (email) DO UPDATE SET
+                password_hash = EXCLUDED.password_hash,
+                role = EXCLUDED.role,
+                status = EXCLUDED.status,
+                employee_id = NULL,
+                student_id = EXCLUDED.student_id,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (seed_student_email, seed_student_password_hash, seed_student_id),
+        )
+
+        cur.execute(
+            """
+            INSERT INTO campaign_student_registrations (
+                campaign_id, student_id, school_uid, status, note
+            ) VALUES (1, %s, %s, 'PENDING', 'Seed registration for student browser verification')
+            ON CONFLICT (campaign_id, student_id) DO UPDATE SET
+                school_uid = EXCLUDED.school_uid,
+                status = EXCLUDED.status,
+                note = EXCLUDED.note,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (seed_student_id, seed_student_school_uid),
+        )
 
         cur.execute("SELECT id, school_uid FROM students ORDER BY id LIMIT 3")
         students = cur.fetchall()

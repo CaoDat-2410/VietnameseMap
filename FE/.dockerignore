@@ -1,0 +1,10 @@
+.dart_tool/
+.flutter_appdata/
+.flutter-plugins-dependencies
+build/
+ios/
+android/
+windows/
+.idea/
+*.log
+

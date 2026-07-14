@@ -1,0 +1,27 @@
+---
+description:
+UI workflow
+alwaysApply: true
+---
+
+Before UI changes:
+
+Use ui-ux-pro-max-skill.
+
+Process:
+
+Audit
+
+↓
+
+Plan
+
+↓
+
+Implement
+
+Preserve:
+
+- architecture
+- state
+- routing

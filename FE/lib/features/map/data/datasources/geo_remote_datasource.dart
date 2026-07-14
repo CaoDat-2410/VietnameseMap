@@ -13,7 +13,8 @@ abstract interface class GeoRemoteDataSource {
   Future<GeoJsonFeatureModel> getProvinceBoundary(String code);
   Future<List<AdministrativeUnitSummaryModel>> getCommunes(String provinceCode);
   Future<List<GeoJsonFeatureModel>> getCommunesBoundaries(String provinceCode);
-  Future<List<AdministrativeUnitSummaryModel>> getCommunesPaginated(String provinceCode, int page, int size);
+  Future<List<AdministrativeUnitSummaryModel>> getCommunesPaginated(
+      String provinceCode, int page, int size);
   Future<AdministrativeUnitModel> getUnitByCode(String code);
   Future<GeoJsonFeatureModel> getUnitBoundary(String code);
   Future<AdministrativeUnitModel> reverseGeocode(double lat, double lng);
@@ -42,8 +43,8 @@ class GeoRemoteDataSourceImpl implements GeoRemoteDataSource {
 
   @override
   Future<Map<String, dynamic>> getAllProvincesBoundaries() async {
-    final res = await _client.get<Map<String, dynamic>>(
-        ApiConstants.provincesBoundaries);
+    final res = await _client
+        .get<Map<String, dynamic>>(ApiConstants.provincesBoundaries);
     final api = ApiResponse.fromJson(
       res.data!,
       (json) => json as Map<String, dynamic>,
@@ -58,8 +59,7 @@ class GeoRemoteDataSourceImpl implements GeoRemoteDataSource {
         .get<Map<String, dynamic>>(ApiConstants.unitBoundary(code));
     final api = ApiResponse.fromJson(
       res.data!,
-      (json) =>
-          GeoJsonFeatureModel.fromJson(json as Map<String, dynamic>),
+      (json) => GeoJsonFeatureModel.fromJson(json as Map<String, dynamic>),
     );
     _assertSuccess(api);
     return api.data!;
@@ -90,8 +90,7 @@ class GeoRemoteDataSourceImpl implements GeoRemoteDataSource {
     final api = ApiResponse.fromJson(
       res.data!,
       (json) => (json as List)
-          .map((e) =>
-              GeoJsonFeatureModel.fromJson(e as Map<String, dynamic>))
+          .map((e) => GeoJsonFeatureModel.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
     _assertSuccess(api);
@@ -118,12 +117,11 @@ class GeoRemoteDataSourceImpl implements GeoRemoteDataSource {
 
   @override
   Future<AdministrativeUnitModel> getUnitByCode(String code) async {
-    final res = await _client
-        .get<Map<String, dynamic>>(ApiConstants.unitByCode(code));
+    final res =
+        await _client.get<Map<String, dynamic>>(ApiConstants.unitByCode(code));
     final api = ApiResponse.fromJson(
       res.data!,
-      (json) =>
-          AdministrativeUnitModel.fromJson(json as Map<String, dynamic>),
+      (json) => AdministrativeUnitModel.fromJson(json as Map<String, dynamic>),
     );
     _assertSuccess(api);
     return api.data!;
@@ -135,24 +133,21 @@ class GeoRemoteDataSourceImpl implements GeoRemoteDataSource {
         .get<Map<String, dynamic>>(ApiConstants.unitBoundary(code));
     final api = ApiResponse.fromJson(
       res.data!,
-      (json) =>
-          GeoJsonFeatureModel.fromJson(json as Map<String, dynamic>),
+      (json) => GeoJsonFeatureModel.fromJson(json as Map<String, dynamic>),
     );
     _assertSuccess(api);
     return api.data!;
   }
 
   @override
-  Future<AdministrativeUnitModel> reverseGeocode(
-      double lat, double lng) async {
+  Future<AdministrativeUnitModel> reverseGeocode(double lat, double lng) async {
     final res = await _client.get<Map<String, dynamic>>(
       ApiConstants.reverseGeocode,
       queryParameters: {'lat': lat, 'lng': lng},
     );
     final api = ApiResponse.fromJson(
       res.data!,
-      (json) =>
-          AdministrativeUnitModel.fromJson(json as Map<String, dynamic>),
+      (json) => AdministrativeUnitModel.fromJson(json as Map<String, dynamic>),
     );
     _assertSuccess(api);
     return api.data!;
@@ -160,7 +155,8 @@ class GeoRemoteDataSourceImpl implements GeoRemoteDataSource {
 
   @override
   Future<List<CommitteeModel>> getCommittees() async {
-    final res = await _client.get<Map<String, dynamic>>(ApiConstants.committees);
+    final res =
+        await _client.get<Map<String, dynamic>>(ApiConstants.committees);
     final api = ApiResponse.fromJson(
       res.data!,
       (json) => (json as List)
@@ -172,7 +168,8 @@ class GeoRemoteDataSourceImpl implements GeoRemoteDataSource {
   }
 
   @override
-  Future<List<CommitteeModel>> getCommitteesByProvince(String provinceCode) async {
+  Future<List<CommitteeModel>> getCommitteesByProvince(
+      String provinceCode) async {
     final res = await _client.get<Map<String, dynamic>>(
         ApiConstants.committeesByProvince(provinceCode));
     final api = ApiResponse.fromJson(

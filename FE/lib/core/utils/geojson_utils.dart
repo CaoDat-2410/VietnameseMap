@@ -14,14 +14,16 @@ class GeoJsonUtils {
     if (coordinates is! List) return polygons;
 
     final int depth = _getListDepth(coordinates);
-    
+
     if (depth == 3) {
       // Polygon
-      polygons.add(_createPolygon(coordinates, fillColor, borderColor, borderStrokeWidth));
+      polygons.add(_createPolygon(
+          coordinates, fillColor, borderColor, borderStrokeWidth));
     } else if (depth == 4) {
       // MultiPolygon
       for (final polyCoords in coordinates) {
-        polygons.add(_createPolygon(polyCoords as List<dynamic>, fillColor, borderColor, borderStrokeWidth));
+        polygons.add(_createPolygon(polyCoords as List<dynamic>, fillColor,
+            borderColor, borderStrokeWidth));
       }
     }
 
@@ -35,21 +37,22 @@ class GeoJsonUtils {
     double borderStrokeWidth,
   ) {
     if (rings.isEmpty) return Polygon(points: const []);
-    
+
     final exteriorRing = rings.first as List<dynamic>;
     final points = <LatLng>[];
     for (final point in exteriorRing) {
       final p = point as List<dynamic>;
       points.add(LatLng((p[1] as num).toDouble(), (p[0] as num).toDouble()));
     }
-    
+
     final holePointsList = <List<LatLng>>[];
     for (int i = 1; i < rings.length; i++) {
       final holeRing = rings[i] as List<dynamic>;
       final holePoints = <LatLng>[];
       for (final point in holeRing) {
         final p = point as List<dynamic>;
-        holePoints.add(LatLng((p[1] as num).toDouble(), (p[0] as num).toDouble()));
+        holePoints
+            .add(LatLng((p[1] as num).toDouble(), (p[0] as num).toDouble()));
       }
       holePointsList.add(holePoints);
     }

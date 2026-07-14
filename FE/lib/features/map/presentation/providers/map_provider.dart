@@ -15,6 +15,7 @@ import '../../domain/usecases/get_provinces.dart';
 import '../../domain/usecases/get_communes.dart';
 import '../../data/datasources/geo_local_datasource.dart'
     show ProvincePolygonEntry, extractRings, computeCentroid;
+import '../../../school/shared/repositories/schools_repository.dart';
 
 final dioClientProvider = Provider<DioClient>((_) => DioClient());
 
@@ -45,8 +46,34 @@ final communesProvider =
   return ref.watch(getCommunesProvider).call(provinceCode);
 });
 
-final selectedProvinceProvider = StateProvider<AdministrativeUnitSummary?>((ref) => null);
-final selectedCommuneProvider = StateProvider<({String code, String name, int id})?>((ref) => null);
+final selectedProvinceProvider =
+    StateProvider<AdministrativeUnitSummary?>((ref) => null);
+final selectedCommuneProvider =
+    StateProvider<({String code, String name, int id})?>((ref) => null);
+
+// ---------------------------------------------------------------------------
+// School coordinates providers
+// ---------------------------------------------------------------------------
+
+final schoolsRepositoryProvider = Provider<SchoolsRepository>(
+  (ref) => SchoolsRepository(ref.watch(dioClientProvider)),
+);
+
+final schoolCoordinatesProvider = FutureProvider.family<
+    List<SchoolCoordinates>, ({String? provinceCode, String? communeCode})>(
+  (ref, filters) async {
+    final repo = ref.watch(schoolsRepositoryProvider);
+    return repo.getSchoolCoordinates(
+      provinceCode: filters.provinceCode,
+      communeCode: filters.communeCode,
+    );
+  },
+);
+
+final selectedSchoolProvider = StateProvider<SchoolCoordinates?>((ref) => null);
+
+// Provider to track selected school UIDs to show on map
+final selectedSchoolUidsProvider = StateProvider<List<String>>((ref) => []);
 
 // ---------------------------------------------------------------------------
 // Committee providers (2025 reform — People's Committee HQ / Trụ sở UBND)
@@ -60,7 +87,8 @@ final committeesProvider =
 });
 
 final committeesByProvinceProvider =
-    FutureProvider.family<Result<List<CommitteeModel>>, String>((ref, provinceCode) async {
+    FutureProvider.family<Result<List<CommitteeModel>>, String>(
+        (ref, provinceCode) async {
   final repo = ref.watch(geoRepositoryProvider);
   final result = await repo.getCommitteesByProvince(provinceCode);
   return result;
@@ -84,7 +112,8 @@ final provincePolygonEntriesProvider =
 });
 
 /// Parses a GeoJSON FeatureCollection from the backend into ProvincePolygonEntry list.
-List<ProvincePolygonEntry> _parseFeatureCollection(Map<String, dynamic> collection) {
+List<ProvincePolygonEntry> _parseFeatureCollection(
+    Map<String, dynamic> collection) {
   final features = collection['features'] as List<dynamic>? ?? [];
   final entries = <ProvincePolygonEntry>[];
 
@@ -115,38 +144,43 @@ List<ProvincePolygonEntry> _parseFeatureCollection(Map<String, dynamic> collecti
 }
 
 /// Loads and renders individual commune boundaries for a given province.
+/// Uses bulk endpoint for fast loading, filters out empty boundaries.
 /// Returns a list of (commune code, commune name, polygons) for all communes.
 final communeBoundariesProvider = FutureProvider.family<
-    List<({String code, String name, List<Polygon> polygons})>, String>(
-  (ref, provinceCode) async {
+    List<({String code, String name, List<Polygon> polygons})>,
+    String>((ref, provinceCode) async {
   final repo = ref.watch(geoRepositoryProvider);
-  final communesResult = await repo.getCommunes(provinceCode);
+  
+  // Use bulk endpoint for faster loading - single API call instead of N calls
+  final boundariesResult = await repo.getCommunesBoundaries(provinceCode);
 
-  return communesResult.when(
-    ok: (communes) async {
+  return boundariesResult.when(
+    ok: (features) {
       final entries = <({String code, String name, List<Polygon> polygons})>[];
 
-      for (final commune in communes) {
-        final boundaryResult = await repo.getCommuneBoundary(commune.code);
-        boundaryResult.when(
-          ok: (feature) {
-            try {
-              final coords = feature.geometry.coordinates;
-              if (coords.isNotEmpty) {
-                final polygons = GeoJsonUtils.parseGeoJsonToPolygons(
-                  coords,
-                  fillColor: const Color(0x1500ACC1),
-                  borderColor: const Color(0xFF00796B),
-                  borderStrokeWidth: 1.5,
-                );
-                if (polygons.isNotEmpty) {
-                  entries.add((code: commune.code, name: commune.name, polygons: polygons));
-                }
-              }
-            } catch (_) {}
-          },
-          err: (_) {},
-        );
+      for (final feature in features) {
+        // Skip features with empty or invalid coordinates
+        if (feature.geometry.coordinates.isEmpty) continue;
+        
+        try {
+          final polygons = GeoJsonUtils.parseGeoJsonToPolygons(
+            feature.geometry.coordinates,
+            fillColor: const Color(0x1500ACC1),
+            borderColor: const Color(0xFF00796B),
+            borderStrokeWidth: 1.5,
+          );
+          
+          // Only add entries with valid polygons
+          if (polygons.isNotEmpty) {
+            entries.add((
+              code: feature.code,
+              name: feature.name,
+              polygons: polygons,
+            ));
+          }
+        } catch (_) {
+          // Skip malformed boundary data
+        }
       }
 
       return entries;
@@ -154,6 +188,10 @@ final communeBoundariesProvider = FutureProvider.family<
     err: (_) => [],
   );
 });
+
+/// Loading state for commune boundaries - tracks when loading starts/ends
+final communeBoundariesLoadingProvider =
+    StateProvider.family<bool, String>((ref, provinceCode) => false);
 
 /// Returns province centroid map (code -> LatLng) from the precomputed values in
 /// ProvincePolygonEntry. No parsing needed on the main thread.
@@ -173,8 +211,10 @@ final provinceCentroidsProvider =
 /// from the polygon data already loaded by communeBoundariesProvider.
 /// Returns a map of commune code -> LatLng centroid.
 final communeCentroidsProvider =
-    FutureProvider.family<Map<String, LatLng>, String>((ref, provinceCode) async {
-  final entries = await ref.watch(communeBoundariesProvider(provinceCode).future);
+    FutureProvider.family<Map<String, LatLng>, String>(
+        (ref, provinceCode) async {
+  final entries =
+      await ref.watch(communeBoundariesProvider(provinceCode).future);
   final centroids = <String, LatLng>{};
 
   for (final entry in entries) {

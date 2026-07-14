@@ -13,7 +13,6 @@
       </activation>
       <properties>
         <sonar.host.url>http://vnmap_sonarqube:9000</sonar.host.url>
-        <sonar.token>sqp_496560b296373d284d6335d12d6a3bcae337e175</sonar.token>
       </properties>
     </profile>
   </profiles>

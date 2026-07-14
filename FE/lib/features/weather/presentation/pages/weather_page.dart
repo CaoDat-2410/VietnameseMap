@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/widgets/app_error_widget.dart';
 import '../../../../core/widgets/loading_widget.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../providers/weather_provider.dart';
 import '../widgets/weather_card.dart';
 
@@ -14,6 +15,7 @@ class WeatherPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final weatherAsync = ref.watch(selectedWeatherProvider);
     final colorScheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     void refreshWeather() {
       ref.invalidate(selectedWeatherProvider);
@@ -26,19 +28,19 @@ class WeatherPage extends ConsumerWidget {
           SliverAppBar(
             pinned: true,
             backgroundColor: colorScheme.primary,
-            title: const Text('Thời tiết'),
+            title: Text(l10n.weatherTitle),
             actions: [
               IconButton(
-                icon: const Icon(Icons.refresh, color: Colors.white),
-                tooltip: 'Làm mới',
+                icon: Icon(Icons.refresh, color: Theme.of(context).colorScheme.onPrimary),
+                tooltip: l10n.refresh,
                 onPressed: refreshWeather,
               ),
               const SizedBox(width: 4),
             ],
           ),
           weatherAsync.when(
-            loading: () => const SliverFillRemaining(
-              child: LoadingWidget(message: 'Đang tải thời tiết...'),
+            loading: () => SliverFillRemaining(
+              child: LoadingWidget(message: l10n.loadingWeather),
             ),
             error: (e, _) => SliverFillRemaining(
               child: AppErrorWidget(
@@ -78,6 +80,7 @@ class _WeatherSliver extends StatelessWidget {
   Widget build(BuildContext context) {
     final weather = snapshot.weather;
     final location = snapshot.location;
+    final l10n = AppLocalizations.of(context)!;
 
     return SliverToBoxAdapter(
       child: Padding(
@@ -92,7 +95,7 @@ class _WeatherSliver extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
               child: Text(
-                'Cập nhật lúc: ${_formatTime(weather.timestamp)}',
+                l10n.weatherUpdatedAt(_formatTime(weather.timestamp)),
                 style: TextStyle(
                   color: Colors.grey.shade500,
                   fontSize: 12,
@@ -104,7 +107,7 @@ class _WeatherSliver extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: onRefresh,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Làm mới'),
+                label: Text(l10n.refresh),
               ),
             ),
           ],

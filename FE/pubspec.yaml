@@ -19,6 +19,7 @@ dependencies:
   # Map
   flutter_map: ^7.0.2
   flutter_map_cancellable_tile_provider: ^3.0.0
+  flutter_map_marker_cluster: ^1.3.0
   latlong2: ^0.9.1
 
   # Code generation annotations
@@ -33,6 +34,35 @@ dependencies:
   geolocator: ^14.0.2
   shared_preferences: ^2.2.3
 
+  # Localization
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
+
+  # Charts
+  fl_chart: ^0.69.0
+
+  # URL launching (open maps, phones, etc.)
+  url_launcher: ^6.3.0
+
+  # Admin
+  data_table_2: ^2.7.2
+
+  # Firebase
+  firebase_core: ^3.9.0
+  firebase_analytics: ^11.3.0
+  firebase_auth: ^5.3.0
+  firebase_storage: ^12.3.0
+  firebase_messaging: ^15.1.0
+  firebase_crashlytics: ^4.2.0
+  firebase_remote_config: ^5.1.0
+
+  # Sentry (Web + Mobile crash reporting)
+  sentry_flutter: ^8.1.0
+
+  # Google Sign-In
+  google_sign_in: ^6.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -42,7 +72,10 @@ dev_dependencies:
   json_serializable: ^6.8.0
   riverpod_generator: ^2.4.0
 
+  # E2E Testing
+  integration_test:
+    sdk: flutter
+
 flutter:
+  generate: true
   uses-material-design: true
-  assets:
-    - .env

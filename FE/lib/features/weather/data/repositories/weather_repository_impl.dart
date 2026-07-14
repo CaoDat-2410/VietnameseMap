@@ -10,8 +10,7 @@ class WeatherRepositoryImpl implements WeatherRepository {
   final WeatherRemoteDataSource _dataSource;
 
   @override
-  Future<Result<CurrentWeather>> getCurrentWeather(
-          double lat, double lng) =>
+  Future<Result<CurrentWeather>> getCurrentWeather(double lat, double lng) =>
       _wrap(() async {
         final model = await _dataSource.getCurrentWeather(lat, lng);
         return model.toEntity();

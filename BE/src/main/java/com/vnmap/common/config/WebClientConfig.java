@@ -4,11 +4,13 @@ import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.client.RestTemplate;
 import reactor.netty.http.client.HttpClient;
 
 import java.time.Duration;
@@ -22,6 +24,15 @@ public class WebClientConfig {
 
     @Value("${weather.openweathermap.timeout:5000}")
     private int timeout;
+
+    @Bean
+    public RestTemplate restTemplate(RestTemplateBuilder builder) {
+        Duration requestTimeout = Duration.ofMillis(timeout);
+        return builder
+                .setConnectTimeout(requestTimeout)
+                .setReadTimeout(requestTimeout)
+                .build();
+    }
 
     @Bean
     public WebClient webClient() {

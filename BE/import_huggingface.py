@@ -11,7 +11,9 @@ Usage:
 """
 
 import argparse
+import http.client
 import json
+import time
 import traceback
 from datetime import datetime
 from urllib.error import URLError
@@ -378,14 +380,16 @@ def _download_geojson_features(url: str) -> dict:
     req = Request(url, headers={"User-Agent": "vnmap-import/1.0"})
     last_error = None
     raw = None
-    for attempt in range(1, 4):
+    for attempt in range(1, 6):
         try:
             with urlopen(req, timeout=600) as response:
                 raw = response.read().decode("utf-8")
             break
-        except (TimeoutError, URLError) as exc:
+        except (TimeoutError, URLError, http.client.RemoteDisconnected) as exc:
             last_error = exc
-            print(f"  Download attempt {attempt}/3 failed: {exc}")
+            print(f"  Download attempt {attempt}/5 failed: {exc}")
+            if attempt < 5:
+                time.sleep(attempt * 5)
 
     if raw is None:
         raise last_error or RuntimeError(f"Failed to download {url}")
