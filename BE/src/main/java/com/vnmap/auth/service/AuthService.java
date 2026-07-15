@@ -24,6 +24,11 @@ import java.util.Map;
 
 @Service
 public class AuthService {
+    private static final String PASSWORD_HASH_COLUMN = "password_hash";
+    private static final String EMAIL_COLUMN = "email";
+    private static final String STATUS_COLUMN = "status";
+    private static final String EMPLOYEE_ID_COLUMN = "employee_id";
+    private static final String STUDENT_ID_COLUMN = "student_id";
 
     private final JdbcTemplate jdbc;
     private final PasswordEncoder passwordEncoder;
@@ -94,79 +99,57 @@ public class AuthService {
 
     @Transactional
     public AuthUserDto updateProfile(CurrentUser user, UpdateProfileRequest request) {
-        // avatarObjectKey always targets app_users
-        if (request.avatarObjectKey() != null) {
-            String avatar = request.avatarObjectKey().isBlank() ? null : request.avatarObjectKey();
-            if (avatar != null && avatar.length() > 255) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "avatarObjectKey is too long");
-            }
-            jdbc.update(
-                    "UPDATE app_users SET avatar_object_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                    avatar,
-                    user.id()
-            );
-        }
-
-        // fullName: trim and validate, then route to employees or students
-        if (request.fullName() != null) {
-            String name = request.fullName().trim();
-            if (name.isEmpty()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fullName must not be blank");
-            }
-            if (name.length() > 255) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fullName is too long");
-            }
-            int updated;
-            if (user.employeeId() != null) {
-                updated = jdbc.update(
-                        "UPDATE employees SET full_name = ? WHERE id = ?",
-                        name,
-                        user.employeeId()
-                );
-            } else if (user.studentId() != null) {
-                updated = jdbc.update(
-                        "UPDATE students SET full_name = ? WHERE id = ?",
-                        name,
-                        user.studentId()
-                );
-            } else {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Cannot update fullName: user has no associated employee or student record");
-            }
-            if (updated == 0) {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Associated employee/student record not found");
-            }
-            jdbc.update(
-                    "UPDATE app_users SET updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                    user.id()
-            );
-        }
-
-        // phone: only applies to students (employees table has no phone column)
-        if (request.phone() != null) {
-            if (user.studentId() == null) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Phone can only be updated for student accounts");
-            }
-            String phone = request.phone().trim();
-            if (phone.length() > 50) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "phone is too long");
-            }
-            jdbc.update(
-                    "UPDATE students SET phone = ? WHERE id = ?",
-                    phone.isEmpty() ? null : phone,
-                    user.studentId()
-            );
-            jdbc.update(
-                    "UPDATE app_users SET updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-                    user.id()
-            );
-        }
-
+        updateAvatar(user, request.avatarObjectKey());
+        updateFullName(user, request.fullName());
+        updatePhone(user, request.phone());
         return loadUserDto(user.id());
     }
 
+    private void updateAvatar(CurrentUser user, String avatarObjectKey) {
+        if (avatarObjectKey == null) return;
+        String avatar = avatarObjectKey.isBlank() ? null : avatarObjectKey;
+        if (avatar != null && avatar.length() > 255) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "avatarObjectKey is too long");
+        }
+        jdbc.update("UPDATE app_users SET avatar_object_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", avatar, user.id());
+    }
+
+    private void updateFullName(CurrentUser user, String fullName) {
+        if (fullName == null) return;
+        String name = fullName.trim();
+        validateFullName(name);
+        int updated = updateAssociatedName(user, name);
+        if (updated == 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Associated employee/student record not found");
+        }
+        touchUser(user.id());
+    }
+
+    private void validateFullName(String name) {
+        if (name.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fullName must not be blank");
+        if (name.length() > 255) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fullName is too long");
+    }
+
+    private int updateAssociatedName(CurrentUser user, String name) {
+        if (user.employeeId() != null) return jdbc.update("UPDATE employees SET full_name = ? WHERE id = ?", name, user.employeeId());
+        if (user.studentId() != null) return jdbc.update("UPDATE students SET full_name = ? WHERE id = ?", name, user.studentId());
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot update fullName: user has no associated employee or student record");
+    }
+
+    private void updatePhone(CurrentUser user, String requestedPhone) {
+        if (requestedPhone == null) return;
+        if (user.studentId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Phone can only be updated for student accounts");
+        }
+        String phone = requestedPhone.trim();
+        if (phone.length() > 50) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "phone is too long");
+        jdbc.update("UPDATE students SET phone = ? WHERE id = ?", phone.isEmpty() ? null : phone, user.studentId());
+        touchUser(user.id());
+    }
+
+    private void touchUser(long userId) {
+        jdbc.update("UPDATE app_users SET updated_at = CURRENT_TIMESTAMP WHERE id = ?", userId);
+    }
     @Transactional
     public void changePassword(CurrentUser user, ChangePasswordRequest request) {
         if (request.newPassword().equals(request.currentPassword())) {
@@ -180,7 +163,7 @@ public class AuthService {
                 """,
                 user.id()
         );
-        String currentHash = (String) row.get("password_hash");
+        String currentHash = (String) row.get(PASSWORD_HASH_COLUMN);
         Object firebaseUid = row.get("firebase_uid");
         if (firebaseUid != null || currentHash == null || currentHash.isBlank()) {
             throw new ResponseStatusException(
@@ -220,11 +203,11 @@ public class AuthService {
         Object firebaseUid = row.get("firebase_uid");
         return new AuthUserDto(
                 ((Number) row.get("id")).longValue(),
-                (String) row.get("email"),
+                (String) row.get(EMAIL_COLUMN),
                 (String) row.get("role"),
-                (String) row.get("status"),
-                row.get("employee_id") == null ? null : ((Number) row.get("employee_id")).longValue(),
-                row.get("student_id") == null ? null : ((Number) row.get("student_id")).longValue(),
+                (String) row.get(STATUS_COLUMN),
+                row.get(EMPLOYEE_ID_COLUMN) == null ? null : ((Number) row.get(EMPLOYEE_ID_COLUMN)).longValue(),
+                row.get(STUDENT_ID_COLUMN) == null ? null : ((Number) row.get(STUDENT_ID_COLUMN)).longValue(),
                 (String) row.get("avatar_object_key"),
                 fullName,
                 (String) row.get("student_phone"),
@@ -241,12 +224,12 @@ public class AuthService {
                 """,
                 (rs, rowNum) -> new UserWithPassword(
                         rs.getLong("id"),
-                        rs.getString("email"),
-                        rs.getString("password_hash"),
+                        rs.getString(EMAIL_COLUMN),
+                        rs.getString(PASSWORD_HASH_COLUMN),
                         rs.getString("role"),
-                        rs.getString("status"),
-                        rs.getObject("employee_id", Long.class),
-                        rs.getObject("student_id", Long.class)
+                        rs.getString(STATUS_COLUMN),
+                        rs.getObject(EMPLOYEE_ID_COLUMN, Long.class),
+                        rs.getObject(STUDENT_ID_COLUMN, Long.class)
                 ),
                 email
         ).stream().findFirst().orElseThrow(() ->
@@ -262,12 +245,12 @@ public class AuthService {
                 """,
                 (rs, rowNum) -> new UserWithPassword(
                         rs.getLong("id"),
-                        rs.getString("email"),
-                        rs.getString("password_hash"),
+                        rs.getString(EMAIL_COLUMN),
+                        rs.getString(PASSWORD_HASH_COLUMN),
                         rs.getString("role"),
-                        rs.getString("status"),
-                        rs.getObject("employee_id", Long.class),
-                        rs.getObject("student_id", Long.class)
+                        rs.getString(STATUS_COLUMN),
+                        rs.getObject(EMPLOYEE_ID_COLUMN, Long.class),
+                        rs.getObject(STUDENT_ID_COLUMN, Long.class)
                 ),
                 id
         ).stream().findFirst().orElseThrow(() ->

@@ -18,8 +18,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Service for generating pre-signed URLs and uploading generated objects to MinIO.
@@ -36,23 +34,19 @@ import java.util.regex.Pattern;
 public class StorageService {
 
     private static final Logger log = LoggerFactory.getLogger(StorageService.class);
-    private static final long URL_EXPIRY_SECONDS = 15 * 60; // 15 minutes
-
-    private static final Pattern URL_REGEX = Pattern.compile("^(https?://)([^/]+)(/.*)$");
-
+    private static final long URL_EXPIRY_SECONDS = 15L * 60; // 15 minutes
+    private static final String OBJECT_KEY_SEPARATOR = "/";
     private final CloseableHttpClient httpClient;
     private final String publicEndpoint;
     private final String internalEndpoint;
-    private final String accessKey;
-    private final String secretKey;
-    private final String region;
     private final String bucket;
     private final String reportsBucket;
+    private final SigV4Presigner.Credentials credentials;
 
     public StorageService(
             CloseableHttpClient minioHttpClient,
-            @Value("${minio.public-endpoint:http://localhost:9000}") String publicEndpoint,
-            @Value("${minio.endpoint:http://localhost:9000}") String internalEndpoint,
+            @Value("${minio.public-endpoint:http://localhost:9002}") String publicEndpoint,
+            @Value("${minio.endpoint:http://localhost:9002}") String internalEndpoint,
             @Value("${minio.access-key:minioadmin}") String accessKey,
             @Value("${minio.secret-key:minioadmin}") String secretKey,
             @Value("${minio.region:us-east-1}") String region,
@@ -62,11 +56,9 @@ public class StorageService {
         this.httpClient = minioHttpClient;
         this.publicEndpoint = stripTrailingSlash(publicEndpoint);
         this.internalEndpoint = stripTrailingSlash(internalEndpoint);
-        this.accessKey = accessKey;
-        this.secretKey = secretKey;
-        this.region = region;
         this.bucket = bucket;
         this.reportsBucket = reportsBucket;
+        this.credentials = new SigV4Presigner.Credentials(accessKey, secretKey, region);
     }
 
     public String getBucket() {
@@ -90,12 +82,11 @@ public class StorageService {
             throw new IllegalArgumentException("Only image uploads are allowed");
         }
         String sanitizedFileName = sanitizeFileName(fileName);
-        String path = "avatars/" + user.id() + "/" + sanitizedFileName;
+        String path = String.join(OBJECT_KEY_SEPARATOR, "avatars", String.valueOf(user.id()), sanitizedFileName);
 
         String uploadUrl = SigV4Presigner.presign(
-                publicEndpoint, bucket, path, "PUT", accessKey, secretKey, region,
-                (int) URL_EXPIRY_SECONDS);
-        String publicUrl = publicEndpoint + "/" + bucket + "/" + path;
+                publicEndpoint, bucket, path, "PUT", credentials, (int) URL_EXPIRY_SECONDS);
+        String publicUrl = String.join("/", publicEndpoint, bucket, path);
         long expiresAtSeconds = (System.currentTimeMillis() / 1000) + URL_EXPIRY_SECONDS;
         log.info("Generated upload URL for path={}, userId={}", path, user.id());
         return new UploadUrlResponse(uploadUrl, publicUrl, path, expiresAtSeconds);
@@ -112,8 +103,7 @@ public class StorageService {
         UploadTarget target = resolveTarget(path);
         try {
             String signedUrl = SigV4Presigner.presignPut(
-                    internalEndpoint, target.bucket, target.key,
-                    accessKey, secretKey, region, 15 * 60);
+                    internalEndpoint, target.bucket, target.key, credentials, (int) URL_EXPIRY_SECONDS);
             log.info("uploadGeneratedObject url={}", signedUrl);
             HttpPut httpPut = new HttpPut(signedUrl);
             String ct = contentType == null ? "application/octet-stream" : contentType;
@@ -135,8 +125,7 @@ public class StorageService {
         if (path == null || path.isBlank()) return null;
         UploadTarget target = resolveTarget(path);
         return SigV4Presigner.presignGet(
-                publicEndpoint, target.bucket, target.key,
-                accessKey, secretKey, region, (int) ttl.getSeconds());
+                publicEndpoint, target.bucket, target.key, credentials, (int) ttl.getSeconds());
     }
 
     /**
@@ -148,7 +137,7 @@ public class StorageService {
         try {
             // Delete via an unsigned DELETE against the internal endpoint
             // (the init script leaves the buckets writable from the BE network).
-            String url = internalEndpoint + "/" + target.bucket + "/" + target.key;
+            String url = String.join("/", internalEndpoint, target.bucket, target.key);
             HttpDelete httpDelete = new HttpDelete(url);
             HttpResponse response = httpClient.execute(httpDelete);
             int status = response.getStatusLine().getStatusCode();
@@ -171,7 +160,9 @@ public class StorageService {
                  java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream()) {
                 is.transferTo(bos);
                 body = bos.toString(StandardCharsets.UTF_8);
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+                log.debug("Unable to read failed MinIO response body", ignored);
+            }
             throw new IOException("MinIO request " + description
                     + " failed with status " + status + " body=" + body);
         }

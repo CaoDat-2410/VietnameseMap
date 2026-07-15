@@ -260,7 +260,7 @@ class _Avatar extends StatelessWidget {
     // directly served via the campaign bucket public read policy.
     // Object key already includes the folder (e.g. "avatars/1234567_name.jpg").
     final api = Uri.parse(AppConfig.baseUrl);
-    return '${api.scheme}://${api.host}:9000/vnmap-campaign/$objectKey';
+    return '${api.scheme}://${api.host}:9002/vnmap-campaign/$objectKey';
   }
 }
 

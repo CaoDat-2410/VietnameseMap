@@ -15,6 +15,8 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -41,6 +43,8 @@ class AuthServiceTest {
         passwordEncoder = mock(PasswordEncoder.class);
         jwtService = mock(JwtService.class);
         service = new AuthService(jdbc, passwordEncoder, jwtService, Duration.ofDays(7));
+        when(jdbc.queryForMap(anyString(), org.mockito.ArgumentMatchers.anyLong()))
+                .thenReturn(userDtoRow(1L, "admin@vnmap.local", "ADMIN", "ACTIVE", 1L, null));
     }
 
     @Test
@@ -217,7 +221,15 @@ class AuthServiceTest {
                 row.getObject("employee_id", Long.class),
                 row.getObject("student_id", Long.class)
         );
-        return List.of(mapper.mapRow(rs, 0));
+        when(jdbc.queryForMap(anyString(), org.mockito.ArgumentMatchers.eq(id)))
+                .thenReturn(userDtoRow(id, email, role, status, employeeId, studentId));        return List.of(mapper.mapRow(rs, 0));
     }
 
+    private Map<String, Object> userDtoRow(Long id, String email, String role, String status, Long employeeId, Long studentId) {
+        Map<String, Object> row = new HashMap<>();
+        row.put("id", id); row.put("email", email); row.put("role", role); row.put("status", status);
+        row.put("employee_id", employeeId); row.put("student_id", studentId); row.put("avatar_object_key", null); row.put("firebase_uid", null);
+        row.put("employee_name", employeeId == null ? null : "Employee"); row.put("student_name", studentId == null ? null : "Student"); row.put("student_phone", null);
+        return row;
+    }
 }

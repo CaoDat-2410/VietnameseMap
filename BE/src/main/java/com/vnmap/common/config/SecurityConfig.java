@@ -27,8 +27,6 @@ public class SecurityConfig {
     private static final String MANAGER = "MANAGER";
     private static final String STAFF = "STAFF";
     private static final String STUDENT = "STUDENT";
-    private static final String AUTHENTICATED =
-            "hasAnyRole('" + STAFF + "','" + MANAGER + "','" + ADMIN + "','" + STUDENT + "')";
     private static final String EVENTS_API = "/api/v1/events/**";
 
     @Bean

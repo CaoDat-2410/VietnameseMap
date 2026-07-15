@@ -21,6 +21,7 @@ import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -41,6 +42,17 @@ public class CampaignService {
     private static final String CAMPAIGN_ID_COLUMN = "campaign_id";
     private static final String STATUS_COLUMN = "status";
     private static final String ACTIVE_STATUS = "ACTIVE";
+    private static final String DISABLED_STATUS = "DISABLED";
+    private static final String APPROVED_STATUS = "APPROVED";
+    private static final String STAFF_ROLE = "STAFF";
+    private static final String MANAGER_ROLE = "MANAGER";
+    private static final String ADMIN_ROLE = "ADMIN";
+    private static final String WHERE = "WHERE ";
+    private static final String AND = " AND ";
+    private static final String COMMUNE_CODE_COLUMN = "commune_code";
+    private static final String COMMUNE_NAME_COLUMN = "commune_name";
+    private static final String ADDRESS_COLUMN = "address";
+    private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final String GEOCODE_STATUS_FULL = "FULL";
     private static final String GEOCODE_STATUS_APPROXIMATE = "APPROXIMATE";
     private static final String GEOCODE_STATUS_PENDING = "PENDING";
@@ -140,7 +152,7 @@ public class CampaignService {
             params.add(communeCode);
         }
         
-        String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
+        String where = filters.isEmpty() ? "" : WHERE + String.join(AND, filters);
         
         return jdbc.query(
                 """
@@ -210,12 +222,12 @@ public class CampaignService {
         );
         
         for (Map<String, Object> school : schoolsWithoutCoords) {
-            String schoolUid = (String) school.get("school_uid");
-            String communeCode = (String) school.get("commune_code");
-            String schoolName = (String) school.get("school_name");
-            String provinceName = (String) school.get("province_name");
-            String communeName = (String) school.get("commune_name");
-            String address = (String) school.get("address");
+            String schoolUid = (String) school.get(SCHOOL_UID_COLUMN);
+            String communeCode = (String) school.get(COMMUNE_CODE_COLUMN);
+            String schoolName = (String) school.get(SCHOOL_NAME_COLUMN);
+            String provinceName = (String) school.get(PROVINCE_NAME_COLUMN);
+            String communeName = (String) school.get(COMMUNE_NAME_COLUMN);
+            String address = (String) school.get(ADDRESS_COLUMN);
             
             String geocodeStatus;
             String geocodeNote;
@@ -265,8 +277,8 @@ public class CampaignService {
                 rs.getString(SCHOOL_UID_COLUMN),
                 rs.getString(SCHOOL_NAME_COLUMN),
                 rs.getString(PROVINCE_NAME_COLUMN),
-                rs.getString("commune_name"),
-                rs.getString("address"),
+                rs.getString(COMMUNE_NAME_COLUMN),
+                rs.getString(ADDRESS_COLUMN),
                 rs.getObject("latitude", Double.class),
                 rs.getObject("longitude", Double.class),
                 geocodeStatus != null ? geocodeStatus : GEOCODE_STATUS_PENDING,
@@ -861,7 +873,7 @@ public class CampaignService {
         }
 
         StudentRegistrationDto existing = getRegistration(registrationId);
-        if ("PENDING".equals(existing.status()) || "APPROVED".equals(existing.status())) {
+        if (GEOCODE_STATUS_PENDING.equals(existing.status()) || APPROVED_STATUS.equals(existing.status())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Registration already exists");
         }
         jdbc.update(
@@ -903,7 +915,7 @@ public class CampaignService {
     @Transactional
     public StudentRegistrationDto updateRegistrationStatus(long id, String status, CurrentUser user) {
         ensureRegistrationManagedByUser(id, user);
-        validateIn(status, "PENDING", "APPROVED", "REJECTED", "CANCELLED");
+        validateIn(status, GEOCODE_STATUS_PENDING, APPROVED_STATUS, "REJECTED", "CANCELLED");
         int updated = jdbc.update(
                 "UPDATE campaign_student_registrations SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
                 status,
@@ -947,7 +959,7 @@ public class CampaignService {
             params.add(pattern);
             params.add(pattern);
         }
-        if ("STAFF".equals(user.role()) && user.employeeId() != null) {
+        if (STAFF_ROLE.equals(user.role()) && user.employeeId() != null) {
             filters.add("""
                     (r.campaign_id IN (
                        SELECT e.campaign_id FROM event_assignments ea
@@ -963,7 +975,7 @@ public class CampaignService {
             params.add(user.employeeId());
             params.add(user.employeeId());
         }
-        String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
+        String where = filters.isEmpty() ? "" : WHERE + String.join(AND, filters);
         Long total = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM campaign_student_registrations r JOIN students st ON st.id = r.student_id " + where,
                 Long.class,
@@ -981,7 +993,7 @@ public class CampaignService {
 
     @Transactional
     public int bulkUpdateRegistrationStatus(BulkRegistrationStatusRequest request, CurrentUser user) {
-        validateIn(request.status(), "PENDING", "APPROVED", "REJECTED", "CANCELLED");
+        validateIn(request.status(), GEOCODE_STATUS_PENDING, APPROVED_STATUS, "REJECTED", "CANCELLED");
         if (request.ids() == null || request.ids().isEmpty()) {
             return 0;
         }
@@ -1019,7 +1031,7 @@ public class CampaignService {
             params.add(pattern);
             params.add(pattern);
         }
-        String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
+        String where = filters.isEmpty() ? "" : WHERE + String.join(AND, filters);
         Long total = jdbc.queryForObject("SELECT COUNT(*) FROM students " + where, Long.class, params.toArray());
         params.add(safeLimit);
         params.add(safePage * safeLimit);
@@ -1280,9 +1292,9 @@ public class CampaignService {
 
     @Transactional
     public UserDto updateUserStatus(long id, String status) {
-        validateIn(status, ACTIVE_STATUS, "DISABLED");
+        validateIn(status, ACTIVE_STATUS, DISABLED_STATUS);
         UserDto updated = updateUserColumn(id, STATUS_COLUMN, status);
-        if ("DISABLED".equals(status)) {
+        if (DISABLED_STATUS.equals(status)) {
             if (notificationTriggers != null) {
                 notificationTriggers.ifAvailable(service -> service.accountDeactivated(id));
             }
@@ -1361,7 +1373,7 @@ public class CampaignService {
             params.add(pattern);
             params.add(pattern);
         }
-        return filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
+        return filters.isEmpty() ? "" : WHERE + String.join(AND, filters);
     }
 
     private SchoolDto getSchool(String schoolUid) {
@@ -1495,7 +1507,7 @@ public class CampaignService {
     }
 
     private void ensureInteractionOwnerOrManager(InteractionDto interaction, CurrentUser user) {
-        if ("MANAGER".equals(user.role()) || "ADMIN".equals(user.role())) {
+        if (MANAGER_ROLE.equals(user.role()) || ADMIN_ROLE.equals(user.role())) {
             return;
         }
         if (user.employeeId() == null || !user.employeeId().equals(interaction.employeeId())) {
@@ -1505,7 +1517,7 @@ public class CampaignService {
 
     private String normalizeUserStatus(String status) {
         String value = status == null || status.isBlank() ? ACTIVE_STATUS : status;
-        validateIn(value, ACTIVE_STATUS, "DISABLED");
+        validateIn(value, ACTIVE_STATUS, DISABLED_STATUS);
         return value;
     }
 
@@ -1525,7 +1537,7 @@ public class CampaignService {
         if (!ACTIVE_STATUS.equals(campaign.status())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Campaign is not accepting registrations");
         }
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(VIETNAM_ZONE);
         if (campaign.startDate() != null && campaign.startDate().isAfter(today)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Campaign registration has not opened");
         }
@@ -1538,10 +1550,10 @@ public class CampaignService {
         if (user == null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
         }
-        if ("MANAGER".equals(user.role()) || "ADMIN".equals(user.role())) {
+        if (MANAGER_ROLE.equals(user.role()) || ADMIN_ROLE.equals(user.role())) {
             return;
         }
-        if (!"STAFF".equals(user.role()) || user.employeeId() == null) {
+        if (!STAFF_ROLE.equals(user.role()) || user.employeeId() == null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
         }
         Integer count = jdbc.queryForObject("""
@@ -1564,7 +1576,7 @@ public class CampaignService {
         }
     }
     private void validateRole(String role) {
-        validateIn(role, "ADMIN", "MANAGER", "STAFF", "STUDENT");
+        validateIn(role, ADMIN_ROLE, MANAGER_ROLE, STAFF_ROLE, "STUDENT");
     }
 
     private void validateIn(String value, String... allowed) {
@@ -1611,11 +1623,11 @@ public class CampaignService {
                 rs.getString(SCHOOL_UID_COLUMN),
                 rs.getString(PROVINCE_CODE_COLUMN),
                 rs.getString(PROVINCE_NAME_COLUMN),
-                rs.getString("commune_code"),
-                rs.getString("commune_name"),
+                rs.getString(COMMUNE_CODE_COLUMN),
+                rs.getString(COMMUNE_NAME_COLUMN),
                 rs.getString("school_code"),
                 rs.getString(SCHOOL_NAME_COLUMN),
-                rs.getString("address"),
+                rs.getString(ADDRESS_COLUMN),
                 rs.getString("area_type")
         );
     }
@@ -1628,7 +1640,7 @@ public class CampaignService {
                 rs.getString("email"),
                 rs.getString(PHONE_COLUMN),
                 rs.getObject("date_of_birth", LocalDate.class),
-                rs.getString("address"),
+                rs.getString(ADDRESS_COLUMN),
                 rs.getString("grade"),
                 rs.getString("class_name")
         );
@@ -1682,8 +1694,8 @@ public class CampaignService {
                 rs.getString(SCHOOL_UID_COLUMN),
                 rs.getString(PROVINCE_CODE_COLUMN),
                 rs.getString(PROVINCE_NAME_COLUMN),
-                rs.getString("commune_code"),
-                rs.getString("commune_name"),
+                rs.getString(COMMUNE_CODE_COLUMN),
+                rs.getString(COMMUNE_NAME_COLUMN),
                 rs.getString("school_code"),
                 rs.getString(SCHOOL_NAME_COLUMN),
                 rs.getString("school_address"),
@@ -1741,7 +1753,7 @@ public class CampaignService {
                 rs.getObject("latitude", Double.class),
                 rs.getObject("longitude", Double.class),
                 rs.getString(SCHOOL_UID_COLUMN),
-                rs.getString("province_code")
+                rs.getString(PROVINCE_CODE_COLUMN)
         );
     }
 

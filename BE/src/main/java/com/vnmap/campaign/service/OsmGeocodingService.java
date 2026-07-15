@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.net.URI;
 import java.net.URLEncoder;
+import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -22,11 +23,13 @@ import java.util.Optional;
 
 /**
  * Service to geocode schools on-demand using OpenStreetMap Nominatim API.
- * Does NOT persist results to the database — coordinates are returned for the
+ * Does NOT persist results to the database Ã¢â‚¬â€ coordinates are returned for the
  * current request only.
  */
 @Service
 public class OsmGeocodingService {
+
+    private static final String FALLBACK_SOURCE = "FALLBACK";
 
     private static final Logger log = LoggerFactory.getLogger(OsmGeocodingService.class);
     private static final String NOMINATIM_SEARCH_PATH = "/search";
@@ -104,18 +107,18 @@ public class OsmGeocodingService {
             sb.append(ctx.schoolName);
         }
         if (ctx.communeName != null && !ctx.communeName.isBlank()) {
-            if (sb.length() > 0) sb.append(", ");
+            if (!sb.isEmpty()) sb.append(", ");
             sb.append(ctx.communeName);
         }
         if (ctx.provinceName != null && !ctx.provinceName.isBlank()) {
-            if (sb.length() > 0) sb.append(", ");
+            if (!sb.isEmpty()) sb.append(", ");
             sb.append(ctx.provinceName);
         }
         sb.append(", Vietnam");
         return sb.toString();
     }
 
-    private Optional<double[]> callNominatim(String query) throws Exception {
+    private Optional<double[]> callNominatim(String query) throws IOException, InterruptedException {
         String encoded = URLEncoder.encode(query, StandardCharsets.UTF_8);
         String url = nominatimBaseUrl
                 + NOMINATIM_SEARCH_PATH
@@ -188,20 +191,20 @@ public class OsmGeocodingService {
     private SchoolGeocodeDto fallbackFor(String schoolUid, SchoolContext ctx) {
         if (ctx.communeCode == null || ctx.communeCode.isBlank()) {
             return new SchoolGeocodeDto(
-                    schoolUid, ctx.schoolName, null, null, "FALLBACK", false
+                    schoolUid, ctx.schoolName, null, null, FALLBACK_SOURCE, false
             );
         }
         Double[] centroid = queryCentroid(ctx.communeCode);
-        if (centroid != null) {
+        if (centroid.length == 2) {
             // centroid[0] = lng, centroid[1] = lat
             Double lng = centroid[0];
             Double lat = centroid[1];
             return new SchoolGeocodeDto(
-                    schoolUid, ctx.schoolName, lat, lng, "FALLBACK", false
+                    schoolUid, ctx.schoolName, lat, lng, FALLBACK_SOURCE, false
             );
         }
         return new SchoolGeocodeDto(
-                schoolUid, ctx.schoolName, null, null, "FALLBACK", false
+                schoolUid, ctx.schoolName, null, null, FALLBACK_SOURCE, false
         );
     }
 

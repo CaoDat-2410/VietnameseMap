@@ -24,21 +24,21 @@ public final class SigV4Presigner {
 
     private SigV4Presigner() {}
 
+    public record Credentials(String accessKey, String secretKey, String region) {}
+
+
     public static String presignPut(String endpoint, String bucket, String key,
-                                    String accessKey, String secretKey, String region,
-                                    int expirySeconds) {
-        return presign(endpoint, bucket, key, "PUT", accessKey, secretKey, region, expirySeconds);
+                                    Credentials credentials, int expirySeconds) {
+        return presign(endpoint, bucket, key, "PUT", credentials, expirySeconds);
     }
 
     public static String presignGet(String endpoint, String bucket, String key,
-                                    String accessKey, String secretKey, String region,
-                                    int expirySeconds) {
-        return presign(endpoint, bucket, key, "GET", accessKey, secretKey, region, expirySeconds);
+                                    Credentials credentials, int expirySeconds) {
+        return presign(endpoint, bucket, key, "GET", credentials, expirySeconds);
     }
 
     public static String presign(String endpoint, String bucket, String key, String method,
-                                 String accessKey, String secretKey, String region,
-                                 int expirySeconds) {
+                                 Credentials credentials, int expirySeconds) {
         URI uri = URI.create(endpoint);
         String host = uri.getHost();
         if (host == null || host.isBlank()) {
@@ -54,11 +54,11 @@ public final class SigV4Presigner {
         Instant now = Instant.now();
         String dateStamp = DATE_STAMP.format(now);
         String timeStamp = TIME_STAMP.format(now);
-        String credentialScope = dateStamp + "/" + region + "/" + SERVICE + "/aws4_request";
+        String credentialScope = dateStamp + "/" + credentials.region() + "/" + SERVICE + "/aws4_request";
 
         Map<String, String> params = new TreeMap<>();
         params.put("X-Amz-Algorithm", ALGORITHM);
-        params.put("X-Amz-Credential", accessKey + "/" + credentialScope);
+        params.put("X-Amz-Credential", credentials.accessKey() + "/" + credentialScope);
         params.put("X-Amz-Date", timeStamp);
         params.put("X-Amz-Expires", String.valueOf(expirySeconds));
         params.put("X-Amz-SignedHeaders", "host");
@@ -82,8 +82,8 @@ public final class SigV4Presigner {
                 + credentialScope + "\n"
                 + sha256Hex(canonicalRequest);
 
-        byte[] kDate = hmacSha256(("AWS4" + secretKey).getBytes(StandardCharsets.UTF_8), dateStamp);
-        byte[] kRegion = hmacSha256(kDate, region);
+        byte[] kDate = hmacSha256(("AWS4" + credentials.secretKey()).getBytes(StandardCharsets.UTF_8), dateStamp);
+        byte[] kRegion = hmacSha256(kDate, credentials.region());
         byte[] kService = hmacSha256(kRegion, SERVICE);
         byte[] kSigning = hmacSha256(kService, "aws4_request");
 
