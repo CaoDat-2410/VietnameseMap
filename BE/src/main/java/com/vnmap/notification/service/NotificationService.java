@@ -14,8 +14,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -191,7 +189,7 @@ public class NotificationService {
      * Lists notifications for a user, newest first.
      */
     public List<NotificationAuditDto> listForUser(Long userId, int limit) {
-        int cappedLimit = Math.max(1, Math.min(limit, 200));
+        int cappedLimit = Math.clamp(limit, 1, 200);
         return jdbc.query("""
             SELECT id, target_user_id, trigger_type, title, body, data_json,
                    status, read_at, created_at

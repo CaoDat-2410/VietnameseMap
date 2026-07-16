@@ -69,6 +69,10 @@ public class OsmGeocodingService {
                 if (geocoded != null) {
                     results.add(geocoded);
                 }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("Geocoding interrupted for school {}", uid);
+                break;
             } catch (Exception e) {
                 log.warn("Failed to geocode school {}: {}", uid, e.getMessage());
                 // Still try to provide a fallback so the UI can show something
@@ -81,7 +85,7 @@ public class OsmGeocodingService {
         return results;
     }
 
-    private SchoolGeocodeDto geocodeSingleSchool(String schoolUid) throws Exception {
+    private SchoolGeocodeDto geocodeSingleSchool(String schoolUid) throws IOException, InterruptedException {
         SchoolContext ctx = loadSchoolContext(schoolUid);
         if (ctx == null) {
             return null;
@@ -140,8 +144,9 @@ public class OsmGeocodingService {
         );
 
         if (response.statusCode() != 200) {
-            log.warn("Nominatim returned status {}: {}",
-                    response.statusCode(), response.body());
+            if (log.isWarnEnabled()) {
+                log.warn("Nominatim returned status {}: {}", response.statusCode(), response.body());
+            }
             return Optional.empty();
         }
 
@@ -195,7 +200,7 @@ public class OsmGeocodingService {
             );
         }
         Double[] centroid = queryCentroid(ctx.communeCode);
-        if (centroid.length == 2) {
+        if (centroid != null && centroid.length == 2) {
             // centroid[0] = lng, centroid[1] = lat
             Double lng = centroid[0];
             Double lat = centroid[1];
@@ -221,7 +226,7 @@ public class OsmGeocodingService {
             );
         } catch (Exception e) {
             log.debug("Centroid not found for commune {}: {}", communeCode, e.getMessage());
-            return null;
+            return new Double[0];
         }
     }
 

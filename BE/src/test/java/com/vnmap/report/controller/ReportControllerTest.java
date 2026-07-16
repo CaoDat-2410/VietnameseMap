@@ -19,7 +19,7 @@ class ReportControllerTest {
         CampaignReportService service = mock(CampaignReportService.class);
         ReportController controller = new ReportController(service);
         CurrentUser user = new CurrentUser(1L, "admin@test", "ADMIN", "ACTIVE", null, null);
-        CampaignReportRequest request = new CampaignReportRequest("CAMPAIGN", null, null, null, null, null, null, null, null, null, null, null, false, List.of(), Map.of());
+        CampaignReportRequest request = new CampaignReportRequest("CAMPAIGN", null, null, null, null, null, null, null, null, null, null, null, false, List.of(), List.of(), "CHARTS_AND_TABLES", Map.of());
         ReportExportResponse report = mock(ReportExportResponse.class);
         PagedResponse<ReportExportResponse> page = PagedResponse.of(List.of(report), 0, 20, 1);
         when(service.createCampaignReport(request, user)).thenReturn(report);

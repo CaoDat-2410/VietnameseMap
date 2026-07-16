@@ -24,7 +24,8 @@ class PdfReportRendererTest {
                 "Campaign report", "For verification",
                 List.of(Map.of("label", "Events", "value", 3), Map.of("label", "Missing")),
                 sections,
-                Map.of("Summary", "not-a-base64-image")
+                List.of(),
+                "CHARTS_AND_TABLES"
         );
 
         assertThat(pdf).startsWith("%PDF".getBytes()).hasSizeGreaterThan(500);
@@ -35,5 +36,16 @@ class PdfReportRendererTest {
         byte[] pdf = renderer.render("Empty report", Map.of());
 
         assertThat(pdf).startsWith("%PDF".getBytes()).hasSizeGreaterThan(100);
+    }
+    @Test
+    void rendersDataDerivedDonutBarLineAndEmptyChartStates() {
+        List<ReportChart> charts = List.of(
+                new ReportChart("status", "Status", "By status", "DONUT", "count", "2026", "campaigns", "ACTIVE leads", List.of(new ReportChart.Datum("ACTIVE", 4), new ReportChart.Datum("DRAFT", 2))),
+                new ReportChart("events", "Events", "By campaign", "BAR", "count", "2026", "events", "Campaign A leads", List.of(new ReportChart.Datum("Campaign A", 3), new ReportChart.Datum("Campaign B", 1))),
+                new ReportChart("trend", "Trend", "Daily", "LINE", "count", "2026", "interactions", "Day one leads", List.of(new ReportChart.Datum("2026-01-01", 1), new ReportChart.Datum("2026-01-02", 2))),
+                new ReportChart("empty", "Empty", "No records", "BAR", "count", "2026", "events", "No records", List.of())
+        );
+        byte[] pdf = renderer.render("Verified report", "summary", List.of(), Map.of(), charts, "CHARTS_AND_TABLES");
+        assertThat(pdf).startsWith("%PDF".getBytes()).hasSizeGreaterThan(10_000);
     }
 }

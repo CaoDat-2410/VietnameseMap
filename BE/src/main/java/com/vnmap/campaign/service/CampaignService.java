@@ -28,6 +28,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/** SQL clauses are assembled only from internal constants; request values are always JDBC-bound. */
+@SuppressWarnings("java:S2077")
 @Service
 public class CampaignService {
 
@@ -62,6 +64,12 @@ public class CampaignService {
                 campaign_id, event_id, employee_id, school_uid, participant_type,
                 participant_id, channel, outcome, note, next_follow_up_at
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """;
+    private static final String INSERT_EVENT_SQL = """
+            INSERT INTO campaign_events (
+                campaign_id, name, event_type, status, starts_at, ends_at, note,
+                location_label, latitude, longitude, school_uid, province_code
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
     private static final String REGISTRATION_SELECT_SQL = """
             SELECT r.id, r.campaign_id, r.student_id, r.school_uid, r.status, r.note,
@@ -98,7 +106,7 @@ public class CampaignService {
 
     private long generatedId(KeyHolder keyHolder) {
         var keys = keyHolder.getKeyList();
-        if (keys != null && !keys.isEmpty()) {
+        if (!keys.isEmpty()) {
             Object idVal = keys.get(0).get("id");
             if (idVal instanceof Number n) return n.longValue();
             if (idVal instanceof Object[] arr) return ((Number) arr[0]).longValue();
@@ -115,7 +123,7 @@ public class CampaignService {
             String query
     ) {
         int safePage = Math.max(page, 0);
-        int safeLimit = Math.min(Math.max(limit, 1), 200);
+        int safeLimit = Math.clamp(limit, 1, 200);
         List<Object> params = new ArrayList<>();
         String where = buildSchoolWhere(provinceCode, communeCode, area, query, params);
 
@@ -217,8 +225,7 @@ public class CampaignService {
                 SELECT school_uid, province_code, commune_code, school_name, province_name, commune_name, address
                 FROM schools
                 WHERE latitude IS NULL OR longitude IS NULL
-                """,
-                new Object[]{}
+                """
         );
         
         for (Map<String, Object> school : schoolsWithoutCoords) {
@@ -462,7 +469,7 @@ public class CampaignService {
                 campaignId
         ).forEach(row -> byOutcome.put(
                 (String) row.get("outcome"),
-                ((Number) row.get("total")).longValue()
+                ((Number) row.get(TOTAL_COLUMN)).longValue()
         ));
 
         List<ProvinceInteractionDto> byProvince = jdbc.query(
@@ -547,15 +554,7 @@ public class CampaignService {
         ensureSchoolIfPresent(request.schoolUid());
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbc.update(connection -> {
-            PreparedStatement ps = connection.prepareStatement(
-                    """
-                    INSERT INTO campaign_events (
-                        campaign_id, name, event_type, status, starts_at, ends_at, note,
-                        location_label, latitude, longitude, school_uid, province_code
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    Statement.RETURN_GENERATED_KEYS
-            );
+            PreparedStatement ps = connection.prepareStatement(INSERT_EVENT_SQL, Statement.RETURN_GENERATED_KEYS);
             ps.setLong(1, campaignId);
             ps.setString(2, request.name());
             ps.setString(3, request.eventType());
@@ -794,7 +793,7 @@ public class CampaignService {
                 ? currentUser.studentId()
                 : findStudentIdByEmail(request.email());
         if (studentId == null) {
-            studentId = createStudent(new StudentRequest(
+            studentId = createStudentRecord(new StudentRequest(
                     request.schoolUid(),
                     request.fullName(),
                     request.email(),
@@ -806,7 +805,7 @@ public class CampaignService {
             )).id();
         } else if (!authenticatedAsStudent) {
             requireMatchingStudentPassword(request.email(), request.password());
-            updateStudent(studentId, new StudentRequest(
+            updateStudentRecord(studentId, new StudentRequest(
                     request.schoolUid(),
                     request.fullName(),
                     request.email(),
@@ -817,7 +816,7 @@ public class CampaignService {
                     request.className()
             ));
         } else {
-            updateStudent(studentId, new StudentRequest(
+            updateStudentRecord(studentId, new StudentRequest(
                     request.schoolUid(),
                     request.fullName(),
                     request.email(),
@@ -937,7 +936,7 @@ public class CampaignService {
             int limit
     ) {
         int safePage = Math.max(page, 0);
-        int safeLimit = Math.min(Math.max(limit, 1), 200);
+        int safeLimit = Math.clamp(limit, 1, 200);
         List<Object> params = new ArrayList<>();
         List<String> filters = new ArrayList<>();
         if (campaignId != null) {
@@ -1018,7 +1017,7 @@ public class CampaignService {
 
     public PagedResponse<StudentDto> getStudents(int page, int limit, String schoolUid, String query) {
         int safePage = Math.max(page, 0);
-        int safeLimit = Math.min(Math.max(limit, 1), 200);
+        int safeLimit = Math.clamp(limit, 1, 200);
         List<Object> params = new ArrayList<>();
         List<String> filters = new ArrayList<>();
         if (schoolUid != null && !schoolUid.isBlank()) {
@@ -1051,6 +1050,10 @@ public class CampaignService {
 
     @Transactional
     public StudentDto createStudent(StudentRequest request) {
+        return createStudentRecord(request);
+    }
+
+    private StudentDto createStudentRecord(StudentRequest request) {
         getSchool(request.schoolUid());
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbc.update(connection -> {
@@ -1070,6 +1073,10 @@ public class CampaignService {
 
     @Transactional
     public StudentDto updateStudent(long id, StudentRequest request) {
+        return updateStudentRecord(id, request);
+    }
+
+    private StudentDto updateStudentRecord(long id, StudentRequest request) {
         getSchool(request.schoolUid());
         int updated = jdbc.update(
                 """
@@ -1294,10 +1301,8 @@ public class CampaignService {
     public UserDto updateUserStatus(long id, String status) {
         validateIn(status, ACTIVE_STATUS, DISABLED_STATUS);
         UserDto updated = updateUserColumn(id, STATUS_COLUMN, status);
-        if (DISABLED_STATUS.equals(status)) {
-            if (notificationTriggers != null) {
-                notificationTriggers.ifAvailable(service -> service.accountDeactivated(id));
-            }
+        if (DISABLED_STATUS.equals(status) && notificationTriggers != null) {
+            notificationTriggers.ifAvailable(service -> service.accountDeactivated(id));
         }
         return updated;
     }

@@ -93,6 +93,70 @@ class GoogleAuthServiceTest {
                 .hasMessageContaining("Invalid Google ID token");
     }
 
+    @Test
+    void provisionsNewFirebaseUserAndIssuesTokens() throws Exception {
+        FirebaseToken token = verifiedToken("new-uid", "new@vnmap.local", true);
+        when(firebaseAuth.verifyIdToken("new-token")).thenReturn(token);
+        stubUserLookups(List.of(), List.of());
+        org.mockito.Mockito.doAnswer(invocation -> {
+            org.springframework.jdbc.support.KeyHolder holder = invocation.getArgument(1);
+            holder.getKeyList().add(new java.util.HashMap<>(Map.of("id", 21L)));
+            return 1;
+        }).when(jdbc).update(
+                any(org.springframework.jdbc.core.PreparedStatementCreator.class),
+                any(org.springframework.jdbc.support.KeyHolder.class)
+        );
+        AuthService.UserWithPassword provisioned = new AuthService.UserWithPassword(
+                21L, "new@vnmap.local", "", "STUDENT", "ACTIVE", null, null
+        );
+        when(authService.findUserById(21L)).thenReturn(provisioned);
+        when(authService.issueTokens(any(CurrentUser.class))).thenReturn(authResponse());
+
+        assertThat(service.authenticateWithGoogle("new-token")).isNotNull();
+        verify(jdbc).update("UPDATE app_users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?", 21L);
+    }
+
+    @Test
+    void rejectsProvisionWhenGeneratedKeyIsMissing() throws Exception {
+        FirebaseToken token = verifiedToken("new-uid", "new@vnmap.local", true);
+        when(firebaseAuth.verifyIdToken("new-token")).thenReturn(token);
+        stubUserLookups(List.of(), List.of());
+
+        assertThatThrownBy(() -> service.authenticateWithGoogle("new-token"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("generated id");
+    }
+
+    @Test
+    void rejectsFirebaseTokenWithoutEmailAndNullGoogleTokenInfo() throws Exception {
+        FirebaseToken noEmail = mock(FirebaseToken.class);
+        when(noEmail.getEmail()).thenReturn(" ");
+        when(firebaseAuth.verifyIdToken("no-email")).thenReturn(noEmail);
+        assertThatThrownBy(() -> service.authenticateWithGoogle("no-email"))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("does not contain an email");
+
+        when(firebaseAuth.verifyIdToken("null-info")).thenThrow(new IllegalArgumentException("not firebase"));
+        when(restTemplate.getForObject(anyString(), eq(Map.class))).thenReturn(null);
+        assertThatThrownBy(() -> service.authenticateWithGoogle("null-info"))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Invalid Google ID token");
+    }
+
+    @Test
+    void acceptsFirebaseClaimsWithoutOptionalNameOrPicture() throws Exception {
+        FirebaseToken token = mock(FirebaseToken.class);
+        when(token.getUid()).thenReturn("uid-empty-claims");
+        when(token.getEmail()).thenReturn("student@vnmap.local");
+        when(token.isEmailVerified()).thenReturn(true);
+        when(token.getClaims()).thenReturn(Map.of());
+        when(firebaseAuth.verifyIdToken("empty-claims")).thenReturn(token);
+        stubUserLookups(List.of(9L));
+        when(authService.findUserById(9L)).thenReturn(user());
+        when(authService.issueTokens(any(CurrentUser.class))).thenReturn(authResponse());
+
+        assertThat(service.authenticateWithGoogle("empty-claims")).isNotNull();
+    }
     private FirebaseToken verifiedToken(String uid, String email, boolean emailVerified) {
         FirebaseToken token = mock(FirebaseToken.class);
         when(token.getUid()).thenReturn(uid);

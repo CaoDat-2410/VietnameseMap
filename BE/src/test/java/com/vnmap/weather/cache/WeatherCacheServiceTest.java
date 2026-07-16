@@ -15,8 +15,9 @@ import java.time.Duration;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -119,9 +120,9 @@ class WeatherCacheServiceTest {
             cacheService.put("21.03:105.85", dto);
 
             verify(valueOperations).set(
-                    eq("weather:21.03:105.85"),
-                    eq(dto),
-                    eq(Duration.ofMinutes(10)));
+                    "weather:21.03:105.85",
+                    dto,
+                    Duration.ofMinutes(10));
         }
 
         @Test
@@ -130,7 +131,7 @@ class WeatherCacheServiceTest {
             when(redisTemplate.opsForValue()).thenThrow(new RuntimeException("Redis error"));
             CurrentWeatherDto dto = createWeatherDto(25.0, "Clear");
 
-            cacheService.put("21.03:105.85", dto);
+            assertThatCode(() -> cacheService.put("21.03:105.85", dto)).doesNotThrowAnyException();
         }
     }
 
@@ -151,7 +152,7 @@ class WeatherCacheServiceTest {
         void shouldHandleErrorGracefully() {
             doThrow(new RuntimeException("Redis error")).when(redisTemplate).delete((String) any());
 
-            cacheService.evict("weather:21.03:105.85");
+            assertThatCode(() -> cacheService.evict("weather:21.03:105.85")).doesNotThrowAnyException();
         }
     }
 

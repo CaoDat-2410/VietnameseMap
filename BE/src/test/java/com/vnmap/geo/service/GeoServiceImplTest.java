@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -305,7 +306,7 @@ class GeoServiceImplTest {
             assertThat(result).isInstanceOf(Map.class);
             @SuppressWarnings("unchecked")
             Map<String, Object> collection = (Map<String, Object>) result;
-            assertThat(collection.get("type")).isEqualTo("FeatureCollection");
+            assertThat(collection).containsEntry("type", "FeatureCollection");
             @SuppressWarnings("unchecked")
             List<?> features = (List<?>) collection.get("features");
             assertThat(features).hasSize(1);
@@ -431,10 +432,83 @@ class GeoServiceImplTest {
         void shouldHandleMissingCache() {
             when(cacheManager.getCache("geo")).thenReturn(null);
 
-            geoService.evictAllGeoCache();
+            assertThatCode(() -> geoService.evictAllGeoCache()).doesNotThrowAnyException();
+            verify(cacheManager).getCache("geo");
         }
     }
 
+    @Test
+    void coversCentroidFallbacksAndCentroidCalculation() {
+        AdministrativeUnit fallback = createUnit(10L, "Fallback", "10", KIND_PROVINCE, null);
+        AdministrativeUnitDto fallbackDto = createDto(10L, "Fallback", "10", KIND_PROVINCE);
+        when(repository.findByCode("10")).thenReturn(Optional.of(fallback));
+        when(geoMapper.toDto(fallback)).thenReturn(fallbackDto);
+        when(repository.findCentroidByCode("10", KIND_PROVINCE)).thenReturn(Optional.of(new Object[]{105.5, 21.5}));
+        AdministrativeUnitDto fallbackResult = geoService.getByCode("10");
+        assertThat(fallbackResult.getCentroidLat()).isEqualTo(21.5);
+        assertThat(fallbackResult.getCentroidLng()).isEqualTo(105.5);
+
+        org.locationtech.jts.geom.GeometryFactory factory = new org.locationtech.jts.geom.GeometryFactory();
+        AdministrativeUnit direct = createUnit(11L, "Direct", "11", KIND_COMMUNE, "10");
+        direct.setCentroid(factory.createPoint(new org.locationtech.jts.geom.Coordinate(106.0, 22.0)));
+        AdministrativeUnitDto directDto = createDto(11L, "Direct", "11", KIND_COMMUNE);
+        when(repository.findUnitContainingPoint(22.0, 106.0)).thenReturn(Optional.of(direct));
+        when(geoMapper.toDto(direct)).thenReturn(directDto);
+        AdministrativeUnitDto directResult = geoService.findUnitByCoordinate(22.0, 106.0);
+        assertThat(directResult.getCentroidLat()).isEqualTo(22.0);
+        assertThat(directResult.getCentroidLng()).isEqualTo(106.0);
+
+        AdministrativeUnit calculated = createUnit(12L, "Calculated", "12", KIND_COMMUNE, "10");
+        calculated.setBoundary(factory.createPolygon(new org.locationtech.jts.geom.Coordinate[]{
+                new org.locationtech.jts.geom.Coordinate(0, 0),
+                new org.locationtech.jts.geom.Coordinate(2, 0),
+                new org.locationtech.jts.geom.Coordinate(2, 2),
+                new org.locationtech.jts.geom.Coordinate(0, 2),
+                new org.locationtech.jts.geom.Coordinate(0, 0)
+        }));
+        AdministrativeUnit noBoundary = createUnit(13L, "No boundary", "13", KIND_COMMUNE, "10");
+        AdministrativeUnit alreadyCalculated = createUnit(14L, "Done", "14", KIND_COMMUNE, "10");
+        alreadyCalculated.setBoundary(calculated.getBoundary());
+        alreadyCalculated.setCentroid(factory.createPoint(new org.locationtech.jts.geom.Coordinate(1, 1)));
+        when(repository.findAll()).thenReturn(List.of(calculated, noBoundary, alreadyCalculated));
+        assertThat(geoService.calculateCentroids()).isEqualTo(1);
+        assertThat(calculated.getCentroid()).isNotNull();
+        verify(repository).save(calculated);
+    }
+
+    @Test
+    void coversMissingMalformedAndIncompleteBoundaryBranches() {
+        AdministrativeUnit unit = createUnit(20L, "Boundary", "20", KIND_PROVINCE, null);
+        when(repository.findByCode("20")).thenReturn(Optional.of(unit));
+        when(repository.findBoundaryByCodeAndKind("20", KIND_PROVINCE)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> geoService.getBoundaryByCode("20"))
+                .isInstanceOf(com.vnmap.common.exception.ResourceNotFoundException.class);
+
+        when(repository.findByCode("21")).thenReturn(Optional.of(createUnit(21L, "Malformed", "21", KIND_PROVINCE, null)));
+        when(repository.findBoundaryByCodeAndKind("21", KIND_PROVINCE)).thenReturn(Optional.of("not-json"));
+        assertThat(geoService.getBoundaryByCode("21").getGeometry().getCoordinates()).isEqualTo("not-json");
+
+        when(repository.findByCode("22")).thenReturn(Optional.of(createUnit(22L, "No coordinates", "22", KIND_PROVINCE, null)));
+        when(repository.findBoundaryByCodeAndKind("22", KIND_PROVINCE)).thenReturn(Optional.of("{\"type\":\"Polygon\"}"));
+        assertThat(geoService.getBoundaryByCode("22").getGeometry()).isNotNull();
+    }
+
+    @Test
+    void skipsMalformedProvinceAndCommuneGeometryRows() {
+        AdministrativeUnit province = createUnit(30L, "Malformed", "30", KIND_PROVINCE, null);
+        when(repository.findByKind(KIND_PROVINCE)).thenReturn(List.of(province));
+        when(repository.findBoundaryByCodeAndKind("30", KIND_PROVINCE)).thenReturn(Optional.of("bad-json"));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> collection = (Map<String, Object>) geoService.getAllProvincesBoundaries();
+        assertThat((List<?>) collection.get("features")).hasSize(1);
+
+        when(repository.findByCode("30")).thenReturn(Optional.of(province));
+        when(repository.findCommunesWithBoundariesByProvinceCode("30")).thenReturn(List.of(
+                new Object[]{1L, "Bad", "300", KIND_COMMUNE, "30", "bad-json"},
+                new Object[]{2L}
+        ));
+        assertThat(geoService.getCommunesBoundariesByProvinceCode("30")).isEmpty();
+    }
     private AdministrativeUnit createUnit(Long id, String name, String code, String kind, String parentCode) {
         return AdministrativeUnit.builder()
                 .id(id)

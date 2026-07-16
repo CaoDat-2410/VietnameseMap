@@ -20,6 +20,7 @@ public class OpenWeatherMapClient {
 
     private final WebClient webClient;
     private final String apiKey;
+    private final Duration requestTimeout;
 
     public OpenWeatherMapClient(
             WebClient.Builder builder,
@@ -27,6 +28,7 @@ public class OpenWeatherMapClient {
             @Value("${weather.openweathermap.api-key}") String apiKey,
             @Value("${weather.openweathermap.timeout:5000}") int timeout) {
         this.apiKey = apiKey;
+        this.requestTimeout = Duration.ofMillis(timeout);
         this.webClient = builder
                 .baseUrl(baseUrl)
                 .build();
@@ -56,7 +58,7 @@ public class OpenWeatherMapClient {
                                 response.statusCode().value(),
                                 "Server error from weather API")))
                 .bodyToMono(OpenWeatherApiResponse.class)
-                .timeout(Duration.ofSeconds(5))
+                .timeout(requestTimeout)
                 .doOnError(WebClientResponseException.class, e ->
                         log.error("Weather API HTTP error: status={}, body={}",
                                 e.getStatusCode(), e.getResponseBodyAsString()))

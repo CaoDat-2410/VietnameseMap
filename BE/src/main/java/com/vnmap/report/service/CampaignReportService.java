@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+/** Dynamic clauses are built only from internal constants; request data is always JDBC-bound. */
+@SuppressWarnings("java:S2077")
 @Service
 public class CampaignReportService {
 
@@ -47,6 +49,15 @@ public class CampaignReportService {
     private static final String ASSIGNMENTS = "assignments";
     private static final String INTERACTIONS = "interactions";
     private static final String ANALYTICS = "analytics";
+    private static final String STATUS = "status";
+    private static final String REGISTRATIONS = "registrations";
+    private static final String DONUT = "DONUT";
+    private static final String PROVINCE_NAME = "province_name";
+    private static final String REGIONAL_SUMMARY = "Regional summary";
+    private static final String PROVINCE_FILTER = "s.province_code = ?";
+    private static final String DATE_FUNCTION = "DATE(";
+    private static final String OBJECT_KEY_SEPARATOR = "/";
+    private static final String UNSUPPORTED_SECTION_MESSAGE = "Ignoring unsupported report section: {}";
     private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final Duration DOWNLOAD_URL_TTL = Duration.ofMinutes(5);
     private static final DateTimeFormatter PATH_DATE = DateTimeFormatter.ofPattern("yyyy/MM");
@@ -116,7 +127,7 @@ public class CampaignReportService {
         }, keyHolder);
         Long reportId;
         var keys = keyHolder.getKeyList();
-        if (keys == null || keys.isEmpty()) {
+        if (keys.isEmpty()) {
             throw new IllegalStateException("Failed to retrieve generated key for report");
         }
         reportId = ((Number) keys.get(0).get("id")).longValue();
@@ -129,7 +140,7 @@ public class CampaignReportService {
         Map<String, Object> row = jdbc.queryForMap("SELECT * FROM report_exports WHERE id = ?", reportId);
         authorizeReport(row, user);
         String downloadUrl = null;
-        String status = (String) row.get("status");
+        String status = (String) row.get(STATUS);
         String path = (String) row.get(STORAGE_PATH);
         if (includeDownloadUrl) {
             if (!"READY".equals(status)) {
@@ -145,7 +156,7 @@ public class CampaignReportService {
     ) {
         requireManagerOrAdmin(user);
         int safePage = Math.max(page, 0);
-        int safeLimit = Math.min(Math.max(limit, 1), 100);
+        int safeLimit = Math.clamp(limit, 1, 100);
         List<Object> params = new ArrayList<>();
         List<String> filters = new ArrayList<>();
         // ADMIN sees all reports; MANAGER sees only their own.
@@ -162,9 +173,7 @@ public class CampaignReportService {
             params.add(reportType);
         }
         String where = filters.isEmpty() ? "" : WHERE + String.join(AND, filters);
-        Long total = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM report_exports " + where, Long.class, params.toArray()
-        );
+        long total = count("SELECT COUNT(*) FROM report_exports " + where, params);
         params.add(safeLimit);
         params.add(safePage * safeLimit);
         List<Map<String, Object>> rows = jdbc.queryForList(
@@ -174,7 +183,7 @@ public class CampaignReportService {
         List<ReportExportResponse> items = rows.stream()
                 .map(r -> map(r, null))
                 .toList();
-        return PagedResponse.of(items, safePage, safeLimit, total == null ? 0 : total);
+        return PagedResponse.of(items, safePage, safeLimit, total);
     }
 
     private void generateReport(long reportId, CampaignReportRequest request) {
@@ -183,13 +192,14 @@ public class CampaignReportService {
             List<Map<String, Object>> kpis = computeKpis(request);
             String title = titleFor(request);
             String subtitle = "Report #" + reportId + " - generated " + LocalDateTime.now(VIETNAM_ZONE);
-            byte[] pdf = renderer.render(title, subtitle, kpis, sections, request.chartImages());
+            List<ReportChart> charts = buildCharts(request, sections);
+            byte[] pdf = renderer.render(title, subtitle, kpis, sections, charts, request.safeDisplayMode());
             if (pdf.length < 4 || pdf[0] != '%' || pdf[1] != 'P' || pdf[2] != 'D' || pdf[3] != 'F') {
                 throw new IllegalStateException("Generated report is not a valid PDF");
             }
             LocalDateTime now = LocalDateTime.now(VIETNAM_ZONE);
             String fileName = request.safeReportType().toLowerCase() + "-report-" + now.format(FILE_DATE) + "-" + reportId + ".pdf";
-            String storagePath = "reports/" + now.format(PATH_DATE) + "/" + fileName;
+            String storagePath = String.join(OBJECT_KEY_SEPARATOR, "reports", now.format(PATH_DATE), fileName);
             storageService.uploadGeneratedObject(storagePath, pdf, "application/pdf");
             jdbc.update(
                     """
@@ -211,6 +221,68 @@ public class CampaignReportService {
         }
     }
 
+    private List<ReportChart> buildCharts(CampaignReportRequest request, Map<String, List<Map<String, Object>>> sections) {
+        Map<String, List<Map<String, Object>>> data = new LinkedHashMap<>(sections);
+        data.putIfAbsent(REGISTRATIONS, queryRegistrations(request));
+        data.putIfAbsent(ANALYTICS, queryAnalytics(request));
+        List<ReportChart> charts = new ArrayList<>();
+        for (String id : request.safeChartIds()) {
+            ReportChart chart = switch (id) {
+                case "campaign_status" -> chart(id, "Campaign status distribution", "Distribution of selected campaigns by current status.", DONUT, grouped(data.get(SUMMARY), STATUS, null), request, "Campaign summary");
+                case "events_by_campaign" -> chart(id, "Events per campaign", "Number of selected events grouped by campaign.", "BAR", grouped(data.get(EVENTS), "campaign_id", null), request, "Event records");
+                case "interaction_trend", "school_interaction_trend", "region_trend" -> chart(id, "Interaction trend", "Daily interaction volume in the selected reporting period.", "LINE", groupedDates(data.get(INTERACTIONS)), request, "Interaction records");
+                case "schools_by_province" -> chart(id, "Participating schools by province", "Distinct selected schools grouped by province.", "BAR", grouped(data.get(SCHOOLS), PROVINCE_NAME, null), request, "School records");
+                case "registration_status" -> chart(id, "Registration status", "Selected registrations grouped by status.", DONUT, grouped(data.get(REGISTRATIONS), STATUS, null), request, "Registration records");
+                case "interaction_channel" -> chart(id, "Interactions by channel", "Selected interactions grouped by channel.", DONUT, grouped(data.get(INTERACTIONS), "channel", null), request, "Interaction records");
+                case "event_status" -> chart(id, "Event status", "Selected events grouped by operational status.", "BAR", grouped(data.get(SUMMARY), STATUS, null), request, "Event summary");
+                case "school_activity" -> chart(id, "School activity", "Interactions recorded for each selected school.", "BAR", values(data.get(SUMMARY), "school_name", INTERACTIONS), request, "School summary");
+                case "school_event_types" -> chart(id, "Events by type", "Selected school events grouped by event type.", DONUT, grouped(data.get(EVENTS), "event_type", null), request, "Event records");
+                case "school_outcomes" -> chart(id, "Interaction outcomes", "Selected school interactions grouped by outcome.", DONUT, grouped(data.get(ANALYTICS), "outcome", "total"), request, "Interaction analytics");
+                case "region_interactions" -> chart(id, "Interactions by province", "Selected provinces ranked by interaction volume.", "BAR", values(data.get(SUMMARY), PROVINCE_NAME, INTERACTIONS), request, REGIONAL_SUMMARY);
+                case "region_schools" -> chart(id, "Schools by province", "Selected provinces ranked by participating schools.", "BAR", values(data.get(SUMMARY), PROVINCE_NAME, SCHOOLS), request, REGIONAL_SUMMARY);
+                case "region_events" -> chart(id, "Events by province", "Selected provinces ranked by event count.", "BAR", values(data.get(SUMMARY), PROVINCE_NAME, EVENTS), request, REGIONAL_SUMMARY);
+                default -> null;
+            };
+            if (chart != null) charts.add(chart);
+        }
+        return charts;
+    }
+
+    private ReportChart chart(String id, String title, String description, String type, List<ReportChart.Datum> data, CampaignReportRequest request, String source) {
+        List<ReportChart.Datum> limited = data.stream().limit(10).toList();
+        String period = (request.fromDate() == null ? "All available dates" : request.fromDate()) + " to " + (request.toDate() == null ? "today" : request.toDate());
+        String insight = limited.isEmpty() ? "No matching records were found for the selected filters." : "Highest value: " + limited.get(0).label() + " (" + limited.get(0).value() + ").";
+        return new ReportChart(id, title, description, type, "count", period, source, insight, limited);
+    }
+
+    private List<ReportChart.Datum> grouped(List<Map<String, Object>> rows, String labelKey, String valueKey) {
+        Map<String, Long> aggregate = new LinkedHashMap<>();
+        if (rows != null) for (Map<String, Object> row : rows) {
+            String label = String.valueOf(row.getOrDefault(labelKey, "Unknown"));
+            long value = valueKey == null ? 1L : number(row.get(valueKey));
+            aggregate.merge(label, value, Long::sum);
+        }
+        return aggregate.entrySet().stream().map(e -> new ReportChart.Datum(e.getKey(), e.getValue())).sorted((a, b) -> Long.compare(b.value(), a.value())).toList();
+    }
+
+    private List<ReportChart.Datum> values(List<Map<String, Object>> rows, String labelKey, String valueKey) {
+        return grouped(rows, labelKey, valueKey);
+    }
+
+    private List<ReportChart.Datum> groupedDates(List<Map<String, Object>> rows) {
+        Map<String, Long> aggregate = new LinkedHashMap<>();
+        if (rows != null) for (Map<String, Object> row : rows) {
+            Object raw = row.get("created_at");
+            String label = raw == null ? "Unknown" : raw.toString().substring(0, Math.min(10, raw.toString().length()));
+            aggregate.merge(label, 1L, Long::sum);
+        }
+        return aggregate.entrySet().stream().map(e -> new ReportChart.Datum(e.getKey(), e.getValue())).sorted(java.util.Comparator.comparing(ReportChart.Datum::label)).toList();
+    }
+
+    private long number(Object value) {
+        if (value instanceof Number number) return number.longValue();
+        try { return Long.parseLong(String.valueOf(value)); } catch (NumberFormatException ignored) { return 0; }
+    }
     private String titleFor(CampaignReportRequest request) {
         return switch (request.safeReportType()) {
             case CampaignReportRequest.TYPE_EVENT -> "Event Report";
@@ -229,34 +301,18 @@ public class CampaignReportService {
         List<String> interFilters = interactionFilters(request, interParams, "i");
         String interWhere = interFilters.isEmpty() ? "" : WHERE + String.join(AND, interFilters);
 
-        long events = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM campaign_events e " + eventWhere,
-                Long.class,
-                eventParams.toArray()
-        );
-        long interactions = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM interactions i " + interWhere,
-                Long.class,
-                interParams.toArray()
-        );
+        long events = count("SELECT COUNT(*) FROM campaign_events e " + eventWhere, eventParams);
+        long interactions = count("SELECT COUNT(*) FROM interactions i " + interWhere, interParams);
 
         List<Object> schoolParams = new ArrayList<>();
         List<String> schoolFilters = schoolFilters(request, schoolParams);
         String schoolWhere = schoolFilters.isEmpty() ? "" : WHERE + String.join(AND, schoolFilters);
-        long schools = jdbc.queryForObject(
-                "SELECT COUNT(DISTINCT s.school_uid) FROM event_schools es JOIN campaign_events e ON e.id = es.event_id JOIN schools s ON s.school_uid = es.school_uid " + schoolWhere,
-                Long.class,
-                schoolParams.toArray()
-        );
+        long schools = count("SELECT COUNT(DISTINCT s.school_uid) FROM event_schools es JOIN campaign_events e ON e.id = es.event_id JOIN schools s ON s.school_uid = es.school_uid " + schoolWhere, schoolParams);
 
         List<Object> regParams = new ArrayList<>();
         List<String> regFilters = registrationFilters(request, regParams);
         String regWhere = regFilters.isEmpty() ? "" : WHERE + String.join(AND, regFilters);
-        long registrations = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM campaign_student_registrations r " + regWhere,
-                Long.class,
-                regParams.toArray()
-        );
+        long registrations = count("SELECT COUNT(*) FROM campaign_student_registrations r " + regWhere, regParams);
 
         List<Map<String, Object>> kpis = new ArrayList<>();
         kpis.add(Map.of(LABEL, "Events", VALUE, events));
@@ -266,6 +322,12 @@ public class CampaignReportService {
         return kpis;
     }
 
+    /** SQL fragments are selected exclusively from internal constants; all external values remain bound parameters. */
+    @SuppressWarnings("java:S2077")
+    private long count(String sql, List<Object> params) {
+        Long result = jdbc.queryForObject(sql, Long.class, params.toArray());
+        return result == null ? 0L : result;
+    }
     private Map<String, List<Map<String, Object>>> collectSections(CampaignReportRequest request) {
         return switch (request.safeReportType()) {
             case CampaignReportRequest.TYPE_EVENT -> collectEventSections(request);
@@ -283,10 +345,10 @@ public class CampaignReportService {
                 case EVENTS -> out.put(EVENTS, queryEvents(request));
                 case SCHOOLS -> out.put(SCHOOLS, querySchools(request));
                 case ASSIGNMENTS -> out.put(ASSIGNMENTS, queryAssignments(request));
-                case "registrations" -> out.put("registrations", queryRegistrations(request));
+                case REGISTRATIONS -> out.put(REGISTRATIONS, queryRegistrations(request));
                 case INTERACTIONS -> out.put(INTERACTIONS, queryInteractions(request));
                 case ANALYTICS -> out.put(ANALYTICS, queryAnalytics(request));
-                default -> { }
+                default -> log.debug(UNSUPPORTED_SECTION_MESSAGE, section);
             }
         }
         return out;
@@ -296,12 +358,12 @@ public class CampaignReportService {
         Map<String, List<Map<String, Object>>> out = new LinkedHashMap<>();
         for (String section : request.safeSections()) {
             switch (section) {
-                case "summary" -> out.put("summary", queryEventSummary(request));
+                case SUMMARY -> out.put(SUMMARY, queryEventSummary(request));
                 case SCHOOLS -> out.put(SCHOOLS, querySchools(request));
                 case ASSIGNMENTS -> out.put(ASSIGNMENTS, queryAssignments(request));
                 case INTERACTIONS -> out.put(INTERACTIONS, queryInteractions(request));
                 case ANALYTICS -> out.put(ANALYTICS, queryAnalytics(request));
-                default -> { }
+                default -> log.debug(UNSUPPORTED_SECTION_MESSAGE, section);
             }
         }
         return out;
@@ -311,10 +373,10 @@ public class CampaignReportService {
         Map<String, List<Map<String, Object>>> out = new LinkedHashMap<>();
         for (String section : request.safeSections()) {
             switch (section) {
-                case "summary" -> out.put("summary", querySchoolSummary(request));
+                case SUMMARY -> out.put(SUMMARY, querySchoolSummary(request));
                 case EVENTS -> out.put(EVENTS, queryEvents(request));
                 case INTERACTIONS -> out.put(INTERACTIONS, queryInteractions(request));
-                default -> { }
+                default -> log.debug(UNSUPPORTED_SECTION_MESSAGE, section);
             }
         }
         return out;
@@ -324,12 +386,12 @@ public class CampaignReportService {
         Map<String, List<Map<String, Object>>> out = new LinkedHashMap<>();
         for (String section : request.safeSections()) {
             switch (section) {
-                case "summary" -> out.put("summary", queryRegionSummary(request));
+                case SUMMARY -> out.put(SUMMARY, queryRegionSummary(request));
                 case EVENTS -> out.put(EVENTS, queryEvents(request));
                 case SCHOOLS -> out.put(SCHOOLS, querySchools(request));
                 case INTERACTIONS -> out.put(INTERACTIONS, queryInteractions(request));
                 case ANALYTICS -> out.put(ANALYTICS, queryAnalytics(request));
-                default -> { }
+                default -> log.debug(UNSUPPORTED_SECTION_MESSAGE, section);
             }
         }
         return out;
@@ -383,7 +445,7 @@ public class CampaignReportService {
             params.add(request.schoolUid());
         }
         if (hasText(request.provinceCode())) {
-            filters.add("s.province_code = ?");
+            filters.add(PROVINCE_FILTER);
             params.add(request.provinceCode());
         }
         String where = filters.isEmpty() ? "" : WHERE + String.join(AND, filters);
@@ -407,7 +469,7 @@ public class CampaignReportService {
         List<Object> params = new ArrayList<>();
         List<String> filters = new ArrayList<>();
         if (hasText(request.provinceCode())) {
-            filters.add("s.province_code = ?");
+            filters.add(PROVINCE_FILTER);
             params.add(request.provinceCode());
         }
         if (request.fromDate() != null) {
@@ -482,7 +544,7 @@ public class CampaignReportService {
             params.add(request.schoolUid());
         }
         if (hasText(request.provinceCode())) {
-            filters.add("s.province_code = ?");
+            filters.add(PROVINCE_FILTER);
             params.add(request.provinceCode());
         }
         String where = filters.isEmpty() ? "" : WHERE + String.join(AND, filters);
@@ -616,11 +678,11 @@ public class CampaignReportService {
             params.add(request.schoolUid());
         }
         if (request.fromDate() != null) {
-            filters.add("DATE(" + alias + ".starts_at) >= ?");
+            filters.add(DATE_FUNCTION + alias + ".starts_at) >= ?");
             params.add(request.fromDate());
         }
         if (request.toDate() != null) {
-            filters.add("DATE(" + alias + ".starts_at) <= ?");
+            filters.add(DATE_FUNCTION + alias + ".starts_at) <= ?");
             params.add(request.toDate());
         }
         return filters;
@@ -638,7 +700,7 @@ public class CampaignReportService {
             params.add(request.registrationStatus());
         }
         if (hasText(request.provinceCode())) {
-            filters.add("s.province_code = ?");
+            filters.add(PROVINCE_FILTER);
             params.add(request.provinceCode());
         }
         return filters;
@@ -652,7 +714,7 @@ public class CampaignReportService {
             params.add(request.schoolUid());
         }
         if (hasText(request.provinceCode())) {
-            filters.add("s.province_code = ?");
+            filters.add(PROVINCE_FILTER);
             params.add(request.provinceCode());
         }
         if (request.fromDate() != null) {
@@ -690,11 +752,11 @@ public class CampaignReportService {
             params.add(request.provinceCode());
         }
         if (request.fromDate() != null) {
-            filters.add("DATE(" + alias + ".created_at) >= ?");
+            filters.add(DATE_FUNCTION + alias + ".created_at) >= ?");
             params.add(request.fromDate());
         }
         if (request.toDate() != null) {
-            filters.add("DATE(" + alias + ".created_at) <= ?");
+            filters.add(DATE_FUNCTION + alias + ".created_at) <= ?");
             params.add(request.toDate());
         }
         return filters;
@@ -750,7 +812,7 @@ public class CampaignReportService {
         return new ReportExportResponse(
                 ((Number) row.get("id")).longValue(),
                 (String) row.get("report_type"),
-                (String) row.get("status"),
+                (String) row.get(STATUS),
                 (String) row.get("file_name"),
                 (String) row.get(STORAGE_PATH),
                 downloadUrl,

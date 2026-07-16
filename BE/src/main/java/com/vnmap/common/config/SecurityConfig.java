@@ -29,6 +29,8 @@ public class SecurityConfig {
     private static final String STUDENT = "STUDENT";
     private static final String EVENTS_API = "/api/v1/events/**";
 
+    /** Stateless Bearer/JWT API: no cookie-authenticated session exists for CSRF to exploit. */
+    @SuppressWarnings("java:S4502")
     @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,

@@ -43,7 +43,7 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException ex, HttpServletRequest request) {
         Map<String, List<String>> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
                 .collect(Collectors.groupingBy(
-                        error -> error.getField(),
+                        org.springframework.validation.FieldError::getField,
                         Collectors.mapping(
                                 error -> error.getDefaultMessage() != null ? error.getDefaultMessage() : "Invalid value",
                                 Collectors.toList())));
@@ -61,8 +61,9 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<ApiError>> handleTypeMismatchException(
             MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
-        String message = String.format("Parameter '%s' should be of type '%s'", ex.getName(),
-                ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "unknown");
+        Class<?> requiredType = ex.getRequiredType();
+        String typeName = requiredType == null ? "unknown" : requiredType.getSimpleName();
+        String message = String.format("Parameter '%s' should be of type '%s'", ex.getName(), typeName);
         return error(HttpStatus.BAD_REQUEST, "TYPE_MISMATCH", message, request, null);
     }
 
