@@ -110,46 +110,12 @@ class _HomeGridRow extends StatelessWidget {
 class _KpiRow extends StatelessWidget {
   const _KpiRow({required this.model});
   final StaffHomeModel model;
-
   @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth > 700;
-        final cardWidth = isWide
-            ? (constraints.maxWidth - AppSpacing.bentoGap * 2) / 3
-            : constraints.maxWidth;
-        return Wrap(
-          spacing: AppSpacing.bentoGap,
-          runSpacing: AppSpacing.bentoGap,
-          children: [
-            KpiCard(
-              title: 'Sự kiện đã tham gia',
-              value: '${model.eventsJoined}',
-              icon: Icons.event_outlined,
-              accentColor: AppColors.primary,
-              subtitle: 'Tổng số sự kiện',
-            ),
-            KpiCard(
-              title: 'Tương tác đã ghi nhận',
-              value: '${model.interactionsLogged}',
-              icon: Icons.chat_outlined,
-              accentColor: AppColors.chartColors[3],
-              subtitle: 'Tương tác',
-              trend: '+8%',
-            ),
-            KpiCard(
-              title: 'Trường đã thăm',
-              value: '${model.schoolsVisited}',
-              icon: Icons.school_outlined,
-              accentColor: AppColors.success,
-              subtitle: 'Trường học',
-            ),
-          ].map((k) => SizedBox(width: cardWidth, child: k)).toList(),
-        );
-      },
-    );
-  }
+  Widget build(BuildContext context) => HomeKpiGrid(desktopColumns: 3, children: [
+    KpiCard(title: 'Sự kiện đã tham gia', value: '${model.eventsJoined}', icon: Icons.event_outlined, accentColor: AppColors.primary, subtitle: 'Tổng số sự kiện'),
+    KpiCard(title: 'Tương tác đã ghi nhận', value: '${model.interactionsLogged}', icon: Icons.chat_outlined, accentColor: AppColors.chartColors[3], subtitle: 'Tương tác', trend: '+8%'),
+    KpiCard(title: 'Trường đã thăm', value: '${model.schoolsVisited}', icon: Icons.school_outlined, accentColor: AppColors.success, subtitle: 'Trường học'),
+  ]);
 }
 
 class _AssignedEventsCard extends StatelessWidget {

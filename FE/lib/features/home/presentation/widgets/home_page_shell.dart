@@ -36,7 +36,9 @@ class HomePageShell extends StatelessWidget {
             vertical: AppSpacing.md,
           ),
           decoration: BoxDecoration(
-            color: isDark ? AppColors.surfaceContainerHighDark : AppColors.surfaceLight,
+            color: isDark
+                ? AppColors.surfaceContainerHighDark
+                : AppColors.surfaceLight,
             border: Border(
               bottom: BorderSide(
                 color: isDark ? AppColors.borderDark : AppColors.borderLight,
@@ -55,20 +57,24 @@ class HomePageShell extends StatelessWidget {
                       children: [
                         Text(
                           title,
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           subtitle.isEmpty
                               ? DateFormat('dd/MM/yyyy').format(DateTime.now())
                               : subtitle,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: isDark
-                                ? AppColors.textSecondaryDark
-                                : AppColors.textSecondaryLight,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: isDark
+                                        ? AppColors.textSecondaryDark
+                                        : AppColors.textSecondaryLight,
+                                  ),
                         ),
                       ],
                     ),
@@ -86,9 +92,8 @@ class HomePageShell extends StatelessWidget {
                 Wrap(
                   spacing: AppSpacing.sm,
                   runSpacing: AppSpacing.sm,
-                  children: actions!
-                      .map((a) => _ActionButton(action: a))
-                      .toList(),
+                  children:
+                      actions!.map((a) => _ActionButton(action: a)).toList(),
                 ),
               ],
             ],
@@ -166,6 +171,53 @@ class _ActionButton extends StatelessWidget {
           vertical: AppSpacing.sm,
         ),
       ),
+    );
+  }
+}
+
+/// A shared metric layout for role dashboards. Every KPI gets the same height,
+/// while columns reflow from one on compact phones to the role-appropriate
+/// desktop grid.
+class HomeKpiGrid extends StatelessWidget {
+  const HomeKpiGrid({
+    super.key,
+    required this.children,
+    this.desktopColumns = 4,
+    this.tabletColumns = 2,
+    this.cardHeight = 200,
+  });
+
+  final List<Widget> children;
+  final int desktopColumns;
+  final int tabletColumns;
+  final double cardHeight;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= AppSpacing.breakpointTablet
+            ? desktopColumns
+            : constraints.maxWidth >= 560
+                ? tabletColumns
+                : 1;
+        final cardWidth =
+            (constraints.maxWidth - AppSpacing.bentoGap * (columns - 1)) /
+                columns;
+
+        return Wrap(
+          spacing: AppSpacing.bentoGap,
+          runSpacing: AppSpacing.bentoGap,
+          children: [
+            for (final child in children)
+              SizedBox(
+                width: cardWidth,
+                height: cardHeight,
+                child: child,
+              ),
+          ],
+        );
+      },
     );
   }
 }

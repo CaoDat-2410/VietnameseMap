@@ -1596,3 +1596,31 @@ No new bugs introduced since feat-082. All 2 known issues from 2/7 smoke test
 - Backend Sonar scan completed for project `VietnamMap`; local default Quality Gate returned `OK`. JaCoCo line coverage measured 48.50% after the CampaignService integration test ran on the correct PostgreSQL network (previously skipped on `be_vnmap_network`).
 - Frontend Flutter suite generated LCOV with 23.93% line coverage. Frontend Sonar project `vnm-frontend` scanned and default Quality Gate returned `OK`, but this Sonar Community runtime has no Dart analyzer: scanner reported 0 languages, so LCOV is not ingested by Sonar and cannot be used to enforce the requested 88% threshold yet.
 - Repaired stale frontend tests and two related behaviours: `BatchProcessor.dispose()` now cancels and discards pending work; `CampaignDashboardModel` accepts dynamically typed outcome maps from decoded JSON.
+### 2026-07-15 - feat-087 Localization consistency for Settings and shared navigation
+- Replaced the remaining Vietnamese-only labels in Settings, Firebase demo, Crashlytics feedback, desktop sidebar, and mobile shell tooltips with generated English/Vietnamese localization keys.
+- Remote Config state, refresh confirmation, Crashlytics availability/result, analytics consent, theme labels, app version/module, and admin navigation labels now follow the active locale.
+- Verified: `flutter analyze` on all touched Flutter files completed without output/errors; `flutter build web --release --dart-define=API_BASE_URL=http://localhost:8080` completed and emitted `build/web/main.dart.js`; release artifact loaded into `vnmap_frontend`; `http://localhost:3000/` returned 200 and backend health returned UP.
+- Browser evidence: `system-analysis-assets/screenshots/16-settings-english-localized.jpg` shows English Settings and navigation; `17-settings-vietnamese-localized.jpg` shows the Vietnamese equivalent after switching back.
+
+### 2026-07-15 - feat-088 KPI card alignment and responsive dashboard grid (runtime verification pending)
+- Normalized KpiCard accent spacing so the primary metric no longer renders shorter than sibling metrics.
+- Added HomeKpiGrid for Admin, Manager, Staff, and Student dashboards: fixed 200px KPI height; one column below 560px, two columns for intermediate widths, and role-specific desktop columns at 900px and above.
+- Verified source: dart format and flutter analyze on the shared card, home shell, and all four home pages completed without errors. Docker Flutter release compiler remained stuck at 'Compiling lib/main.dart for the Web...' on repeated attempts; the running frontend was intentionally not replaced with an unverified artifact.
+
+### 2026-07-16 - feat-089 Data-derived charts in PDF reports
+- Replaced the browser-screenshot PDF path with a shared, server-side chart contract. Campaign, Event, School, and Region reports now select type-specific chart IDs and display mode; the backend derives donut, bar, and line charts only from the selected report rows.
+- Every generated chart page includes a title, description, unit, filter period, data source, a computed insight, a fixed print-safe palette, and the corresponding label/value table. Empty chart data renders an explicit no-data message instead of a fake chart.
+- Verified runtime in Docker: backend rebuilt and `/actuator/health` returned `UP`; Campaign #47 became `READY`, downloaded as a 174109-byte `%PDF` file; Event #48, School #49, and Region #50 also became `READY` through the authenticated API. Rendered the Campaign PDF to PNG and visually inspected the chart pages (donut, bar, line, and province bar).
+- Frontend source verification: `flutter format` and targeted `flutter analyze` on the report request model and shared form scaffold completed without errors. Docker Flutter release builds still terminate at `Compiling lib/main.dart for the Web...` before producing a new frontend image, so localhost:3000 continues to serve the prior frontend artifact; the new Report Builder source is not claimed as deployed until that environment build issue is resolved.
+
+### 2026-07-16 - Backend SonarQube quality gate and 90% coverage
+- Cleared every unresolved Sonar issue in project `VietnamMap` without broadening exclusions or changing the Quality Gate.
+- Docker `mvn clean test`: BUILD SUCCESS; 185 tests, 0 failures, 0 errors, 0 skipped. JaCoCo: 94.53% line, 80.11% branch, 90.97% combined Sonar formula.
+- Final server analysis `9c0eeaa2-ee9d-417b-a415-e30c6f3ff5c9` (executed 2026-07-16 17:57:09 UTC): Quality Gate OK; coverage 91.0%; line 94.6%; branch 80.2%; new coverage 89.5%; unresolved issues, bugs, vulnerabilities, code smells, and security hotspots all 0.
+- Scanner token was created only in memory for each upload and revoked immediately after completion.
+### 2026-07-17 - Illustrated system analysis and role-based user manual
+- Created `SYSTEM_ANALYSIS_REPORT.md` with current-state system analysis and executable user journeys for Admin, Manager, Staff, and Student.
+- Captured 55 runtime screenshots under `system-analysis-assets/screenshots/`, including privacy-safe Manager/Staff registration views and UI evidence for Remote Config and Crashlytics.
+- Generated and visually verified Campaign, Event, School, and Region PDFs; retained only cover/chart screenshot evidence and removed temporary PDF/render artifacts.
+- Added `system-analysis-assets/screenshots-selected-20/` with the 20 essential screenshots requested for concise delivery.
+- Final QA: all 55 report image references resolve, all image files decode with matching extensions, no unreferenced evidence remains, and the report contains no stored credentials or tokens.

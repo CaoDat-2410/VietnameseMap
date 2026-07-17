@@ -541,8 +541,8 @@
                          "dependencies":  [
                                               "feat-038"
                                           ],
-                         "status":  "pending",
-                         "evidence":  "",
+                         "status":  "completed",
+                         "evidence":  "2026-07-16: Docker mvn clean test BUILD SUCCESS (185 tests, 0 failures/errors). SonarQube project VietnamMap analysis 9c0eeaa2-ee9d-417b-a415-e30c6f3ff5c9: Quality Gate OK, coverage 91.0%, line coverage 94.6%, branch coverage 80.2%, bugs/vulnerabilities/code smells/security hotspots 0, unresolved issues 0.",
                          "files":  [
 
                                    ]
@@ -1348,7 +1348,29 @@
                            "note":  "User asked about auto-grading approach based on interaction/outcome data"
                        }
                    ],
-    "pendingFeatures": [],
+    "pendingFeatures": [
+        {
+            "id": "feat-088",
+            "name": "KPI card alignment and responsive dashboard grid",
+            "status": "in_progress",
+            "note": "Source implementation and targeted flutter analyze are clean. Desktop runtime evidence is captured; exhaustive responsive breakpoint verification remains pending."
+        },
+        {
+            "id": "feat-089",
+            "name": "Data-derived charts in PDF reports",
+            "description": "Implemented a shared mandatory chart contract for Campaign, Event, School, and Region reports. The backend derives donut, bar, and line charts from report query results and embeds print-friendly chart pages with source, period, unit, insight, and a data table.",
+            "dependencies": ["feat-080"],
+            "status": "in_progress",
+            "evidence": "Docker runtime verification produced READY Campaign, Event, School, and Region PDF jobs. All four PDFs were rendered and visually inspected; cover and chart evidence is stored under system-analysis-assets/screenshots/.",
+            "files": [
+                "FE/lib/features/reports/domain/models/report_models.dart",
+                "FE/lib/features/reports/presentation/widgets/report_form_scaffold.dart",
+                "SYSTEM_ANALYSIS_REPORT.md",
+                "system-analysis-assets/screenshots/"
+            ],
+            "note": "PDF generation and runtime evidence are complete; final feature status remains in progress pending the remaining project-level acceptance checks."
+        }
+    ],
     "completedFeatures": [
         {
             "id": "feat-083",
@@ -1423,6 +1445,23 @@
                 "FE/lib/features/admin/presentation/pages/admin_users_page.dart",
                 "FE/lib/features/admin/presentation/widgets/user_form_dialog.dart",
                 "FE/lib/features/admin/presentation/widgets/user_admin_table.dart"
+            ]
+        },
+        {
+            "id": "feat-087",
+            "name": "Localization consistency for Settings and shared navigation",
+            "description": "Localized Settings, Firebase Remote Config and Crashlytics feedback, sidebar navigation, and mobile shell tooltips so visible labels follow the selected English or Vietnamese locale.",
+            "dependencies": ["feat-002"],
+            "status": "completed",
+            "evidence": "Flutter analysis and release build completed. Runtime browser evidence for English and Vietnamese Settings is stored in system-analysis-assets/screenshots/16-settings-english-localized.jpg and 17-settings-vietnamese-localized.jpg.",
+            "files": [
+                "FE/lib/l10n/app_en.arb",
+                "FE/lib/l10n/app_vi.arb",
+                "FE/lib/features/settings/presentation/pages/settings_page.dart",
+                "FE/lib/app/router.dart",
+                "FE/lib/app/widgets/app_shell_scaffold.dart",
+                "FE/lib/app/widgets/app_sidebar.dart",
+                "progress.md"
             ]
         }
     ]

@@ -138,47 +138,13 @@ class _KpiGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     final kpis = [
       ('Người dùng', model.totalUsers, Icons.people, AppColors.primary),
-      (
-        'Chiến dịch',
-        model.totalCampaigns,
-        Icons.campaign,
-        AppColors.chartColors[1]
-      ),
+      ('Chiến dịch', model.totalCampaigns, Icons.campaign, AppColors.chartColors[1]),
       ('Sự kiện', model.totalEvents, Icons.event, AppColors.chartColors[3]),
       ('Trường học', model.totalSchools, Icons.school, AppColors.success),
       ('Tương tác', model.totalInteractions, Icons.chat, AppColors.warning),
-      (
-        'Chờ kích hoạt',
-        model.pendingActivations,
-        Icons.hourglass_empty,
-        AppColors.error
-      ),
+      ('Chờ kích hoạt', model.pendingActivations, Icons.hourglass_empty, AppColors.error),
     ];
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth > 600;
-        final cardWidth = isWide
-            ? (constraints.maxWidth - AppSpacing.bentoGap * 3) / 4
-            : (constraints.maxWidth - AppSpacing.bentoGap) / 2;
-        return Wrap(
-          spacing: AppSpacing.bentoGap,
-          runSpacing: AppSpacing.bentoGap,
-          children: kpis.map((k) {
-            return SizedBox(
-              width: cardWidth,
-              child: KpiCard(
-                title: k.$1,
-                value: '${k.$2}',
-                icon: k.$3,
-                accentColor: k.$4,
-                subtitle: '',
-              ),
-            );
-          }).toList(),
-        );
-      },
-    );
+    return HomeKpiGrid(children: [for (final k in kpis) KpiCard(title: k.$1, value: '${k.$2}', icon: k.$3, accentColor: k.$4, subtitle: '')]);
   }
 }
 

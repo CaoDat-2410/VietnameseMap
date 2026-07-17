@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app_sidebar.dart';
 import '../../features/notifications/presentation/widgets/notification_bell.dart';
+import '../../l10n/app_localizations.dart';
 
 const _kSidebarPrefKey = 'app.nav.sidebar.expanded';
 
@@ -47,6 +48,7 @@ class AppShellScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final expanded = ref.watch(sidebarExpandedProvider);
+    final l10n = AppLocalizations.of(context)!;
 
     return LayoutBuilder(
       builder: (context, c) {
@@ -111,7 +113,7 @@ class AppShellScaffold extends ConsumerWidget {
           appBar: AppBar(
             leading: Builder(
               builder: (ctx) => IconButton(
-                tooltip: 'Menu',
+                tooltip: l10n.menu,
                 icon: const Icon(Icons.menu),
                 onPressed: () => Scaffold.of(ctx).openDrawer(),
               ),
@@ -125,7 +127,7 @@ class AppShellScaffold extends ConsumerWidget {
             actions: [
               const NotificationBellButton(),
               IconButton(
-                tooltip: 'Hồ sơ',
+                tooltip: l10n.profile,
                 icon: const Icon(Icons.account_circle_outlined),
                 onPressed: () => context.go('/profile'),
               ),

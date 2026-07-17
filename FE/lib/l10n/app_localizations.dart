@@ -1123,6 +1123,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No schools found. Try a different keyword.'**
   String get noSchoolsFoundHint;
+
+  /// No description provided for @overview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get overview;
+
+  /// No description provided for @profile.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile'**
+  String get profile;
+
+  /// No description provided for @analytics.
+  ///
+  /// In en, this message translates to:
+  /// **'Analytics'**
+  String get analytics;
+
+  /// No description provided for @registrationReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration review'**
+  String get registrationReview;
+
+  /// No description provided for @reports.
+  ///
+  /// In en, this message translates to:
+  /// **'Reports'**
+  String get reports;
+
+  /// No description provided for @menu.
+  ///
+  /// In en, this message translates to:
+  /// **'Menu'**
+  String get menu;
+
+  /// No description provided for @expand.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand'**
+  String get expand;
+
+  /// No description provided for @collapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse'**
+  String get collapse;
+
+  /// No description provided for @appearance.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get appearance;
+
+  /// No description provided for @language.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get language;
+
+  /// No description provided for @privacyAnalytics.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy & Analytics'**
+  String get privacyAnalytics;
+
+  /// No description provided for @appInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'App information'**
+  String get appInformation;
+
+  /// No description provided for @lightTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Light'**
+  String get lightTheme;
+
+  /// No description provided for @darkTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Dark'**
+  String get darkTheme;
+
+  /// No description provided for @systemTheme.
+  ///
+  /// In en, this message translates to:
+  /// **'System'**
+  String get systemTheme;
+
+  /// No description provided for @allowAnalytics.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow analytics'**
+  String get allowAnalytics;
+
+  /// No description provided for @allowAnalyticsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Send anonymous usage data to improve the app'**
+  String get allowAnalyticsDescription;
+
+  /// No description provided for @analyticsDisabledDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Usage analytics is disabled'**
+  String get analyticsDisabledDescription;
+
+  /// No description provided for @firebaseDemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Firebase demo'**
+  String get firebaseDemo;
+
+  /// No description provided for @remoteConfigStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote Config: Google {google} · Maintenance {maintenance}'**
+  String remoteConfigStatus(String google, String maintenance);
+
+  /// No description provided for @enabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Enabled'**
+  String get enabled;
+
+  /// No description provided for @disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled'**
+  String get disabled;
+
+  /// No description provided for @refreshRemoteConfig.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh Remote Config'**
+  String get refreshRemoteConfig;
+
+  /// No description provided for @remoteConfigRefreshed.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote Config refreshed.'**
+  String get remoteConfigRefreshed;
+
+  /// No description provided for @crashlyticsDemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Crashlytics demo'**
+  String get crashlyticsDemo;
+
+  /// No description provided for @crashlyticsDemoDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Send a non-fatal event without stopping the app.'**
+  String get crashlyticsDemoDescription;
+
+  /// No description provided for @sendNonFatalDemo.
+  ///
+  /// In en, this message translates to:
+  /// **'Send non-fatal demo'**
+  String get sendNonFatalDemo;
+
+  /// No description provided for @crashlyticsEventSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Non-fatal event sent to Crashlytics.'**
+  String get crashlyticsEventSent;
+
+  /// No description provided for @crashlyticsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Crashlytics demo is available on Android and iOS only.'**
+  String get crashlyticsUnavailable;
+
+  /// No description provided for @version.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version}'**
+  String version(String version);
+
+  /// No description provided for @campaignModule.
+  ///
+  /// In en, this message translates to:
+  /// **'Campaign Module'**
+  String get campaignModule;
 }
 
 class _AppLocalizationsDelegate

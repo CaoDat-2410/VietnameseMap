@@ -494,7 +494,7 @@ class _AppShell extends ConsumerWidget {
     if (role != null) {
       items.add(_NavItem(
         _homePathFor(role),
-        'Tổng quan',
+        l10n.overview,
         Icons.dashboard_outlined,
         Icons.dashboard,
       ));
@@ -510,7 +510,7 @@ class _AppShell extends ConsumerWidget {
       return items;
     }
 
-    items.add(_NavItem('/profile', 'Hồ sơ', Icons.account_circle_outlined, Icons.account_circle));
+    items.add(_NavItem('/profile', l10n.profile, Icons.account_circle_outlined, Icons.account_circle));
 
     if (role == 'STUDENT') {
       items.add(_NavItem(
@@ -530,15 +530,15 @@ class _AppShell extends ConsumerWidget {
       items.add(_NavItem(
           '/campaigns', l10n.campaigns, Icons.campaign_outlined, Icons.campaign));
       items.add(_NavItem(
-          '/analytics', 'Analytics', Icons.analytics_outlined, Icons.analytics));
-      items.add(_NavItem('/staff/registrations', 'Duyệt đơn',
+          '/analytics', l10n.analytics, Icons.analytics_outlined, Icons.analytics));
+      items.add(_NavItem('/staff/registrations', l10n.registrationReview,
           Icons.assignment_turned_in_outlined, Icons.assignment_turned_in));
       items.add(_NavItem(
           '/schools', l10n.schools, Icons.school_outlined, Icons.school));
     }
     if (role == 'MANAGER' || role == 'ADMIN') {
       items.add(_NavItem(
-          '/reports', 'Báo cáo', Icons.summarize_outlined, Icons.summarize));
+          '/reports', l10n.reports, Icons.summarize_outlined, Icons.summarize));
     }
     if (role == 'ADMIN') {
       items.add(_NavItem('/admin/users', l10n.users,

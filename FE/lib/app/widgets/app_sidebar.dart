@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/app_localizations.dart';
+
 /// Public navigation item descriptor. Shared by both sidebar and drawer.
 class AppNavItem {
   const AppNavItem({
@@ -45,6 +47,7 @@ class AppSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     return Material(
       color: scheme.surface,
       child: SafeArea(
@@ -59,7 +62,7 @@ class AppSidebar extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: IconButton(
-                    tooltip: collapsed ? 'Mở rộng' : 'Thu gọn',
+                    tooltip: collapsed ? l10n.expand : l10n.collapse,
                     icon: Icon(collapsed ? Icons.menu_open : Icons.menu),
                     color: scheme.onSurfaceVariant,
                     onPressed: onToggleCollapsed,

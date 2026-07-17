@@ -37,6 +37,8 @@ class ReportFormScaffold extends ConsumerStatefulWidget {
 class _ReportFormScaffoldState extends ConsumerState<ReportFormScaffold> {
   final Map<String, dynamic> _values = {};
   bool _includeArchived = false;
+  late Set<String> _selectedChartIds;
+  String _displayMode = 'CHARTS_AND_TABLES';
 
   @override
   void initState() {
@@ -170,51 +172,109 @@ class _ReportFormScaffoldState extends ConsumerState<ReportFormScaffold> {
   }
 
   Widget _buildChartsPreview() {
-    if (widget.chartSpecs.isEmpty) return const SizedBox.shrink();
-
+    final options = _chartOptionsFor(widget.reportType);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const _SectionTitle(
           icon: Icons.insert_chart_outlined,
-          title: 'Biểu đồ trong PDF',
-          subtitle:
-              'Các preview này sẽ được render thành ảnh và nhúng vào file xuất.',
+          title: 'Biểu đồ trong báo cáo',
+          subtitle: 'Chọn 3–6 biểu đồ. PDF luôn lấy số liệu thật theo bộ lọc, kèm nguồn dữ liệu và insight.',
         ),
         const SizedBox(height: 12),
-        LayoutBuilder(builder: (context, c) {
-          final columns = c.maxWidth >= 960
-              ? (widget.chartSpecs.length >= 3 ? 3 : widget.chartSpecs.length)
-              : c.maxWidth >= 620
-                  ? (widget.chartSpecs.length >= 2
-                      ? 2
-                      : widget.chartSpecs.length)
-                  : 1;
-          final itemWidth = columns == 1
-              ? c.maxWidth
-              : (c.maxWidth - (columns - 1) * 12) / columns;
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            ChoiceChip(
+              label: const Text('Biểu đồ + bảng'),
+              selected: _displayMode == 'CHARTS_AND_TABLES',
+              onSelected: (_) => setState(() => _displayMode = 'CHARTS_AND_TABLES'),
+            ),
+            ChoiceChip(
+              label: const Text('Chỉ biểu đồ'),
+              selected: _displayMode == 'CHARTS_ONLY',
+              onSelected: (_) => setState(() => _displayMode = 'CHARTS_ONLY'),
+            ),
+            ChoiceChip(
+              label: const Text('Chỉ bảng'),
+              selected: _displayMode == 'TABLES_ONLY',
+              onSelected: (_) => setState(() => _displayMode = 'TABLES_ONLY'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        LayoutBuilder(builder: (context, constraints) {
+          final columns = constraints.maxWidth >= 760 ? 2 : 1;
+          final itemWidth = columns == 1 ? constraints.maxWidth : (constraints.maxWidth - 12) / columns;
           return Wrap(
             spacing: 12,
             runSpacing: 12,
-            children: widget.chartSpecs
-                .map((spec) => SizedBox(
-                      width: itemWidth,
-                      height: c.maxWidth < 620 ? 168 : 190,
-                      child: spec.builder(context),
-                    ))
-                .toList(),
+            children: [
+              for (final option in options)
+                SizedBox(
+                  width: itemWidth,
+                  child: CheckboxListTile(
+                    value: _selectedChartIds.contains(option.id),
+                    onChanged: (selected) => setState(() {
+                      if (selected == true) {
+                        _selectedChartIds.add(option.id);
+                      } else if (_selectedChartIds.length > 3) {
+                        _selectedChartIds.remove(option.id);
+                      }
+                    }),
+                    title: Text(option.title),
+                    subtitle: Text('${option.type} · ${option.source}'),
+                    secondary: Icon(option.icon),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                    controlAffinity: ListTileControlAffinity.trailing,
+                  ),
+                ),
+            ],
           );
         }),
+        const SizedBox(height: 6),
+        Text('Đã chọn ${_selectedChartIds.length}/4 biểu đồ. Mỗi biểu đồ có tiêu đề, đơn vị, khoảng thời gian, nguồn, insight và bảng số liệu trong PDF.'),
       ],
     );
   }
 
+  List<_ReportChartOption> _chartOptionsFor(String type) {
+    switch (type) {
+      case CampaignReportRequest.typeEvent:
+        return const [
+          _ReportChartOption('registration_status', 'Trạng thái đăng ký', 'Donut', 'Dữ liệu đăng ký', Icons.how_to_reg),
+          _ReportChartOption('interaction_trend', 'Xu hướng tương tác', 'Line', 'Dữ liệu tương tác', Icons.show_chart),
+          _ReportChartOption('interaction_channel', 'Tương tác theo kênh', 'Donut', 'Dữ liệu tương tác', Icons.donut_large),
+          _ReportChartOption('event_status', 'Trạng thái sự kiện', 'Bar', 'Dữ liệu sự kiện', Icons.bar_chart),
+        ];
+      case CampaignReportRequest.typeSchool:
+        return const [
+          _ReportChartOption('school_activity', 'Hoạt động theo trường', 'Bar', 'Tổng hợp trường', Icons.school),
+          _ReportChartOption('school_event_types', 'Sự kiện theo loại', 'Donut', 'Dữ liệu sự kiện', Icons.pie_chart),
+          _ReportChartOption('school_interaction_trend', 'Xu hướng tương tác', 'Line', 'Dữ liệu tương tác', Icons.show_chart),
+          _ReportChartOption('school_outcomes', 'Kết quả tương tác', 'Donut', 'Phân tích tương tác', Icons.insights),
+        ];
+      case CampaignReportRequest.typeRegion:
+        return const [
+          _ReportChartOption('region_interactions', 'Tương tác theo tỉnh', 'Bar', 'Tổng hợp vùng', Icons.bar_chart),
+          _ReportChartOption('region_schools', 'Trường theo tỉnh', 'Bar', 'Tổng hợp vùng', Icons.school),
+          _ReportChartOption('region_events', 'Sự kiện theo tỉnh', 'Bar', 'Tổng hợp vùng', Icons.event),
+          _ReportChartOption('region_trend', 'Xu hướng tương tác', 'Line', 'Dữ liệu tương tác', Icons.show_chart),
+        ];
+      default:
+        return const [
+          _ReportChartOption('campaign_status', 'Phân bố trạng thái chiến dịch', 'Donut', 'Tổng hợp chiến dịch', Icons.donut_large),
+          _ReportChartOption('events_by_campaign', 'Sự kiện theo chiến dịch', 'Bar', 'Dữ liệu sự kiện', Icons.bar_chart),
+          _ReportChartOption('interaction_trend', 'Xu hướng tương tác', 'Line', 'Dữ liệu tương tác', Icons.show_chart),
+          _ReportChartOption('schools_by_province', 'Trường tham gia theo tỉnh', 'Bar', 'Dữ liệu trường', Icons.school),
+        ];
+    }
+  }
   Future<void> _onExport() async {
-    final charts = <String, String>{};
-    for (final spec in widget.chartSpecs) {
-      final b64 = await ChartToImage.renderToBase64(
-          context: context, chart: spec.builder(context));
-      if (b64 != null) charts[spec.section] = b64;
+    if (_selectedChartIds.length < 3) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Hãy chọn tối thiểu 3 biểu đồ cho báo cáo.')));
+      return;
     }
     final request = CampaignReportRequest(
       reportType: widget.reportType,
@@ -280,6 +340,14 @@ class _ReportFormScaffoldState extends ConsumerState<ReportFormScaffold> {
   }
 }
 
+class _ReportChartOption {
+  const _ReportChartOption(this.id, this.title, this.type, this.source, this.icon);
+  final String id;
+  final String title;
+  final String type;
+  final String source;
+  final IconData icon;
+}
 class ReportFilterDescriptor {
   const ReportFilterDescriptor({
     required this.key,

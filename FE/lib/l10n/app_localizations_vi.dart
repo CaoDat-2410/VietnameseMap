@@ -531,4 +531,106 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get noSchoolsFoundHint => 'Không tìm thấy trường. Thử từ khóa khác.';
+
+  @override
+  String get overview => 'Tổng quan';
+
+  @override
+  String get profile => 'Hồ sơ';
+
+  @override
+  String get analytics => 'Phân tích';
+
+  @override
+  String get registrationReview => 'Duyệt đơn';
+
+  @override
+  String get reports => 'Báo cáo';
+
+  @override
+  String get menu => 'Trình đơn';
+
+  @override
+  String get expand => 'Mở rộng';
+
+  @override
+  String get collapse => 'Thu gọn';
+
+  @override
+  String get appearance => 'Giao diện';
+
+  @override
+  String get language => 'Ngôn ngữ';
+
+  @override
+  String get privacyAnalytics => 'Quyền riêng tư & Phân tích';
+
+  @override
+  String get appInformation => 'Thông tin ứng dụng';
+
+  @override
+  String get lightTheme => 'Sáng';
+
+  @override
+  String get darkTheme => 'Tối';
+
+  @override
+  String get systemTheme => 'Hệ thống';
+
+  @override
+  String get allowAnalytics => 'Cho phép phân tích';
+
+  @override
+  String get allowAnalyticsDescription =>
+      'Gửi dữ liệu sử dụng ẩn danh để cải thiện ứng dụng';
+
+  @override
+  String get analyticsDisabledDescription =>
+      'Đã tắt theo dõi phân tích sử dụng';
+
+  @override
+  String get firebaseDemo => 'Demo Firebase';
+
+  @override
+  String remoteConfigStatus(String google, String maintenance) {
+    return 'Remote Config: Google $google · Bảo trì $maintenance';
+  }
+
+  @override
+  String get enabled => 'Bật';
+
+  @override
+  String get disabled => 'Tắt';
+
+  @override
+  String get refreshRemoteConfig => 'Làm mới Remote Config';
+
+  @override
+  String get remoteConfigRefreshed => 'Đã làm mới Remote Config.';
+
+  @override
+  String get crashlyticsDemo => 'Demo Crashlytics';
+
+  @override
+  String get crashlyticsDemoDescription =>
+      'Gửi một lỗi non-fatal, không làm ứng dụng dừng.';
+
+  @override
+  String get sendNonFatalDemo => 'Gửi non-fatal demo';
+
+  @override
+  String get crashlyticsEventSent =>
+      'Đã gửi sự kiện non-fatal tới Crashlytics.';
+
+  @override
+  String get crashlyticsUnavailable =>
+      'Demo Crashlytics chỉ khả dụng trên Android và iOS.';
+
+  @override
+  String version(String version) {
+    return 'Phiên bản $version';
+  }
+
+  @override
+  String get campaignModule => 'Mô-đun chiến dịch';
 }

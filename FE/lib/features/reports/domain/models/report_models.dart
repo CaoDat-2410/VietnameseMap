@@ -14,6 +14,8 @@ class CampaignReportRequest {
     this.interactionOutcome,
     this.includeArchived = false,
     required this.sections,
+    this.chartIds = const [],
+    this.displayMode = 'CHARTS_AND_TABLES',
     this.chartImages = const {},
   });
 
@@ -70,6 +72,8 @@ class CampaignReportRequest {
   final String? interactionOutcome;
   final bool includeArchived;
   final List<String> sections;
+  final List<String> chartIds;
+  final String displayMode;
   final Map<String, String> chartImages;
 
   Map<String, dynamic> toJson() => {
@@ -87,6 +91,8 @@ class CampaignReportRequest {
         if (_hasText(interactionOutcome)) 'interactionOutcome': interactionOutcome,
         'includeArchived': includeArchived,
         'sections': sections,
+        'chartIds': chartIds,
+        'displayMode': displayMode,
         if (chartImages.isNotEmpty) 'chartImages': chartImages,
       };
 
