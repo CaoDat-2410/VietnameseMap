@@ -45,13 +45,11 @@ void main() {
           ),
         ),
       );
-      final paddingWidget = tester.widget<Padding>(
-        find.descendant(
-          of: find.byType(BentoCard),
-          matching: find.byType(Padding).first,
-        ),
+      expect(
+        find.byWidgetPredicate((widget) =>
+            widget is Container && widget.padding == const EdgeInsets.all(32)),
+        findsOneWidget,
       );
-      expect(paddingWidget.padding, EdgeInsets.all(32));
     });
 
     testWidgets('shows accent bar when showAccent is true', (tester) async {

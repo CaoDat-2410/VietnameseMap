@@ -237,8 +237,8 @@ class _MobileUserList extends StatelessWidget {
       context: ctx,
       builder: (_) => _FilterSheet(
         title: 'Lọc theo trạng thái',
-        options: const [null, 'ACTIVE', 'INACTIVE'],
-        labels: const ['Tất cả', 'ACTIVE', 'INACTIVE'],
+        options: const [null, 'ACTIVE', 'DISABLED'],
+        labels: const ['Tất cả', 'ACTIVE', 'DISABLED'],
         selected: statusFilter,
         onSelect: (v) { onStatusFilter(v); Navigator.pop(ctx); },
       ),
@@ -602,7 +602,7 @@ class _DesktopUserTable extends StatelessWidget {
                 items: [
                   DropdownMenuItem(value: null, child: const Text('Tất cả trạng thái')),
                   DropdownMenuItem(value: 'ACTIVE', child: Text('ACTIVE')),
-                  DropdownMenuItem(value: 'INACTIVE', child: Text('INACTIVE')),
+                  DropdownMenuItem(value: 'DISABLED', child: Text('DISABLED')),
                 ],
                 onChanged: onStatusFilter,
               ),

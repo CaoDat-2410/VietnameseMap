@@ -25,6 +25,12 @@ public record CampaignReportRequest(
     public static final String TYPE_EVENT = "EVENT";
     public static final String TYPE_SCHOOL = "SCHOOL";
     public static final String TYPE_REGION = "REGION";
+    private static final String SUMMARY = "summary";
+    private static final String SCHOOLS = "schools";
+    private static final String EVENTS = "events";
+    private static final String ASSIGNMENTS = "assignments";
+    private static final String INTERACTIONS = "interactions";
+    private static final String ANALYTICS = "analytics";
 
     public static final List<String> ALLOWED_TYPES = List.of(
             TYPE_CAMPAIGN, TYPE_EVENT, TYPE_SCHOOL, TYPE_REGION
@@ -38,10 +44,10 @@ public record CampaignReportRequest(
     public List<String> safeSections() {
         if (sections == null || sections.isEmpty()) {
             return switch (safeReportType()) {
-                case TYPE_EVENT -> List.of("summary", "schools", "assignments", "interactions", "analytics");
-                case TYPE_SCHOOL -> List.of("summary", "events", "interactions");
-                case TYPE_REGION -> List.of("summary", "events", "schools", "interactions", "analytics");
-                default -> List.of("summary", "events", "schools", "assignments", "registrations", "interactions", "analytics");
+                case TYPE_EVENT -> List.of(SUMMARY, SCHOOLS, ASSIGNMENTS, INTERACTIONS, ANALYTICS);
+                case TYPE_SCHOOL -> List.of(SUMMARY, EVENTS, INTERACTIONS);
+                case TYPE_REGION -> List.of(SUMMARY, EVENTS, SCHOOLS, INTERACTIONS, ANALYTICS);
+                default -> List.of(SUMMARY, EVENTS, SCHOOLS, ASSIGNMENTS, "registrations", INTERACTIONS, ANALYTICS);
             };
         }
         return sections;

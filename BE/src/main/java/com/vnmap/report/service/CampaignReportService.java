@@ -23,6 +23,7 @@ import java.sql.Statement;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -34,7 +35,19 @@ import java.util.concurrent.CompletableFuture;
 public class CampaignReportService {
 
     private static final Logger log = LoggerFactory.getLogger(CampaignReportService.class);
-    private static final String REPORT_TYPE = "CAMPAIGN";
+    private static final String ADMIN_ROLE = "ADMIN";
+    private static final String WHERE = "WHERE ";
+    private static final String AND = " AND ";
+    private static final String STORAGE_PATH = "storage_path";
+    private static final String LABEL = "label";
+    private static final String VALUE = "value";
+    private static final String SUMMARY = "summary";
+    private static final String EVENTS = "events";
+    private static final String SCHOOLS = "schools";
+    private static final String ASSIGNMENTS = "assignments";
+    private static final String INTERACTIONS = "interactions";
+    private static final String ANALYTICS = "analytics";
+    private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final Duration DOWNLOAD_URL_TTL = Duration.ofMinutes(5);
     private static final DateTimeFormatter PATH_DATE = DateTimeFormatter.ofPattern("yyyy/MM");
     private static final DateTimeFormatter FILE_DATE = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss");
@@ -117,7 +130,7 @@ public class CampaignReportService {
         authorizeReport(row, user);
         String downloadUrl = null;
         String status = (String) row.get("status");
-        String path = (String) row.get("storage_path");
+        String path = (String) row.get(STORAGE_PATH);
         if (includeDownloadUrl) {
             if (!"READY".equals(status)) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Report is not ready for download");
@@ -136,7 +149,7 @@ public class CampaignReportService {
         List<Object> params = new ArrayList<>();
         List<String> filters = new ArrayList<>();
         // ADMIN sees all reports; MANAGER sees only their own.
-        if (!"ADMIN".equals(user.role())) {
+        if (!ADMIN_ROLE.equals(user.role())) {
             filters.add("created_by_user_id = ?");
             params.add(user.id());
         }
@@ -148,7 +161,7 @@ public class CampaignReportService {
             filters.add("report_type = ?");
             params.add(reportType);
         }
-        String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
+        String where = filters.isEmpty() ? "" : WHERE + String.join(AND, filters);
         Long total = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM report_exports " + where, Long.class, params.toArray()
         );
@@ -169,12 +182,12 @@ public class CampaignReportService {
             Map<String, List<Map<String, Object>>> sections = collectSections(request);
             List<Map<String, Object>> kpis = computeKpis(request);
             String title = titleFor(request);
-            String subtitle = "Report #" + reportId + " - generated " + LocalDateTime.now();
+            String subtitle = "Report #" + reportId + " - generated " + LocalDateTime.now(VIETNAM_ZONE);
             byte[] pdf = renderer.render(title, subtitle, kpis, sections, request.chartImages());
             if (pdf.length < 4 || pdf[0] != '%' || pdf[1] != 'P' || pdf[2] != 'D' || pdf[3] != 'F') {
                 throw new IllegalStateException("Generated report is not a valid PDF");
             }
-            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime now = LocalDateTime.now(VIETNAM_ZONE);
             String fileName = request.safeReportType().toLowerCase() + "-report-" + now.format(FILE_DATE) + "-" + reportId + ".pdf";
             String storagePath = "reports/" + now.format(PATH_DATE) + "/" + fileName;
             storageService.uploadGeneratedObject(storagePath, pdf, "application/pdf");
@@ -210,11 +223,11 @@ public class CampaignReportService {
     private List<Map<String, Object>> computeKpis(CampaignReportRequest request) {
         List<Object> eventParams = new ArrayList<>();
         List<String> eventFilters = eventFilters(request, eventParams, "e");
-        String eventWhere = eventFilters.isEmpty() ? "" : "WHERE " + String.join(" AND ", eventFilters);
+        String eventWhere = eventFilters.isEmpty() ? "" : WHERE + String.join(AND, eventFilters);
 
         List<Object> interParams = new ArrayList<>();
         List<String> interFilters = interactionFilters(request, interParams, "i");
-        String interWhere = interFilters.isEmpty() ? "" : "WHERE " + String.join(" AND ", interFilters);
+        String interWhere = interFilters.isEmpty() ? "" : WHERE + String.join(AND, interFilters);
 
         long events = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM campaign_events e " + eventWhere,
@@ -229,7 +242,7 @@ public class CampaignReportService {
 
         List<Object> schoolParams = new ArrayList<>();
         List<String> schoolFilters = schoolFilters(request, schoolParams);
-        String schoolWhere = schoolFilters.isEmpty() ? "" : "WHERE " + String.join(" AND ", schoolFilters);
+        String schoolWhere = schoolFilters.isEmpty() ? "" : WHERE + String.join(AND, schoolFilters);
         long schools = jdbc.queryForObject(
                 "SELECT COUNT(DISTINCT s.school_uid) FROM event_schools es JOIN campaign_events e ON e.id = es.event_id JOIN schools s ON s.school_uid = es.school_uid " + schoolWhere,
                 Long.class,
@@ -238,7 +251,7 @@ public class CampaignReportService {
 
         List<Object> regParams = new ArrayList<>();
         List<String> regFilters = registrationFilters(request, regParams);
-        String regWhere = regFilters.isEmpty() ? "" : "WHERE " + String.join(" AND ", regFilters);
+        String regWhere = regFilters.isEmpty() ? "" : WHERE + String.join(AND, regFilters);
         long registrations = jdbc.queryForObject(
                 "SELECT COUNT(*) FROM campaign_student_registrations r " + regWhere,
                 Long.class,
@@ -246,10 +259,10 @@ public class CampaignReportService {
         );
 
         List<Map<String, Object>> kpis = new ArrayList<>();
-        kpis.add(Map.of("label", "Events", "value", events));
-        kpis.add(Map.of("label", "Interactions", "value", interactions));
-        kpis.add(Map.of("label", "Schools", "value", schools));
-        kpis.add(Map.of("label", "Registrations", "value", registrations));
+        kpis.add(Map.of(LABEL, "Events", VALUE, events));
+        kpis.add(Map.of(LABEL, "Interactions", VALUE, interactions));
+        kpis.add(Map.of(LABEL, "Schools", VALUE, schools));
+        kpis.add(Map.of(LABEL, "Registrations", VALUE, registrations));
         return kpis;
     }
 
@@ -266,13 +279,13 @@ public class CampaignReportService {
         Map<String, List<Map<String, Object>>> out = new LinkedHashMap<>();
         for (String section : request.safeSections()) {
             switch (section) {
-                case "summary" -> out.put("summary", querySummary(request));
-                case "events" -> out.put("events", queryEvents(request));
-                case "schools" -> out.put("schools", querySchools(request));
-                case "assignments" -> out.put("assignments", queryAssignments(request));
+                case SUMMARY -> out.put(SUMMARY, querySummary(request));
+                case EVENTS -> out.put(EVENTS, queryEvents(request));
+                case SCHOOLS -> out.put(SCHOOLS, querySchools(request));
+                case ASSIGNMENTS -> out.put(ASSIGNMENTS, queryAssignments(request));
                 case "registrations" -> out.put("registrations", queryRegistrations(request));
-                case "interactions" -> out.put("interactions", queryInteractions(request));
-                case "analytics" -> out.put("analytics", queryAnalytics(request));
+                case INTERACTIONS -> out.put(INTERACTIONS, queryInteractions(request));
+                case ANALYTICS -> out.put(ANALYTICS, queryAnalytics(request));
                 default -> { }
             }
         }
@@ -284,10 +297,10 @@ public class CampaignReportService {
         for (String section : request.safeSections()) {
             switch (section) {
                 case "summary" -> out.put("summary", queryEventSummary(request));
-                case "schools" -> out.put("schools", querySchools(request));
-                case "assignments" -> out.put("assignments", queryAssignments(request));
-                case "interactions" -> out.put("interactions", queryInteractions(request));
-                case "analytics" -> out.put("analytics", queryAnalytics(request));
+                case SCHOOLS -> out.put(SCHOOLS, querySchools(request));
+                case ASSIGNMENTS -> out.put(ASSIGNMENTS, queryAssignments(request));
+                case INTERACTIONS -> out.put(INTERACTIONS, queryInteractions(request));
+                case ANALYTICS -> out.put(ANALYTICS, queryAnalytics(request));
                 default -> { }
             }
         }
@@ -299,8 +312,8 @@ public class CampaignReportService {
         for (String section : request.safeSections()) {
             switch (section) {
                 case "summary" -> out.put("summary", querySchoolSummary(request));
-                case "events" -> out.put("events", queryEvents(request));
-                case "interactions" -> out.put("interactions", queryInteractions(request));
+                case EVENTS -> out.put(EVENTS, queryEvents(request));
+                case INTERACTIONS -> out.put(INTERACTIONS, queryInteractions(request));
                 default -> { }
             }
         }
@@ -312,10 +325,10 @@ public class CampaignReportService {
         for (String section : request.safeSections()) {
             switch (section) {
                 case "summary" -> out.put("summary", queryRegionSummary(request));
-                case "events" -> out.put("events", queryEvents(request));
-                case "schools" -> out.put("schools", querySchools(request));
-                case "interactions" -> out.put("interactions", queryInteractions(request));
-                case "analytics" -> out.put("analytics", queryAnalytics(request));
+                case EVENTS -> out.put(EVENTS, queryEvents(request));
+                case SCHOOLS -> out.put(SCHOOLS, querySchools(request));
+                case INTERACTIONS -> out.put(INTERACTIONS, queryInteractions(request));
+                case ANALYTICS -> out.put(ANALYTICS, queryAnalytics(request));
                 default -> { }
             }
         }
@@ -341,7 +354,7 @@ public class CampaignReportService {
             filters.add("e.status = ?");
             params.add(request.eventStatus());
         }
-        String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
+        String where = filters.isEmpty() ? "" : WHERE + String.join(AND, filters);
         return jdbc.queryForList(
                 """
                 SELECT e.id, e.name, e.event_type, e.status, e.starts_at, e.ends_at,
@@ -373,7 +386,7 @@ public class CampaignReportService {
             filters.add("s.province_code = ?");
             params.add(request.provinceCode());
         }
-        String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
+        String where = filters.isEmpty() ? "" : WHERE + String.join(AND, filters);
         return jdbc.queryForList(
                 """
                 SELECT s.school_uid, s.school_name, s.province_name, s.commune_name,
@@ -405,7 +418,7 @@ public class CampaignReportService {
             filters.add("DATE(e.starts_at) <= ?");
             params.add(request.toDate());
         }
-        String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
+        String where = filters.isEmpty() ? "" : WHERE + String.join(AND, filters);
         return jdbc.queryForList(
                 """
                 SELECT s.province_code, s.province_name,
@@ -448,7 +461,7 @@ public class CampaignReportService {
     private List<Map<String, Object>> queryEvents(CampaignReportRequest request) {
         List<Object> params = new ArrayList<>();
         List<String> filters = eventFilters(request, params, "e");
-        String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
+        String where = filters.isEmpty() ? "" : WHERE + String.join(AND, filters);
         return jdbc.queryForList(
                 """
                 SELECT e.id, e.campaign_id, e.name, e.event_type, e.status, e.starts_at, e.ends_at,
@@ -472,7 +485,7 @@ public class CampaignReportService {
             filters.add("s.province_code = ?");
             params.add(request.provinceCode());
         }
-        String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
+        String where = filters.isEmpty() ? "" : WHERE + String.join(AND, filters);
         return jdbc.queryForList(
                 """
                 SELECT DISTINCT s.school_uid, s.school_name, s.province_name, s.commune_name, s.address, s.area_type
@@ -493,7 +506,7 @@ public class CampaignReportService {
             filters.add("emp.id = ?");
             params.add(request.employeeId());
         }
-        String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
+        String where = filters.isEmpty() ? "" : WHERE + String.join(AND, filters);
         return jdbc.queryForList(
                 """
                 SELECT e.id event_id, e.name event_name, emp.id employee_id, emp.full_name, emp.role
@@ -510,7 +523,7 @@ public class CampaignReportService {
     private List<Map<String, Object>> queryRegistrations(CampaignReportRequest request) {
         List<Object> params = new ArrayList<>();
         List<String> filters = registrationFilters(request, params);
-        String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
+        String where = filters.isEmpty() ? "" : WHERE + String.join(AND, filters);
         return jdbc.queryForList(
                 """
                 SELECT r.id, r.campaign_id, r.status, r.created_at, st.full_name student_name,
@@ -528,7 +541,7 @@ public class CampaignReportService {
     private List<Map<String, Object>> queryInteractions(CampaignReportRequest request) {
         List<Object> params = new ArrayList<>();
         List<String> filters = interactionFilters(request, params, "i");
-        String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
+        String where = filters.isEmpty() ? "" : WHERE + String.join(AND, filters);
         return jdbc.queryForList(
                 """
                 SELECT i.id, i.campaign_id, i.event_id, i.employee_id, i.school_uid, i.channel,
@@ -544,7 +557,7 @@ public class CampaignReportService {
     private List<Map<String, Object>> queryAnalytics(CampaignReportRequest request) {
         List<Object> params = new ArrayList<>();
         List<String> filters = interactionFilters(request, params, "i");
-        String where = filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
+        String where = filters.isEmpty() ? "" : WHERE + String.join(AND, filters);
         return jdbc.queryForList(
                 """
                 SELECT i.outcome, i.channel, COUNT(*) total
@@ -574,7 +587,7 @@ public class CampaignReportService {
         if (!Boolean.TRUE.equals(request.includeArchived())) {
             filters.add(alias + ".status <> 'ARCHIVED'");
         }
-        return filters.isEmpty() ? "" : "WHERE " + String.join(" AND ", filters);
+        return filters.isEmpty() ? "" : WHERE + String.join(AND, filters);
     }
 
     private List<String> eventFilters(CampaignReportRequest request, List<Object> params, String alias) {
@@ -700,7 +713,7 @@ public class CampaignReportService {
         if (from != null && to != null && from.isAfter(to)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "fromDate must be before toDate");
         }
-        if (from != null && to != null && from.plusMonths(6).isBefore(to) && !"ADMIN".equals(user.role())) {
+        if (from != null && to != null && from.plusMonths(6).isBefore(to) && !ADMIN_ROLE.equals(user.role())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Report date range cannot exceed 6 months");
         }
     }
@@ -718,13 +731,13 @@ public class CampaignReportService {
     }
 
     private void requireManagerOrAdmin(CurrentUser user) {
-        if (user == null || !("MANAGER".equals(user.role()) || "ADMIN".equals(user.role()))) {
+        if (user == null || !("MANAGER".equals(user.role()) || ADMIN_ROLE.equals(user.role()))) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Manager or admin role required");
         }
     }
 
     private void authorizeReport(Map<String, Object> row, CurrentUser user) {
-        if ("ADMIN".equals(user.role())) {
+        if (ADMIN_ROLE.equals(user.role())) {
             return;
         }
         Long ownerId = ((Number) row.get("created_by_user_id")).longValue();
@@ -739,7 +752,7 @@ public class CampaignReportService {
                 (String) row.get("report_type"),
                 (String) row.get("status"),
                 (String) row.get("file_name"),
-                (String) row.get("storage_path"),
+                (String) row.get(STORAGE_PATH),
                 downloadUrl,
                 (String) row.get("error_message"),
                 toLocalDateTime(row.get("created_at")),
@@ -771,7 +784,7 @@ public class CampaignReportService {
         jdbc.update("UPDATE report_exports SET status = 'FAILED', error_message = 'Report generation timed out', completed_at = CURRENT_TIMESTAMP WHERE status = 'PENDING' AND created_at < CURRENT_TIMESTAMP - INTERVAL '10 minutes'");
         List<Map<String, Object>> expired = jdbc.queryForList("SELECT id, storage_path FROM report_exports WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '90 days'");
         for (Map<String, Object> row : expired) {
-            storageService.deleteObject((String) row.get("storage_path"));
+            storageService.deleteObject((String) row.get(STORAGE_PATH));
             jdbc.update("DELETE FROM report_exports WHERE id = ?", row.get("id"));
         }
     }

@@ -48,7 +48,8 @@ class ProfileState {
       isUpdatingPassword: isUpdatingPassword ?? this.isUpdatingPassword,
       isUpdatingInfo: isUpdatingInfo ?? this.isUpdatingInfo,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
-      successMessage: clearSuccess ? null : (successMessage ?? this.successMessage),
+      successMessage:
+          clearSuccess ? null : (successMessage ?? this.successMessage),
     );
   }
 }
@@ -76,7 +77,8 @@ class ProfileViewModel extends StateNotifier<ProfileState> {
     required String contentType,
   }) async {
     if (state.isUploading) return null;
-    state = state.copyWith(isUploading: true, clearError: true, clearSuccess: true);
+    state =
+        state.copyWith(isUploading: true, clearError: true, clearSuccess: true);
     try {
       final urls = await _storage.generateUploadUrl(
         fileName: fileName,
@@ -88,7 +90,8 @@ class ProfileViewModel extends StateNotifier<ProfileState> {
         bytes: bytes,
         contentType: contentType,
       );
-      final updated = await _auth.updateProfile(avatarObjectKey: urls.storagePath);
+      final updated =
+          await _auth.updateProfile(avatarObjectKey: urls.storagePath);
       state = state.copyWith(
         isUploading: false,
         successMessage: 'Cập nhật ảnh đại diện thành công',

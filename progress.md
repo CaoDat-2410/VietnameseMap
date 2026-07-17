@@ -1578,4 +1578,21 @@ No new bugs introduced since feat-082. All 2 known issues from 2/7 smoke test
       schools all return populated lists)
 - [x] lutter analyze is clean on touched file, no new errors project-wide
 - [x] Backend container is healthy
-- [x] progress.md and eature_list.json updated for feat-084
+- [x] progress.md and feature_list.json updated for feat-084
+### 2026-07-14 - feat-085 Security and registration-flow hardening
+- Locked analytics and centroid recomputation behind role checks; public requests now return 401.
+- Student registration is accepted only for an ACTIVE campaign inside its date window. STAFF status updates are now constrained to their assigned campaign or school; MANAGER/ADMIN retain full access.
+- Upload URL requests now ignore client-provided userId, allow only image avatars, and write below avatars/{authenticatedUserId}/. FCM token deletion is owner-scoped.
+- Verified: backend Docker healthy; unauth analytics/geo-write/storage = 401; admin analytics = 200; invalid campaign and disallowed upload folder = 400; Docker CampaignServiceDatabaseTest passed.
+- No commit created because the worktree contains unrelated pre-existing Android/PDF changes.
+
+### 2026-07-14 - feat-086 Standardized API error envelope and admin-user edit repair
+- All failed requests now return `ApiResponse<ApiError>`: `success=false`, stable top-level `message`, `timestamp`, and `traceId`; `data` includes `status`, stable uppercase `code`, `path`, the same `traceId`, and `fieldErrors` for request validation.
+- Applied the envelope both in `GlobalExceptionHandler` and in Spring Security's 401/403 writer, so Flutter can continue reading the top-level `message` while also using structured error details.
+- Admin edits no longer require a replacement password; absent/blank password preserves the existing hash. Account status is normalized to `ACTIVE` or `DISABLED` across the admin UI and backend.
+- Verified: Docker targeted `GlobalExceptionHandlerTest` + `CampaignServiceDatabaseTest` passed; runtime unauth analytics returned `401 UNAUTHORIZED`; blank login returned `400 VALIDATION_FAILED` with `email` and `password` field errors; backend container is healthy.
+### 2026-07-14 - SonarQube Docker verification (coverage work in progress)
+- Started `vnmap_sonarqube` manually on `vnmap_network` because the secondary compose file conflicted with the already-running PostgreSQL container. Added the `sonarqube` network alias so Docker scanners can resolve the server.
+- Backend Sonar scan completed for project `VietnamMap`; local default Quality Gate returned `OK`. JaCoCo line coverage measured 48.50% after the CampaignService integration test ran on the correct PostgreSQL network (previously skipped on `be_vnmap_network`).
+- Frontend Flutter suite generated LCOV with 23.93% line coverage. Frontend Sonar project `vnm-frontend` scanned and default Quality Gate returned `OK`, but this Sonar Community runtime has no Dart analyzer: scanner reported 0 languages, so LCOV is not ingested by Sonar and cannot be used to enforce the requested 88% threshold yet.
+- Repaired stale frontend tests and two related behaviours: `BatchProcessor.dispose()` now cancels and discards pending work; `CampaignDashboardModel` accepts dynamically typed outcome maps from decoded JSON.

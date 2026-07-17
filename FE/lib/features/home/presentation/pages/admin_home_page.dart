@@ -495,6 +495,7 @@ class _RecentUsersCard extends ConsumerWidget {
     return switch (status.toUpperCase()) {
       'ACTIVE' => StatusType.active,
       'INACTIVE' => StatusType.draft,
+      'DISABLED' => StatusType.draft,
       'PENDING' => StatusType.pending,
       _ => StatusType.draft,
     };

@@ -1,11 +1,13 @@
 package com.vnmap.storage.controller;
 
 import com.vnmap.common.model.ApiResponse;
+import com.vnmap.common.security.CurrentUser;
 import com.vnmap.storage.dto.GenerateUploadUrlRequest;
 import com.vnmap.storage.dto.UploadUrlResponse;
 import com.vnmap.storage.service.StorageService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,13 +35,14 @@ public class StorageController {
      */
     @PostMapping("/upload-url")
     public ResponseEntity<ApiResponse<UploadUrlResponse>> generateUploadUrl(
-            @Valid @RequestBody GenerateUploadUrlRequest request
+            @Valid @RequestBody GenerateUploadUrlRequest request,
+            @AuthenticationPrincipal CurrentUser user
     ) {
         UploadUrlResponse response = storageService.generateUploadUrl(
                 request.folder(),
                 request.fileName(),
                 request.contentType(),
-                request.userId()
+                user
         );
         return ResponseEntity.ok(ApiResponse.success(response));
     }

@@ -16,12 +16,15 @@ import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
 @Component
 public class PdfReportRenderer {
+
+    private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);
     private final Font subtitleFont = FontFactory.getFont(FontFactory.HELVETICA, 10);
@@ -61,7 +64,7 @@ public class PdfReportRenderer {
     }
 
     public byte[] render(String title, Map<String, List<Map<String, Object>>> sections) {
-        return render(title, "Generated at: " + LocalDateTime.now(), List.of(), sections, Map.of());
+        return render(title, "Generated at: " + LocalDateTime.now(VIETNAM_ZONE), List.of(), sections, Map.of());
     }
 
     private void addTitlePage(Document document, String title, String subtitle, List<Map<String, Object>> kpis)

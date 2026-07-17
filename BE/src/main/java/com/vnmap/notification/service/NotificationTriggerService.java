@@ -11,6 +11,10 @@ import java.util.Map;
 @Service
 public class NotificationTriggerService {
 
+    private static final String ADMIN_ROLE = "ADMIN";
+    private static final String EVENT_ID_KEY = "eventId";
+    private static final java.time.ZoneId VIETNAM_ZONE = java.time.ZoneId.of("Asia/Saigon");
+
     private final JdbcTemplate jdbc;
     private final NotificationService notificationService;
 
@@ -20,7 +24,7 @@ public class NotificationTriggerService {
     }
 
     public void campaignCreated(long campaignId, String campaignName) {
-        List<Long> users = usersByRoles("MANAGER", "ADMIN");
+        List<Long> users = usersByRoles("MANAGER", ADMIN_ROLE);
         notificationService.sendToUsers(
                 users,
                 "Campaign created",
@@ -31,13 +35,13 @@ public class NotificationTriggerService {
     }
 
     public void eventCreated(long eventId, String eventName) {
-        List<Long> users = usersByRoles("MANAGER", "ADMIN");
+        List<Long> users = usersByRoles("MANAGER", ADMIN_ROLE);
         users.addAll(assignedUsersForEvent(eventId));
         notificationService.sendToUsers(
                 users.stream().distinct().toList(),
                 "Event created",
                 "New event: " + eventName,
-                Map.of("type", "event_created", "eventId", String.valueOf(eventId)),
+                Map.of("type", "event_created", EVENT_ID_KEY, String.valueOf(eventId)),
                 "EVENT_CREATED"
         );
     }
@@ -52,13 +56,13 @@ public class NotificationTriggerService {
                 users,
                 "Event assignment",
                 "You have been assigned to an event",
-                Map.of("type", "event_assigned", "eventId", String.valueOf(eventId)),
+                Map.of("type", "event_assigned", EVENT_ID_KEY, String.valueOf(eventId)),
                 "EVENT_ASSIGNED"
         );
     }
 
     public void accountDeactivated(long userId) {
-        List<Long> admins = usersByRoles("ADMIN");
+        List<Long> admins = usersByRoles(ADMIN_ROLE);
         notificationService.sendToUser(
                 userId,
                 "Account deactivated",
@@ -77,7 +81,7 @@ public class NotificationTriggerService {
 
     @Scheduled(cron = "${notifications.daily-reminder-cron:0 0 7 * * *}", zone = "Asia/Saigon")
     public void dailyEventReminders() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(VIETNAM_ZONE);
         List<Map<String, Object>> events = jdbc.queryForList(
                 """
                 SELECT id, name FROM campaign_events
@@ -92,14 +96,14 @@ public class NotificationTriggerService {
                     assignedUsersForEvent(eventId),
                     "Today's event",
                     "You have an event today: " + eventName,
-                    Map.of("type", "today_event_reminder", "eventId", String.valueOf(eventId)),
+                    Map.of("type", "today_event_reminder", EVENT_ID_KEY, String.valueOf(eventId)),
                     "TODAY_EVENT_REMINDER"
             );
             notificationService.sendToUsers(
                     studentUsersForEvent(eventId),
                     "Campaign event today",
                     "A campaign event linked to your registration is scheduled today: " + eventName,
-                    Map.of("type", "today_event_reminder", "eventId", String.valueOf(eventId)),
+                    Map.of("type", "today_event_reminder", EVENT_ID_KEY, String.valueOf(eventId)),
                     "TODAY_EVENT_REMINDER_STUDENT"
             );
         }

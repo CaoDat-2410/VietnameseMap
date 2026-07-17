@@ -167,9 +167,11 @@ class CampaignDashboardModel {
   final List<TopSchoolModel> topSchools;
 
   factory CampaignDashboardModel.fromJson(Map<String, dynamic> json) {
-    final outcomes =
-        (json['interactionsByOutcome'] as Map<String, dynamic>? ?? {})
-            .map((key, value) => MapEntry(key, value as int? ?? 0));
+    final rawOutcomes = json['interactionsByOutcome'];
+    final outcomes = rawOutcomes is Map
+        ? rawOutcomes.map((key, value) =>
+            MapEntry(key.toString(), (value as num?)?.toInt() ?? 0))
+        : <String, int>{};
     return CampaignDashboardModel(
       campaignId: json['campaignId'] as int? ?? 0,
       totalEvents: json['totalEvents'] as int? ?? 0,

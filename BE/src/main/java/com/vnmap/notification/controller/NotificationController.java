@@ -48,7 +48,7 @@ public class NotificationController {
             @AuthenticationPrincipal CurrentUser user,
             @RequestParam String token
     ) {
-        notificationService.deleteToken(token);
+        notificationService.deleteToken(user.id(), token);
         return ResponseEntity.ok(ApiResponse.success(null, "Token deleted"));
     }
 

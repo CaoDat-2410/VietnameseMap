@@ -94,8 +94,8 @@ public class NotificationService {
     /**
      * Removes a token (e.g. when user logs out).
      */
-    public void deleteToken(String token) {
-        jdbc.update("DELETE FROM fcm_tokens WHERE token = ?", token);
+    public void deleteToken(Long userId, String token) {
+        jdbc.update("DELETE FROM fcm_tokens WHERE token = ? AND user_id = ?", token, userId);
         log.info("Deleted FCM token");
     }
 

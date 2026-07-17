@@ -41,10 +41,16 @@ public class ApiResponse<T> {
     }
 
     public static <T> ApiResponse<T> error(String message) {
+        return error(message, null, null);
+    }
+
+    public static <T> ApiResponse<T> error(String message, T data, String traceId) {
         return ApiResponse.<T>builder()
                 .success(false)
                 .message(message)
+                .data(data)
                 .timestamp(LocalDateTime.now(ZoneOffset.UTC))
+                .traceId(traceId)
                 .build();
     }
 }

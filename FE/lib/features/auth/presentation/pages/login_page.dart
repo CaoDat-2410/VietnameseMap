@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../../core/analytics/analytics_service.dart';
 import '../../../../core/providers/remote_config_provider.dart';
@@ -44,10 +46,23 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   Future<void> _handleGoogleSignIn() async {
     try {
-      final provider = GoogleAuthProvider()
-        ..addScope('email')
-        ..addScope('profile');
-      final credential = await FirebaseAuth.instance.signInWithPopup(provider);
+      UserCredential credential;
+      if (kIsWeb) {
+        final provider = GoogleAuthProvider()
+          ..addScope('email')
+          ..addScope('profile');
+        credential = await FirebaseAuth.instance.signInWithPopup(provider);
+      } else {
+        final account = await GoogleSignIn().signIn();
+        if (account == null) return;
+        final authentication = await account.authentication;
+        credential = await FirebaseAuth.instance.signInWithCredential(
+          GoogleAuthProvider.credential(
+            accessToken: authentication.accessToken,
+            idToken: authentication.idToken,
+          ),
+        );
+      }
       final idToken = await credential.user?.getIdToken(true);
       if (idToken == null || idToken.isEmpty) {
         throw FirebaseAuthException(
@@ -124,7 +139,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         child: Text(
                           errorMessage,
                           style: TextStyle(
-                            color: Theme.of(context).colorScheme.onErrorContainer,
+                            color:
+                                Theme.of(context).colorScheme.onErrorContainer,
                           ),
                         ),
                       ),
@@ -155,8 +171,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                       width: double.infinity,
                       child: FilledButton(
                         onPressed: isLoading ? null : _submit,
-                        child: Text(
-                            isLoading ? l10n.signingIn : l10n.loginButton),
+                        child:
+                            Text(isLoading ? l10n.signingIn : l10n.loginButton),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -194,4 +210,3 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     );
   }
 }
-

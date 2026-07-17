@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -5,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/bento_card.dart';
 import '../../data/chart_to_image.dart';
+import '../../data/pdf_file_saver.dart';
 import '../../data/repositories/report_repository.dart';
 import '../../domain/models/report_models.dart';
 import '../providers/report_viewmodel.dart';
@@ -59,11 +61,13 @@ class _ReportFormScaffoldState extends ConsumerState<ReportFormScaffold> {
             final isCompact = viewport.maxWidth < 700;
             final horizontalPadding = isCompact ? 16.0 : 24.0;
             return SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(horizontalPadding, 18, horizontalPadding, 32),
+              padding: EdgeInsets.fromLTRB(
+                  horizontalPadding, 18, horizontalPadding, 32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _PageHeader(title: widget.title, reportType: widget.reportType),
+                  _PageHeader(
+                      title: widget.title, reportType: widget.reportType),
                   const SizedBox(height: 16),
                   BentoCard(
                     padding: EdgeInsets.all(isCompact ? 16 : 20),
@@ -84,10 +88,15 @@ class _ReportFormScaffoldState extends ConsumerState<ReportFormScaffold> {
                           title: const Text('Bao gồm dữ liệu đã lưu trữ'),
                           subtitle: Text(
                             'Bật khi cần xuất cả các bản ghi đã archive.',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: scheme.onSurfaceVariant),
                           ),
                           value: _includeArchived,
-                          onChanged: isPending ? null : (v) => setState(() => _includeArchived = v),
+                          onChanged: isPending
+                              ? null
+                              : (v) => setState(() => _includeArchived = v),
                         ),
                         const SizedBox(height: 18),
                         _buildChartsPreview(),
@@ -99,7 +108,8 @@ class _ReportFormScaffoldState extends ConsumerState<ReportFormScaffold> {
                             FilledButton.icon(
                               onPressed: isPending ? null : _onExport,
                               icon: const Icon(Icons.picture_as_pdf),
-                              label: Text(isPending ? 'Đang tạo...' : 'Xuất PDF'),
+                              label:
+                                  Text(isPending ? 'Đang tạo...' : 'Xuất PDF'),
                             ),
                             if (report?.isReady == true)
                               OutlinedButton.icon(
@@ -137,7 +147,9 @@ class _ReportFormScaffoldState extends ConsumerState<ReportFormScaffold> {
           : c.maxWidth >= 640
               ? (widget.filters.length >= 2 ? 2 : widget.filters.length)
               : 1;
-      final itemWidth = columns == 1 ? c.maxWidth : (c.maxWidth - (columns - 1) * 12) / columns;
+      final itemWidth = columns == 1
+          ? c.maxWidth
+          : (c.maxWidth - (columns - 1) * 12) / columns;
 
       return Wrap(
         spacing: 12,
@@ -166,16 +178,21 @@ class _ReportFormScaffoldState extends ConsumerState<ReportFormScaffold> {
         const _SectionTitle(
           icon: Icons.insert_chart_outlined,
           title: 'Biểu đồ trong PDF',
-          subtitle: 'Các preview này sẽ được render thành ảnh và nhúng vào file xuất.',
+          subtitle:
+              'Các preview này sẽ được render thành ảnh và nhúng vào file xuất.',
         ),
         const SizedBox(height: 12),
         LayoutBuilder(builder: (context, c) {
           final columns = c.maxWidth >= 960
               ? (widget.chartSpecs.length >= 3 ? 3 : widget.chartSpecs.length)
               : c.maxWidth >= 620
-                  ? (widget.chartSpecs.length >= 2 ? 2 : widget.chartSpecs.length)
+                  ? (widget.chartSpecs.length >= 2
+                      ? 2
+                      : widget.chartSpecs.length)
                   : 1;
-          final itemWidth = columns == 1 ? c.maxWidth : (c.maxWidth - (columns - 1) * 12) / columns;
+          final itemWidth = columns == 1
+              ? c.maxWidth
+              : (c.maxWidth - (columns - 1) * 12) / columns;
           return Wrap(
             spacing: 12,
             runSpacing: 12,
@@ -195,7 +212,8 @@ class _ReportFormScaffoldState extends ConsumerState<ReportFormScaffold> {
   Future<void> _onExport() async {
     final charts = <String, String>{};
     for (final spec in widget.chartSpecs) {
-      final b64 = await ChartToImage.renderToBase64(context: context, chart: spec.builder(context));
+      final b64 = await ChartToImage.renderToBase64(
+          context: context, chart: spec.builder(context));
       if (b64 != null) charts[spec.section] = b64;
     }
     final request = CampaignReportRequest(
@@ -207,8 +225,12 @@ class _ReportFormScaffoldState extends ConsumerState<ReportFormScaffold> {
       eventStatus: _values['eventStatus'] as String?,
       eventType: _values['eventType'] as String?,
       provinceCode: _values['provinceCode'] as String?,
-      schoolUid: _values['schoolUid'] is SchoolSummary ? (_values['schoolUid'] as SchoolSummary).uid : _values['schoolUid'] as String?,
-      employeeId: _values['employeeId'] is EmployeeSummary ? (_values['employeeId'] as EmployeeSummary).id : _values['employeeId'] as int?,
+      schoolUid: _values['schoolUid'] is SchoolSummary
+          ? (_values['schoolUid'] as SchoolSummary).uid
+          : _values['schoolUid'] as String?,
+      employeeId: _values['employeeId'] is EmployeeSummary
+          ? (_values['employeeId'] as EmployeeSummary).id
+          : _values['employeeId'] as int?,
       registrationStatus: _values['registrationStatus'] as String?,
       interactionOutcome: _values['interactionOutcome'] as String?,
       includeArchived: _includeArchived,
@@ -229,12 +251,30 @@ class _ReportFormScaffoldState extends ConsumerState<ReportFormScaffold> {
   }
 
   Future<void> _onDownload() async {
-    final url = await ref.read(campaignReportViewModelProvider.notifier).downloadUrl();
+    final url =
+        await ref.read(campaignReportViewModelProvider.notifier).downloadUrl();
     if (url == null || !mounted) return;
+    if (!kIsWeb) {
+      final report = ref.read(campaignReportViewModelProvider).valueOrNull;
+      final saved = await savePdfFromUrl(
+        url,
+        suggestedFileName: report?.fileName ?? 'bao-cao.pdf',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(saved
+              ? 'PDF saved to the selected location.'
+              : 'PDF save was cancelled.'),
+        ),
+      );
+      return;
+    }
     final uri = Uri.parse(url);
     if (!await launchUrl(uri, webOnlyWindowName: '_blank')) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không thể mở URL tải xuống')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Không thể mở URL tải xuống')));
       }
     }
   }
@@ -251,7 +291,8 @@ class ReportFilterDescriptor {
   final String key;
   final String label;
   final Object? initial;
-  final Widget Function(Map<String, dynamic> values, bool enabled, ValueChanged<Object?> onChanged) build;
+  final Widget Function(Map<String, dynamic> values, bool enabled,
+      ValueChanged<Object?> onChanged) build;
 }
 
 class ChartSpec {
@@ -286,11 +327,18 @@ class _PageHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+              Text(title,
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineSmall
+                      ?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 4),
               Text(
                 'Mẫu $reportType - thiết lập bộ lọc, xem nhanh biểu đồ và xuất PDF.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: scheme.onSurfaceVariant),
               ),
             ],
           ),
@@ -301,7 +349,8 @@ class _PageHeader extends StatelessWidget {
 }
 
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.icon, required this.title, required this.subtitle});
+  const _SectionTitle(
+      {required this.icon, required this.title, required this.subtitle});
 
   final IconData icon;
   final String title;
@@ -319,9 +368,17 @@ class _SectionTitle extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
+              Text(title,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleMedium
+                      ?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 2),
-              Text(subtitle, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant)),
+              Text(subtitle,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: scheme.onSurfaceVariant)),
             ],
           ),
         ),
@@ -376,7 +433,11 @@ class _StatusPanel extends StatelessWidget {
 }
 
 class _Panel extends StatelessWidget {
-  const _Panel({required this.icon, required this.iconColor, required this.title, required this.message});
+  const _Panel(
+      {required this.icon,
+      required this.iconColor,
+      required this.title,
+      required this.message});
 
   final IconData icon;
   final Color iconColor;
@@ -402,7 +463,11 @@ class _Panel extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                Text(title,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
                 Text(message),
               ],

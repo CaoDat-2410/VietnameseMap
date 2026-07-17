@@ -4,7 +4,7 @@
 # Single-file orchestration. Run: docker compose up -d
 # Existing DB: starts app services only and preserves data.
 # Fresh DB bootstrap: docker compose --profile init up -d --build
-# Ports: postgres=15432, redis=6379, minio=9000/9001, be=8080, fe=3000
+# Ports: postgres=15432, redis=6379, minio=9002/9001, SonarQube=9000, be=8080, fe=3000
 # ================================================================
 
 x-common-env: &common-env
@@ -68,7 +68,7 @@ services:
       MINIO_ROOT_PASSWORD: "${MINIO_SECRET_KEY:-vnmapminio123}"
       <<: *common-env
     ports:
-      - "9000:9000"   # API
+      - "9002:9000"   # API (9000 is reserved for SonarQube)
       - "9001:9001"   # Console
     volumes:
       - minio_data:/data
@@ -213,7 +213,7 @@ services:
       REDIS_PASSWORD: "redis123"
       # MinIO
       MINIO_ENDPOINT: http://minio:9000
-      MINIO_PUBLIC_ENDPOINT: "${MINIO_PUBLIC_ENDPOINT:-http://localhost:9000}"
+      MINIO_PUBLIC_ENDPOINT: "${MINIO_PUBLIC_ENDPOINT:-http://localhost:9002}"
       MINIO_BUCKET: "${MINIO_BUCKET:-vnmap-campaign}"
       MINIO_REPORTS_BUCKET: "${MINIO_REPORTS_BUCKET:-vnmap-campaign-reports}"
       MINIO_ACCESS_KEY: "${MINIO_ACCESS_KEY:-vnmapminio}"
