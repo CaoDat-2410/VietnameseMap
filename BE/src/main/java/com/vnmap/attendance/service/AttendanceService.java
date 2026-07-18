@@ -3,9 +3,11 @@ package com.vnmap.attendance.service;
 import com.vnmap.attendance.dto.AttendanceDto;
 import com.vnmap.attendance.dto.CheckInRequest;
 import com.vnmap.attendance.dto.CheckOutRequest;
+import com.vnmap.attendance.dto.CreateAttendanceRequest;
 import com.vnmap.attendance.dto.UpdateAttendanceRequest;
 import com.vnmap.common.exception.ResourceNotFoundException;
 import com.vnmap.common.model.PagedResponse;
+import com.vnmap.notification.service.NotificationTriggerService;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -22,47 +24,61 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
- * Staff check-in / check-out (attendance) tracking.
+ * Staff check-in / check-out (attendance) tracking, tied to an open campaign
+ * (and optionally a specific campaign event).
  *
  * Self-service: STAFF/MANAGER check themselves in and out (one open session
- * at a time per employee, enforced by a partial unique index).
+ * at a time per employee, enforced by a partial unique index). Check-in
+ * requires the target campaign to be ACTIVE; MANAGER/ADMIN are notified.
  *
- * Oversight: MANAGER can list, correct, and delete any employee's records;
- * ADMIN has read-only visibility (role gating lives in SecurityConfig).
+ * Oversight: MANAGER and ADMIN can both list, manually create, correct, and
+ * delete any employee's records (role gating lives in SecurityConfig).
  */
 @Service
 public class AttendanceService {
 
+    private static final String ACTIVE_CAMPAIGN_STATUS = "ACTIVE";
     private static final RowMapper<AttendanceDto> ROW_MAPPER = AttendanceService::mapRow;
 
     private final JdbcTemplate jdbc;
+    private final NotificationTriggerService notificationTriggerService;
 
-    public AttendanceService(JdbcTemplate jdbc) {
+    public AttendanceService(JdbcTemplate jdbc, NotificationTriggerService notificationTriggerService) {
         this.jdbc = jdbc;
+        this.notificationTriggerService = notificationTriggerService;
     }
 
     @Transactional
     public AttendanceDto checkIn(long employeeId, CheckInRequest request) {
         ensureEmployee(employeeId);
         ensureNoOpenSession(employeeId);
+        String campaignName = ensureCampaignOpenForCheckIn(request.campaignId());
+        if (request.eventId() != null) {
+            ensureEventBelongsToCampaign(request.eventId(), request.campaignId());
+        }
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbc.update(connection -> {
             PreparedStatement ps = connection.prepareStatement("""
                     INSERT INTO staff_attendance
-                        (employee_id, check_in_at, check_in_note, check_in_lat, check_in_lng, status)
-                    VALUES (?, CURRENT_TIMESTAMP, ?, ?, ?, 'OPEN')
+                        (employee_id, campaign_id, event_id, check_in_at, check_in_note, check_in_lat, check_in_lng, status)
+                    VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, ?, ?, 'OPEN')
                     """, Statement.RETURN_GENERATED_KEYS);
             ps.setLong(1, employeeId);
-            ps.setString(2, request == null ? null : request.note());
-            setNullableDouble(ps, 3, request == null ? null : request.lat());
-            setNullableDouble(ps, 4, request == null ? null : request.lng());
+            ps.setLong(2, request.campaignId());
+            setNullableLong(ps, 3, request.eventId());
+            ps.setString(4, request.note());
+            setNullableDouble(ps, 5, request.lat());
+            setNullableDouble(ps, 6, request.lng());
             return ps;
         }, keyHolder);
 
-        return getById(generatedId(keyHolder));
+        AttendanceDto created = getById(generatedId(keyHolder));
+        notificationTriggerService.staffCheckedIn(employeeId, request.campaignId(), campaignName);
+        return created;
     }
 
     @Transactional
@@ -95,7 +111,53 @@ public class AttendanceService {
             return ps;
         });
 
-        return getById(openId);
+        AttendanceDto closed = getById(openId);
+        if (closed.campaignId() != null) {
+            notificationTriggerService.staffCheckedOut(employeeId, closed.campaignId(), closed.campaignName());
+        }
+        return closed;
+    }
+
+    @Transactional
+    public AttendanceDto create(CreateAttendanceRequest request) {
+        ensureEmployee(request.employeeId());
+        ensureCampaignExists(request.campaignId());
+        if (request.eventId() != null) {
+            ensureEventBelongsToCampaign(request.eventId(), request.campaignId());
+        }
+        LocalDateTime checkInAt = request.checkInAt() != null ? request.checkInAt() : LocalDateTime.now();
+        LocalDateTime checkOutAt = request.checkOutAt();
+        if (checkOutAt != null && checkOutAt.isBefore(checkInAt)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "checkOutAt must not be before checkInAt");
+        }
+        if (checkOutAt == null) {
+            ensureNoOpenSession(request.employeeId());
+        }
+        String status = checkOutAt != null ? "CLOSED" : "OPEN";
+
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbc.update(connection -> {
+            PreparedStatement ps = connection.prepareStatement("""
+                    INSERT INTO staff_attendance
+                        (employee_id, campaign_id, event_id, check_in_at, check_out_at, check_in_note, check_out_note, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, Statement.RETURN_GENERATED_KEYS);
+            ps.setLong(1, request.employeeId());
+            ps.setLong(2, request.campaignId());
+            setNullableLong(ps, 3, request.eventId());
+            ps.setTimestamp(4, Timestamp.valueOf(checkInAt));
+            if (checkOutAt == null) {
+                ps.setNull(5, java.sql.Types.TIMESTAMP);
+            } else {
+                ps.setTimestamp(5, Timestamp.valueOf(checkOutAt));
+            }
+            ps.setString(6, request.checkInNote());
+            ps.setString(7, request.checkOutNote());
+            ps.setString(8, status);
+            return ps;
+        }, keyHolder);
+
+        return getById(generatedId(keyHolder));
     }
 
     public PagedResponse<AttendanceDto> list(
@@ -129,9 +191,11 @@ public class AttendanceService {
         pageParams.add(limit);
         pageParams.add(page * limit);
         List<AttendanceDto> items = jdbc.query("""
-                SELECT a.*, e.full_name AS employee_name
+                SELECT a.*, e.full_name AS employee_name, c.name AS campaign_name, ev.name AS event_name
                 FROM staff_attendance a
                 JOIN employees e ON e.id = a.employee_id
+                LEFT JOIN campaigns c ON c.id = a.campaign_id
+                LEFT JOIN campaign_events ev ON ev.id = a.event_id
                 """ + where + """
                  ORDER BY a.check_in_at DESC
                  LIMIT ? OFFSET ?
@@ -142,9 +206,11 @@ public class AttendanceService {
 
     public AttendanceDto getById(long id) {
         return jdbc.query("""
-                SELECT a.*, e.full_name AS employee_name
+                SELECT a.*, e.full_name AS employee_name, c.name AS campaign_name, ev.name AS event_name
                 FROM staff_attendance a
                 JOIN employees e ON e.id = a.employee_id
+                LEFT JOIN campaigns c ON c.id = a.campaign_id
+                LEFT JOIN campaign_events ev ON ev.id = a.event_id
                 WHERE a.id = ?
                 """, ROW_MAPPER, id
         ).stream().findFirst().orElseThrow(() -> new ResourceNotFoundException("Attendance", "id", id));
@@ -153,6 +219,15 @@ public class AttendanceService {
     @Transactional
     public AttendanceDto update(long id, UpdateAttendanceRequest request) {
         AttendanceDto current = getById(id);
+
+        Long campaignId = request.campaignId() != null ? request.campaignId() : current.campaignId();
+        Long eventId = request.eventId() != null ? request.eventId() : current.eventId();
+        if (request.campaignId() != null) {
+            ensureCampaignExists(campaignId);
+        }
+        if (eventId != null) {
+            ensureEventBelongsToCampaign(eventId, campaignId);
+        }
 
         LocalDateTime checkInAt = request.checkInAt() != null ? request.checkInAt() : current.checkInAt();
         LocalDateTime checkOutAt = request.checkOutAt() != null ? request.checkOutAt() : current.checkOutAt();
@@ -163,7 +238,9 @@ public class AttendanceService {
 
         int updated = jdbc.update("""
                 UPDATE staff_attendance
-                SET check_in_at = ?,
+                SET campaign_id = ?,
+                    event_id = ?,
+                    check_in_at = ?,
                     check_out_at = ?,
                     check_in_note = ?,
                     check_out_note = ?,
@@ -171,6 +248,8 @@ public class AttendanceService {
                     updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
                 """,
+                campaignId,
+                eventId,
                 Timestamp.valueOf(checkInAt),
                 checkOutAt == null ? null : Timestamp.valueOf(checkOutAt),
                 request.checkInNote() != null ? request.checkInNote() : current.checkInNote(),
@@ -210,11 +289,51 @@ public class AttendanceService {
         }
     }
 
+    /** Returns the campaign's name after confirming it exists and is currently ACTIVE. */
+    private String ensureCampaignOpenForCheckIn(long campaignId) {
+        List<Map<String, Object>> rows = jdbc.queryForList(
+                "SELECT name, status FROM campaigns WHERE id = ?", campaignId
+        );
+        if (rows.isEmpty()) {
+            throw new ResourceNotFoundException("Campaign", "id", campaignId);
+        }
+        String status = String.valueOf(rows.get(0).get("status"));
+        if (!ACTIVE_CAMPAIGN_STATUS.equals(status)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Campaign is not open for check-in");
+        }
+        return String.valueOf(rows.get(0).get("name"));
+    }
+
+    private void ensureCampaignExists(long campaignId) {
+        Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM campaigns WHERE id = ?", Integer.class, campaignId);
+        if (count == null || count == 0) {
+            throw new ResourceNotFoundException("Campaign", "id", campaignId);
+        }
+    }
+
+    private void ensureEventBelongsToCampaign(long eventId, long campaignId) {
+        Integer count = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM campaign_events WHERE id = ? AND campaign_id = ?",
+                Integer.class, eventId, campaignId
+        );
+        if (count == null || count == 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Event does not belong to the given campaign");
+        }
+    }
+
     private static void setNullableDouble(PreparedStatement ps, int index, Double value) throws java.sql.SQLException {
         if (value == null) {
             ps.setNull(index, java.sql.Types.DOUBLE);
         } else {
             ps.setDouble(index, value);
+        }
+    }
+
+    private static void setNullableLong(PreparedStatement ps, int index, Long value) throws java.sql.SQLException {
+        if (value == null) {
+            ps.setNull(index, java.sql.Types.BIGINT);
+        } else {
+            ps.setLong(index, value);
         }
     }
 
@@ -233,10 +352,15 @@ public class AttendanceService {
         if (checkInAt != null && checkOutAt != null) {
             workedMinutes = Duration.between(checkInAt.toLocalDateTime(), checkOutAt.toLocalDateTime()).toMinutes();
         }
+        long campaignId = rs.getLong("campaign_id");
         return new AttendanceDto(
                 rs.getLong("id"),
                 rs.getLong("employee_id"),
                 rs.getString("employee_name"),
+                rs.wasNull() || campaignId == 0 ? null : campaignId,
+                rs.getString("campaign_name"),
+                (Long) rs.getObject("event_id"),
+                rs.getString("event_name"),
                 checkInAt == null ? null : checkInAt.toLocalDateTime(),
                 checkOutAt == null ? null : checkOutAt.toLocalDateTime(),
                 rs.getString("check_in_note"),

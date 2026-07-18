@@ -3,6 +3,7 @@ package com.vnmap.attendance.controller;
 import com.vnmap.attendance.dto.AttendanceDto;
 import com.vnmap.attendance.dto.CheckInRequest;
 import com.vnmap.attendance.dto.CheckOutRequest;
+import com.vnmap.attendance.dto.CreateAttendanceRequest;
 import com.vnmap.attendance.dto.UpdateAttendanceRequest;
 import com.vnmap.attendance.service.AttendanceService;
 import com.vnmap.common.model.PagedResponse;
@@ -29,13 +30,14 @@ class AttendanceControllerTest {
 
     private static final AttendanceDto SAMPLE = new AttendanceDto(
             10L, 5L, "Nguyen Van A",
+            1L, "Spring Drive", null, null,
             LocalDateTime.of(2026, 7, 18, 8, 0), null,
             "in", null, null, null, null, null, "OPEN", null
     );
 
     @Test
     void checkInDelegatesUsingCallerEmployeeId() {
-        CheckInRequest request = new CheckInRequest("in", null, null);
+        CheckInRequest request = new CheckInRequest(1L, null, "in", null, null);
         when(service.checkIn(5L, request)).thenReturn(SAMPLE);
 
         assertThat(controller.checkIn(staff, request).getBody().getData()).isEqualTo(SAMPLE);
@@ -44,7 +46,9 @@ class AttendanceControllerTest {
 
     @Test
     void checkInRejectsUserWithoutLinkedEmployee() {
-        assertThatThrownBy(() -> controller.checkIn(staffWithoutEmployee, null))
+        CheckInRequest request = new CheckInRequest(1L, null, null, null, null);
+
+        assertThatThrownBy(() -> controller.checkIn(staffWithoutEmployee, request))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST));
 
@@ -58,6 +62,17 @@ class AttendanceControllerTest {
 
         assertThat(controller.checkOut(manager, request).getBody().getData()).isEqualTo(SAMPLE);
         verify(service).checkOut(6L, request);
+    }
+
+    @Test
+    void createAttendanceDelegatesManualEntry() {
+        CreateAttendanceRequest request = new CreateAttendanceRequest(
+                5L, 1L, null, LocalDateTime.of(2026, 7, 18, 8, 0), null, "manual", null
+        );
+        when(service.create(request)).thenReturn(SAMPLE);
+
+        assertThat(controller.createAttendance(request).getBody().getData()).isEqualTo(SAMPLE);
+        verify(service).create(request);
     }
 
     @Test
@@ -87,7 +102,7 @@ class AttendanceControllerTest {
 
     @Test
     void updateAttendanceDelegatesManagerCorrection() {
-        UpdateAttendanceRequest request = new UpdateAttendanceRequest(null, LocalDateTime.now(), null, "fixed");
+        UpdateAttendanceRequest request = new UpdateAttendanceRequest(null, null, null, LocalDateTime.now(), null, "fixed");
         when(service.update(10L, request)).thenReturn(SAMPLE);
 
         assertThat(controller.updateAttendance(10L, request).getBody().getMessage())

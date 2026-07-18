@@ -46,6 +46,38 @@ public class NotificationTriggerService {
         );
     }
 
+    public void staffCheckedIn(long employeeId, long campaignId, String campaignName) {
+        String employeeName = employeeName(employeeId);
+        List<Long> users = usersByRoles("MANAGER", ADMIN_ROLE);
+        notificationService.sendToUsers(
+                users,
+                "Staff checked in",
+                employeeName + " checked in for campaign: " + campaignName,
+                Map.of(
+                        "type", "staff_checked_in",
+                        "employeeId", String.valueOf(employeeId),
+                        "campaignId", String.valueOf(campaignId)
+                ),
+                "STAFF_CHECKED_IN"
+        );
+    }
+
+    public void staffCheckedOut(long employeeId, long campaignId, String campaignName) {
+        String employeeName = employeeName(employeeId);
+        List<Long> users = usersByRoles("MANAGER", ADMIN_ROLE);
+        notificationService.sendToUsers(
+                users,
+                "Staff checked out",
+                employeeName + " checked out from campaign: " + campaignName,
+                Map.of(
+                        "type", "staff_checked_out",
+                        "employeeId", String.valueOf(employeeId),
+                        "campaignId", String.valueOf(campaignId)
+                ),
+                "STAFF_CHECKED_OUT"
+        );
+    }
+
     public void staffAssigned(long eventId, long employeeId) {
         List<Long> users = jdbc.queryForList(
                 "SELECT id FROM app_users WHERE employee_id = ? AND status = 'ACTIVE'",
@@ -171,6 +203,13 @@ public class NotificationTriggerService {
                 Long.class,
                 eventId
         ));
+    }
+
+    private String employeeName(long employeeId) {
+        List<String> names = jdbc.queryForList(
+                "SELECT full_name FROM employees WHERE id = ?", String.class, employeeId
+        );
+        return names.isEmpty() ? "An employee" : names.get(0);
     }
 
     private List<Long> studentUsersForEvent(long eventId) {

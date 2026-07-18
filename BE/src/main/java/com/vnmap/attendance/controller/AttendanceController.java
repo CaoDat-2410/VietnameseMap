@@ -3,6 +3,7 @@ package com.vnmap.attendance.controller;
 import com.vnmap.attendance.dto.AttendanceDto;
 import com.vnmap.attendance.dto.CheckInRequest;
 import com.vnmap.attendance.dto.CheckOutRequest;
+import com.vnmap.attendance.dto.CreateAttendanceRequest;
 import com.vnmap.attendance.dto.UpdateAttendanceRequest;
 import com.vnmap.attendance.service.AttendanceService;
 import com.vnmap.common.model.ApiResponse;
@@ -22,12 +23,11 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 
 /**
- * Staff check-in / check-out (attendance).
+ * Staff check-in / check-out (attendance), tied to an open campaign.
  *
  * Role gating (mirrored in SecurityConfig):
  *  - STAFF/MANAGER: check themselves in/out, view their own history.
- *  - MANAGER: lists, corrects, and deletes any employee's records.
- *  - ADMIN: read-only visibility over every record.
+ *  - MANAGER/ADMIN: list, manually create, correct, and delete any employee's records.
  */
 @RestController
 @Validated
@@ -43,7 +43,7 @@ public class AttendanceController {
     @PostMapping("/check-in")
     public ResponseEntity<ApiResponse<AttendanceDto>> checkIn(
             @AuthenticationPrincipal CurrentUser currentUser,
-            @Valid @RequestBody(required = false) CheckInRequest request
+            @Valid @RequestBody CheckInRequest request
     ) {
         long employeeId = requireEmployeeId(currentUser);
         return ResponseEntity.ok(ApiResponse.success(
@@ -71,6 +71,15 @@ public class AttendanceController {
         long employeeId = requireEmployeeId(currentUser);
         return ResponseEntity.ok(ApiResponse.success(
                 attendanceService.list(employeeId, null, null, null, page, limit)
+        ));
+    }
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<AttendanceDto>> createAttendance(
+            @Valid @RequestBody CreateAttendanceRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
+                attendanceService.create(request), "Attendance record created successfully"
         ));
     }
 
