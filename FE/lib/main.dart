@@ -5,12 +5,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app/router.dart';
 import 'core/config/app_config.dart';
 import 'core/config/firebase_initializer.dart';
+import 'core/messaging/messaging_service.dart';
 import 'core/monitoring/crashlytics_service.dart';
 import 'core/monitoring/sentry_service.dart';
 import 'core/providers/locale_provider.dart';
 import 'core/providers/theme_provider.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/providers/auth_viewmodel.dart';
+import 'features/notifications/presentation/notification_navigation.dart';
+import 'features/notifications/presentation/providers/notification_provider.dart';
 import 'l10n/app_localizations.dart';
 
 Future<void> main() async {
@@ -24,6 +27,7 @@ Future<void> main() async {
   // Firebase: Web only (throws on mobile unless platform files are present)
   try {
     await FirebaseInitializer.initialize();
+    registerFirebaseBackgroundMessageHandler();
   } on UnsupportedError catch (e) {
     debugPrint('[Firebase] ${e.message}');
   }
@@ -49,6 +53,28 @@ class _VietnameseMapAppState extends ConsumerState<VietnameseMapApp> {
   void initState() {
     super.initState();
     _initializeCrashlyticsIfMobile();
+    MessagingService.instance.onNotificationOpened = _openNotification;
+    NotificationCenter.instance.onNewMessage = (_) => _refreshNotifications();
+  }
+
+  void _openNotification(Map<String, dynamic> data) {
+    _refreshNotifications();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      router.go(notificationDestination(data));
+    });
+  }
+
+  void _refreshNotifications() {
+    ref.invalidate(recentNotificationsProvider);
+    ref.invalidate(allNotificationsProvider);
+    ref.invalidate(notificationUnreadCountProvider);
+  }
+
+  @override
+  void dispose() {
+    MessagingService.instance.onNotificationOpened = null;
+    NotificationCenter.instance.onNewMessage = null;
+    super.dispose();
   }
 
   void _initializeCrashlyticsIfMobile() {

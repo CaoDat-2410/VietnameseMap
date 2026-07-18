@@ -923,7 +923,11 @@ public class CampaignService {
         if (updated == 0) {
             throw new ResourceNotFoundException("StudentRegistration", "id", id);
         }
-        return getRegistration(id);
+        StudentRegistrationDto registration = getRegistration(id);
+        if (notificationTriggers != null) {
+            notificationTriggers.ifAvailable(service -> service.registrationStatusChanged(id, status));
+        }
+        return registration;
     }
 
     public PagedResponse<StudentRegistrationDto> listRegistrationsForStaff(
@@ -1000,10 +1004,15 @@ public class CampaignService {
             ensureRegistrationManagedByUser(id, user);
         }
         String placeholders = String.join(",", Collections.nCopies(request.ids().size(), "?"));
-        return jdbc.update(
+        int updated = jdbc.update(
                 "UPDATE campaign_student_registrations SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id IN (" + placeholders + ")",
                 concatArgs(request.status(), request.ids())
         );
+        if (updated > 0 && notificationTriggers != null) {
+            notificationTriggers.ifAvailable(service -> request.ids()
+                    .forEach(id -> service.registrationStatusChanged(id, request.status())));
+        }
+        return updated;
     }
 
     private Object[] concatArgs(Object first, List<Long> rest) {

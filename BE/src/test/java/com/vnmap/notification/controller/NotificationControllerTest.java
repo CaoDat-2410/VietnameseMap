@@ -19,8 +19,10 @@ class NotificationControllerTest {
 
     @Test
     void delegatesAllAuthenticatedNotificationActions() {
-        when(service.sendToUser(eq(2L), any(SendNotificationRequest.class))).thenReturn("single");
-        when(service.sendBroadcast(any(SendNotificationRequest.class))).thenReturn("broadcast");
+        when(service.sendToUser(eq(2L), eq("Title"), eq("Body"), anyMap(), eq("ADMIN_MANUAL")))
+                .thenReturn("single");
+        when(service.sendBroadcast(eq("Title"), eq("Body"), anyMap(), eq("ADMIN_MANUAL")))
+                .thenReturn("broadcast");
         when(service.unreadCount(7L)).thenReturn(4L);
         when(service.markRead(7L, 8L)).thenReturn(true);
         when(service.markAllRead(7L)).thenReturn(3);

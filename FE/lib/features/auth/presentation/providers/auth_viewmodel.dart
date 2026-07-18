@@ -1,15 +1,21 @@
 // ignore_for_file: unawaited_futures
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../shared/models/auth_models.dart';
 import '../../shared/repositories/auth_repository.dart';
 import '../../../../core/analytics/analytics_service.dart';
+import '../../../../core/messaging/messaging_service.dart';
 import 'auth_view_state.dart';
 
 /// Provider for [AuthViewModel].
 final authViewModelProvider =
     StateNotifierProvider<AuthViewModel, AuthViewState>((ref) {
-  return AuthViewModel(ref.watch(authRepositoryProvider));
+  return AuthViewModel(
+    ref.watch(authRepositoryProvider),
+    MessagingService.instance,
+  );
 });
 
 /// Bridge provider that converts MVVM [AuthViewState] to [AsyncValue<AuthUserModel?>]
@@ -28,17 +34,20 @@ final activeUserProvider = Provider<AsyncValue<AuthUserModel?>>((ref) {
 /// Manages login, logout, and Google Sign-In state via [AuthViewState].
 /// All analytics calls are made here — never in widgets.
 class AuthViewModel extends StateNotifier<AuthViewState> {
-  AuthViewModel(this._repository) : super(const AuthViewStateLoading()) {
+  AuthViewModel(this._repository, this._messaging)
+      : super(const AuthViewStateLoading()) {
     _loadCurrentUser();
   }
 
   final AuthRepository _repository;
+  final MessagingService _messaging;
 
   Future<void> loginWithPassword(String email, String password) async {
     state = const AuthViewStateLoading();
     try {
       final user = await _repository.login(email: email, password: password);
       state = AuthViewStateData(user, loginMethod: 'password');
+      unawaited(_messaging.initializeAuthenticatedSession());
       AnalyticsService.logEvent('login', {'method': 'password'});
     } catch (e) {
       state = const AuthViewStateError('Email hoặc mật khẩu không đúng');
@@ -52,6 +61,7 @@ class AuthViewModel extends StateNotifier<AuthViewState> {
     try {
       final user = await _repository.googleSignIn(idToken);
       state = AuthViewStateData(user, loginMethod: 'google');
+      unawaited(_messaging.initializeAuthenticatedSession());
       AnalyticsService.logEvent('login', {'method': 'google'});
     } catch (e) {
       state = const AuthViewStateError('Đăng nhập Google thất bại');
@@ -69,6 +79,7 @@ class AuthViewModel extends StateNotifier<AuthViewState> {
         password: password,
       );
       state = AuthViewStateData(user, loginMethod: 'password');
+      unawaited(_messaging.initializeAuthenticatedSession());
       AnalyticsService.logEvent('sign_up', {'method': 'password'});
     } catch (e) {
       state = AuthViewStateError('Đăng ký thất bại: ' + e.toString());
@@ -77,6 +88,7 @@ class AuthViewModel extends StateNotifier<AuthViewState> {
 
   Future<void> logout() async {
     try {
+      await _messaging.unregisterAuthenticatedSession();
       await _repository.logout();
     } finally {
       state = const AuthViewStateData(null);
@@ -92,6 +104,7 @@ class AuthViewModel extends StateNotifier<AuthViewState> {
     try {
       final user = await _repository.me();
       state = AuthViewStateData(user);
+      unawaited(_messaging.initializeAuthenticatedSession());
     } catch (e) {
       state = const AuthViewStateData(null);
     }

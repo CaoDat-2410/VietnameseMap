@@ -1309,6 +1309,216 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Campaign Module'**
   String get campaignModule;
+
+  /// No description provided for @notificationManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification management'**
+  String get notificationManagement;
+
+  /// No description provided for @notificationManagementDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Only administrators can send notifications. Recipients see a device push and an inbox record.'**
+  String get notificationManagementDescription;
+
+  /// No description provided for @notificationRecipient.
+  ///
+  /// In en, this message translates to:
+  /// **'Recipient'**
+  String get notificationRecipient;
+
+  /// No description provided for @notificationAllUsers.
+  ///
+  /// In en, this message translates to:
+  /// **'All users'**
+  String get notificationAllUsers;
+
+  /// No description provided for @notificationSearchRecipient.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by email or role'**
+  String get notificationSearchRecipient;
+
+  /// No description provided for @notificationCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification type'**
+  String get notificationCategory;
+
+  /// No description provided for @notificationGeneral.
+  ///
+  /// In en, this message translates to:
+  /// **'General announcement'**
+  String get notificationGeneral;
+
+  /// No description provided for @notificationCampaignUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Campaign update'**
+  String get notificationCampaignUpdate;
+
+  /// No description provided for @notificationEventReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Event reminder'**
+  String get notificationEventReminder;
+
+  /// No description provided for @notificationSystemNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'System notice'**
+  String get notificationSystemNotice;
+
+  /// No description provided for @notificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get notificationTitle;
+
+  /// No description provided for @notificationBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Message'**
+  String get notificationBody;
+
+  /// No description provided for @notificationSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send notification'**
+  String get notificationSend;
+
+  /// No description provided for @notificationSending.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending...'**
+  String get notificationSending;
+
+  /// No description provided for @notificationSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification sent to the device.'**
+  String get notificationSent;
+
+  /// No description provided for @notificationSavedNoDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to the inbox; the recipient has no registered FCM device.'**
+  String get notificationSavedNoDevice;
+
+  /// No description provided for @notificationTitleRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a title.'**
+  String get notificationTitleRequired;
+
+  /// No description provided for @notificationBodyRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a message.'**
+  String get notificationBodyRequired;
+
+  /// No description provided for @notificationLoadUsersFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load recipients.'**
+  String get notificationLoadUsersFailed;
+
+  /// No description provided for @notificationSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to send the notification. Try again.'**
+  String get notificationSendFailed;
+
+  /// No description provided for @supportedNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Supported notifications'**
+  String get supportedNotifications;
+
+  /// No description provided for @supportedNotificationsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic pushes and administrator messages.'**
+  String get supportedNotificationsDescription;
+
+  /// No description provided for @notifyRegistrationResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Registration review result: approved, rejected, or cancelled'**
+  String get notifyRegistrationResult;
+
+  /// No description provided for @notifyCampaignCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'New campaign created'**
+  String get notifyCampaignCreated;
+
+  /// No description provided for @notifyEventCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'New event created'**
+  String get notifyEventCreated;
+
+  /// No description provided for @notifyEventAssignment.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff event assignment'**
+  String get notifyEventAssignment;
+
+  /// No description provided for @notifyAccountDeactivated.
+  ///
+  /// In en, this message translates to:
+  /// **'Account deactivated'**
+  String get notifyAccountDeactivated;
+
+  /// No description provided for @notifyDailyEventReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Same-day event reminder'**
+  String get notifyDailyEventReminder;
+
+  /// No description provided for @notifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications'**
+  String get notifications;
+
+  /// No description provided for @notificationInboxDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications sent to your account are stored here.'**
+  String get notificationInboxDescription;
+
+  /// No description provided for @noNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'No notifications yet'**
+  String get noNotifications;
+
+  /// No description provided for @markAllNotificationsRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all read'**
+  String get markAllNotificationsRead;
+
+  /// No description provided for @allNotificationsRead.
+  ///
+  /// In en, this message translates to:
+  /// **'All notifications marked as read.'**
+  String get allNotificationsRead;
+
+  /// No description provided for @notificationLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load notifications.'**
+  String get notificationLoadFailed;
+
+  /// No description provided for @notificationJustNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get notificationJustNow;
 }
 
 class _AppLocalizationsDelegate

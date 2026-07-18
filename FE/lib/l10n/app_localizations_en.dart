@@ -630,4 +630,115 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get campaignModule => 'Campaign Module';
+
+  @override
+  String get notificationManagement => 'Notification management';
+
+  @override
+  String get notificationManagementDescription =>
+      'Only administrators can send notifications. Recipients see a device push and an inbox record.';
+
+  @override
+  String get notificationRecipient => 'Recipient';
+
+  @override
+  String get notificationAllUsers => 'All users';
+
+  @override
+  String get notificationSearchRecipient => 'Search by email or role';
+
+  @override
+  String get notificationCategory => 'Notification type';
+
+  @override
+  String get notificationGeneral => 'General announcement';
+
+  @override
+  String get notificationCampaignUpdate => 'Campaign update';
+
+  @override
+  String get notificationEventReminder => 'Event reminder';
+
+  @override
+  String get notificationSystemNotice => 'System notice';
+
+  @override
+  String get notificationTitle => 'Title';
+
+  @override
+  String get notificationBody => 'Message';
+
+  @override
+  String get notificationSend => 'Send notification';
+
+  @override
+  String get notificationSending => 'Sending...';
+
+  @override
+  String get notificationSent => 'Notification sent to the device.';
+
+  @override
+  String get notificationSavedNoDevice =>
+      'Saved to the inbox; the recipient has no registered FCM device.';
+
+  @override
+  String get notificationTitleRequired => 'Enter a title.';
+
+  @override
+  String get notificationBodyRequired => 'Enter a message.';
+
+  @override
+  String get notificationLoadUsersFailed => 'Unable to load recipients.';
+
+  @override
+  String get notificationSendFailed =>
+      'Unable to send the notification. Try again.';
+
+  @override
+  String get supportedNotifications => 'Supported notifications';
+
+  @override
+  String get supportedNotificationsDescription =>
+      'Automatic pushes and administrator messages.';
+
+  @override
+  String get notifyRegistrationResult =>
+      'Registration review result: approved, rejected, or cancelled';
+
+  @override
+  String get notifyCampaignCreated => 'New campaign created';
+
+  @override
+  String get notifyEventCreated => 'New event created';
+
+  @override
+  String get notifyEventAssignment => 'Staff event assignment';
+
+  @override
+  String get notifyAccountDeactivated => 'Account deactivated';
+
+  @override
+  String get notifyDailyEventReminder => 'Same-day event reminder';
+
+  @override
+  String get notifications => 'Notifications';
+
+  @override
+  String get notificationInboxDescription =>
+      'Notifications sent to your account are stored here.';
+
+  @override
+  String get noNotifications => 'No notifications yet';
+
+  @override
+  String get markAllNotificationsRead => 'Mark all read';
+
+  @override
+  String get allNotificationsRead => 'All notifications marked as read.';
+
+  @override
+  String get notificationLoadFailed => 'Unable to load notifications.';
+
+  @override
+  String get notificationJustNow => 'Just now';
 }

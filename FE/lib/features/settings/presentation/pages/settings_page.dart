@@ -6,6 +6,8 @@ import '../../../../core/providers/analytics_consent_provider.dart';
 import '../../../../core/providers/locale_provider.dart';
 import '../../../../core/providers/remote_config_provider.dart';
 import '../../../../core/providers/theme_provider.dart';
+import '../../../auth/presentation/providers/auth_viewmodel.dart';
+import '../../../notifications/presentation/widgets/admin_notification_composer.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class SettingsPage extends ConsumerWidget {
@@ -17,6 +19,7 @@ class SettingsPage extends ConsumerWidget {
     final locale = ref.watch(localeProvider);
     final analyticsEnabled = ref.watch(analyticsConsentProvider);
     final remoteConfig = ref.watch(remoteConfigProvider);
+    final activeUser = ref.watch(activeUserProvider).valueOrNull;
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -48,6 +51,12 @@ class SettingsPage extends ConsumerWidget {
                   onChanged:
                       ref.read(analyticsConsentProvider.notifier).setConsent,
                 ),
+                if (activeUser?.role == 'ADMIN') ...[
+                  const SizedBox(height: 24),
+                  _SectionHeader(title: l10n.notificationManagement),
+                  const SizedBox(height: 8),
+                  const AdminNotificationComposer(),
+                ],
                 const SizedBox(height: 24),
                 _SectionHeader(title: l10n.appInformation),
                 const SizedBox(height: 8),
@@ -275,15 +284,17 @@ class _AppInfoTile extends StatelessWidget {
                     children: [
                       Text(
                         'VN Map',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
                       ),
                       Text(
                         l10n.version('1.0.0'),
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color:
-                                  Theme.of(context).colorScheme.onSurfaceVariant,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                             ),
                       ),
                     ],

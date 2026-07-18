@@ -80,7 +80,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/notifications", "/api/v1/notifications/unread-count").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/v1/notifications/*/read").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/notifications/read-all").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/notifications/send").hasAnyRole(MANAGER, ADMIN)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/notifications/send").hasRole(ADMIN)
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

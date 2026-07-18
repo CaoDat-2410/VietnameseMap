@@ -55,9 +55,15 @@ class DioClient {
   Future<Response<T>> delete<T>(
     String path, {
     dynamic data,
+    Map<String, dynamic>? queryParameters,
     Options? options,
   }) =>
-      _dio.delete<T>(path, data: data, options: options);
+      _dio.delete<T>(
+        path,
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+      );
 }
 
 class AuthTokenInterceptor extends Interceptor {

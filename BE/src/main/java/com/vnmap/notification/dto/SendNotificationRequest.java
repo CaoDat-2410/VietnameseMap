@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 
 /**
  * Request to send a push notification via Firebase Cloud Messaging.
- * Admin-only — only STAFF, MANAGER, or ADMIN can send notifications.
+ * Admin-only request used by the notification composer in Settings.
  */
 public record SendNotificationRequest(
         Long targetUserId,

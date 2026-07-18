@@ -50,10 +50,13 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       if (kIsWeb) {
         final provider = GoogleAuthProvider()
           ..addScope('email')
-          ..addScope('profile');
+          ..addScope('profile')
+          ..setCustomParameters({'prompt': 'select_account'});
         credential = await FirebaseAuth.instance.signInWithPopup(provider);
       } else {
-        final account = await GoogleSignIn().signIn();
+        final googleSignIn = GoogleSignIn();
+        await googleSignIn.signOut();
+        final account = await googleSignIn.signIn();
         if (account == null) return;
         final authentication = await account.authentication;
         credential = await FirebaseAuth.instance.signInWithCredential(

@@ -61,6 +61,46 @@ public class NotificationTriggerService {
         );
     }
 
+
+    public void registrationStatusChanged(long registrationId, String status) {
+        List<Map<String, Object>> recipients = jdbc.queryForList("""
+                SELECT u.id AS user_id, r.campaign_id, c.name AS campaign_name
+                FROM campaign_student_registrations r
+                JOIN campaigns c ON c.id = r.campaign_id
+                JOIN app_users u ON u.student_id = r.student_id
+                WHERE r.id = ? AND u.status = 'ACTIVE'
+                """, registrationId);
+        if (recipients.isEmpty()) {
+            return;
+        }
+
+        String normalizedStatus = status.toUpperCase(java.util.Locale.ROOT);
+        String title = switch (normalizedStatus) {
+            case "APPROVED" -> "Registration approved";
+            case "REJECTED" -> "Registration rejected";
+            case "CANCELLED" -> "Registration cancelled";
+            default -> "Registration updated";
+        };
+        for (Map<String, Object> recipient : recipients) {
+            long userId = ((Number) recipient.get("user_id")).longValue();
+            long campaignId = ((Number) recipient.get("campaign_id")).longValue();
+            String campaignName = String.valueOf(recipient.get("campaign_name"));
+            String body = "Your registration for " + campaignName
+                    + " is now " + normalizedStatus.toLowerCase(java.util.Locale.ROOT) + ".";
+            notificationService.sendToUser(
+                    userId,
+                    title,
+                    body,
+                    Map.of(
+                            "type", "registration_" + normalizedStatus.toLowerCase(java.util.Locale.ROOT),
+                            "registrationId", String.valueOf(registrationId),
+                            "campaignId", String.valueOf(campaignId)
+                    ),
+                    "REGISTRATION_" + normalizedStatus
+            );
+        }
+    }
+
     public void accountDeactivated(long userId) {
         List<Long> admins = usersByRoles(ADMIN_ROLE);
         notificationService.sendToUser(

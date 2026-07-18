@@ -8,6 +8,50 @@ class NotificationRepository {
 
   final DioClient _client;
 
+  Future<List<NotificationRecipient>> listRecipients() async {
+    final res = await _client.get<Map<String, dynamic>>('/api/v1/users');
+    final api = ApiResponse.fromJson(
+      res.data ?? const <String, dynamic>{},
+      (json) => (json as List<dynamic>)
+          .whereType<Map>()
+          .map((item) => NotificationRecipient.fromJson(
+                Map<String, dynamic>.from(item),
+              ))
+          .toList(),
+    );
+    _assertSuccess(api);
+    return (api.data ?? <NotificationRecipient>[])
+        .where((recipient) =>
+            recipient.id > 0 &&
+            recipient.email.isNotEmpty &&
+            recipient.status == 'ACTIVE')
+        .toList();
+  }
+
+  Future<String?> sendManual({
+    required int? targetUserId,
+    required String title,
+    required String body,
+    required String type,
+  }) async {
+    final res = await _client.post<Map<String, dynamic>>(
+      '/api/v1/notifications/send',
+      data: {
+        'targetUserId': targetUserId,
+        'title': title,
+        'body': body,
+        'data': {'type': type},
+      },
+    );
+    final api = ApiResponse.fromJson(
+      res.data ?? const <String, dynamic>{},
+      (json) => json?.toString() ?? '',
+    );
+    _assertSuccess(api);
+    final messageId = api.data;
+    return messageId == null || messageId.isEmpty ? null : messageId;
+  }
+
   Future<List<NotificationItem>> listMy({int limit = 10}) async {
     final res = await _client.get<Map<String, dynamic>>(
       '/api/v1/notifications',
@@ -63,8 +107,8 @@ class NotificationRepository {
 
   List<NotificationItem> _parseNotificationList(Object? json) {
     final items = switch (json) {
-      List<dynamic> list => list,
-      Map map => (map['items'] ?? map['content'] ?? map['data']) is List
+      final List<dynamic> list => list,
+      final Map map => (map['items'] ?? map['content'] ?? map['data']) is List
           ? (map['items'] ?? map['content'] ?? map['data']) as List<dynamic>
           : const <dynamic>[],
       _ => const <dynamic>[],

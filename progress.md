@@ -1316,7 +1316,8 @@ Fix three pre-existing bugs from the post-feat-081 smoke test:
 ### Solution
 - **StorageService**: replaced AWS SDK v2 S3Presigner/S3Client with a small custom SigV4Presigner (pure JDK HmacSHA256 + canonical request) that bypasses the AWS SDK v2 auth-scheme + endpoint-resolution interceptors. Those interceptors throw URISyntaxException("http:") against non-AWS HTTP endpoints like MinIO -- this is the bug from aws-sdk-java-v2 #4838/5646 affecting every v2.20+ release.
 - **MinioConfig**: simplified to only expose a shared CloseableHttpClient bean. Both presigners gone.
-- **ReportController + CampaignReportService**: added paged GET /api/v1/reports with status/eportType filters, role-scoped (admin sees all, manager sees own).
+- **ReportController + CampaignReportService**: added paged GET /api/v1/reports with status/
+eportType filters, role-scoped (admin sees all, manager sees own).
 - **GlobalExceptionHandler**: added @ExceptionHandler(NoResourceFoundException.class) -> 404 with structured error body.
 - **BE/docker-compose.yml**: changed MINIO_INTERNAL_ENDPOINT default from nmap_minio to minio (Docker service name). MinIO itself rejects hostnames containing underscores (InvalidRequest (invalid hostname)), so underscore names break server-side uploads even with valid SigV4.
 - **pom.xml**: kept AWS SDK v2 s3 2.28.16 for compat, removed pache-client (unused after switching to raw HttpClient).
@@ -1330,7 +1331,8 @@ Fix three pre-existing bugs from the post-feat-081 smoke test:
   - GET /api/v1/reports (admin) with status=READY filter works
   - GET /api/v1/reports (student) returns 403
   - POST /api/v1/reports -> status PENDING then READY
-  - storagePath ends with eports/.../{id}.pdf
+  - storagePath ends with
+eports/.../{id}.pdf
   - GET /api/v1/reports/{id}/download-url returns 200 with MinIO URL
   - Downloaded bytes start with %PDF (verified with '%PDF')
 
@@ -1503,7 +1505,9 @@ No new bugs introduced since feat-082. All 2 known issues from 2/7 smoke test
 - BE/src/main/java/com/vnmap/campaign/service/AnalyticsService.java
 - FE/lib/features/reports/data/repositories/report_repository.dart
 - FE/lib/features/reports/presentation/pages/reports_landing_page.dart,
-  eport_form_scaffold.dart, eport_filter_providers.dart,
+
+eport_form_scaffold.dart,
+eport_filter_providers.dart,
   campaign_report_type_page.dart
 - FE/lib/features/analytics/presentation/widgets/charts_section.dart,
   	rend_line_chart.dart, providers/analytics_provider.dart,
@@ -1523,9 +1527,11 @@ No new bugs introduced since feat-082. All 2 known issues from 2/7 smoke test
      can't infer types for those.
   2. The PDF report tab filter dropdowns crashed on load. Root cause:
      ReportRepository.getCampaigns() / getEmployees() used
-     _client.get<List<dynamic>>(...) and treated es.data as the list.
+     _client.get<List<dynamic>>(...) and treated
+es.data as the list.
      But the backend wraps every list response in ApiResponse
-     ({ success, message, data: [...] }), so es.data was the
+     ({ success, message, data: [...] }), so
+es.data was the
      envelope (a Map), not the list. .map(...) on a Map throws
      	ype 'String' is not a subtype of type 'Map<String, dynamic>'.
      The same file also called /api/v1/campaigns?size=100 (the
@@ -1550,7 +1556,8 @@ No new bugs introduced since feat-082. All 2 known issues from 2/7 smoke test
   ppendScopeFilters for the optional campaign / school filters.
 - FE/lib/features/reports/data/repositories/report_repository.dart:
   changed getCampaigns and getEmployees to call
-  _client.get<Map<String, dynamic>>(...) and unwrap es.data!['data']
+  _client.get<Map<String, dynamic>>(...) and unwrap
+es.data!['data']
   as List<dynamic>. Removed size=100. Renamed size -> limit in
   getSchools.
 
@@ -1624,3 +1631,23 @@ No new bugs introduced since feat-082. All 2 known issues from 2/7 smoke test
 - Generated and visually verified Campaign, Event, School, and Region PDFs; retained only cover/chart screenshot evidence and removed temporary PDF/render artifacts.
 - Added `system-analysis-assets/screenshots-selected-20/` with the 20 essential screenshots requested for concise delivery.
 - Final QA: all 55 report image references resolve, all image files decode with matching extensions, no unreferenced evidence remains, and the report contains no stored credentials or tokens.
+### 2026-07-17 - Clean Android USB debug build and device verification
+- Removed Flutter and Gradle build outputs, disabled Gradle build caching, restored dependencies, and built a fresh debug APK with `API_BASE_URL=http://127.0.0.1:8080` for USB `adb reverse` routing. The APK is 171072148 bytes with SHA-256 `572E56764ED3ABD4F859FE0E55C57F33C1E87F3005A33212021CC79B64F4AE04`.
+- Fixed two Android compile blockers in Crashlytics platform dispatch and the report form chart request. The successful Android compile includes all current source changes.
+- Uninstalled the old `com.example.vietnamese_map` package before installing the new APK on physical device `45601099`; verified version `1.0.0+1`, fresh install time `2026-07-17 21:33:42`, foreground `MainActivity`, and a live app process.
+- Restarted Docker Desktop from its paused state. `vnmap_backend`, PostgreSQL, Redis, MinIO, and frontend restarted; backend reached `healthy` and `http://127.0.0.1:8080/actuator/health` returned `UP`.
+- Re-applied `adb reverse tcp:8080 tcp:8080`, cold-launched the app after backend recovery, and verified Firebase, Crashlytics, Flutter engine, and Remote Config initialization. App-scoped logcat contained no fatal exception, Flutter error, or unhandled exception.
+- Retained feat-040 as pending because this task produced the requested debug APK only; release APK, AAB, and the stated release-size target are not claimed complete.
+### 2026-07-17 - Notification inbox routing and Android presigned PDF save
+- Repaired notification navigation by adding `/notifications`, centralized safe payload deep-links, and made the full inbox load persistent backend history instead of only the current process's in-memory FCM events. Notification providers now refresh when a message arrives or is opened.
+- Verified 6 targeted notification tests and targeted Flutter analysis with no issues. Rebuilt the Docker web frontend and confirmed `/notifications` renders two real admin audit records; screenshot retained under `output/notification-verification-20260717/`.
+- Kept the private report download on the existing 5-minute presigned MinIO URL flow. Configured the backend public signing endpoint as `http://192.168.1.6:9002` and rebuilt the Android app with API base `http://192.168.1.6:8080`, avoiding the invalid `localhost` host on the phone.
+- Verified report #56 returned a signed URL hosted at `192.168.1.6:9002`, downloaded 55,217 bytes beginning with `%PDF`, and opened Android's `ACTION_CREATE_DOCUMENT` save picker. Removed all adb reverse mappings before cold launch; the phone reached both API and MinIO directly and app logcat contained no fatal crash.
+- Added download progress, duplicate-tap protection, success/cancel/error feedback to the report form. Clean debug APK built and installed successfully; evidence is under `output/mobile-download-verification-20260717/`.
+
+### 2026-07-17 - Executive-first PDF report redesign
+- Replaced the 58-page raw-table Campaign PDF with a bounded executive brief. Campaign, Event, School, and Region now each render as exactly 4 A4 pages: KPI/insight summary, two chart pages, and one data-coverage page. The default PDF no longer duplicates chart data as raw tables.
+- Kept detailed rows available only through a clearly named compact appendix (`TABLES_ONLY`), capped at 20 rows and 6 priority columns per section with an omission count. Page footer numbering, deterministic A4 margins, embedded Unicode fonts, and controlled page breaks prevent split or clipped content.
+- Improved chart readability from visual QA: single-point line series render as a labeled value card, zero-only categories are removed when positive data exists, and charts with 7+ categories switch to horizontal bars with longer labels.
+- Simplified the Flutter form using progressive disclosure: Executive summary is the default, Chart-only and Compact appendix are explicit alternatives, and chart selection stays collapsed until requested. Verified at 1440x900 and 390x844; mobile had no horizontal overflow and kept the primary Export PDF action visible.
+- Verification: Docker `PdfReportRendererTest` 5/5 PASS; backend health `UP`; authenticated API reports #67-#70 all `READY`; all four downloads start with `%PDF`; each has 4 A4 pages. Rendered and visually inspected all 16 pages. Full Dart analyzer reported 0 errors, 0 warnings, and 246 pre-existing info lints. Evidence: `output/pdf/report-redesign-20260717/`.

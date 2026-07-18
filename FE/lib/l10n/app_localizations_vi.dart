@@ -633,4 +633,116 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get campaignModule => 'Mô-đun chiến dịch';
+
+  @override
+  String get notificationManagement => 'Quản lý thông báo';
+
+  @override
+  String get notificationManagementDescription =>
+      'Chỉ quản trị viên có thể gửi thông báo. Người nhận sẽ thấy push trên thiết bị và bản ghi trong hộp thư.';
+
+  @override
+  String get notificationRecipient => 'Người nhận';
+
+  @override
+  String get notificationAllUsers => 'Tất cả người dùng';
+
+  @override
+  String get notificationSearchRecipient => 'Tìm theo email hoặc vai trò';
+
+  @override
+  String get notificationCategory => 'Loại thông báo';
+
+  @override
+  String get notificationGeneral => 'Thông báo chung';
+
+  @override
+  String get notificationCampaignUpdate => 'Cập nhật chiến dịch';
+
+  @override
+  String get notificationEventReminder => 'Nhắc lịch sự kiện';
+
+  @override
+  String get notificationSystemNotice => 'Thông báo hệ thống';
+
+  @override
+  String get notificationTitle => 'Tiêu đề';
+
+  @override
+  String get notificationBody => 'Nội dung';
+
+  @override
+  String get notificationSend => 'Gửi thông báo';
+
+  @override
+  String get notificationSending => 'Đang gửi...';
+
+  @override
+  String get notificationSent => 'Đã gửi thông báo tới thiết bị.';
+
+  @override
+  String get notificationSavedNoDevice =>
+      'Đã lưu vào hộp thư; người nhận chưa đăng ký thiết bị FCM.';
+
+  @override
+  String get notificationTitleRequired => 'Vui lòng nhập tiêu đề.';
+
+  @override
+  String get notificationBodyRequired => 'Vui lòng nhập nội dung.';
+
+  @override
+  String get notificationLoadUsersFailed =>
+      'Không thể tải danh sách người nhận.';
+
+  @override
+  String get notificationSendFailed =>
+      'Không thể gửi thông báo. Vui lòng thử lại.';
+
+  @override
+  String get supportedNotifications => 'Các thông báo có thể nhận';
+
+  @override
+  String get supportedNotificationsDescription =>
+      'Push tự động và thông báo do quản trị viên gửi.';
+
+  @override
+  String get notifyRegistrationResult =>
+      'Kết quả duyệt đơn đăng ký: được duyệt, từ chối hoặc hủy';
+
+  @override
+  String get notifyCampaignCreated => 'Chiến dịch mới được tạo';
+
+  @override
+  String get notifyEventCreated => 'Sự kiện mới được tạo';
+
+  @override
+  String get notifyEventAssignment => 'Nhân viên được phân công sự kiện';
+
+  @override
+  String get notifyAccountDeactivated => 'Tài khoản bị vô hiệu hóa';
+
+  @override
+  String get notifyDailyEventReminder => 'Nhắc sự kiện diễn ra trong ngày';
+
+  @override
+  String get notifications => 'Thông báo';
+
+  @override
+  String get notificationInboxDescription =>
+      'Các thông báo gửi đến tài khoản của bạn sẽ được lưu tại đây.';
+
+  @override
+  String get noNotifications => 'Chưa có thông báo';
+
+  @override
+  String get markAllNotificationsRead => 'Đánh dấu đã đọc';
+
+  @override
+  String get allNotificationsRead => 'Đã đánh dấu tất cả thông báo là đã đọc.';
+
+  @override
+  String get notificationLoadFailed => 'Không thể tải thông báo.';
+
+  @override
+  String get notificationJustNow => 'Vừa xong';
 }

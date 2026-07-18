@@ -1,6 +1,32 @@
 import 'package:flutter/foundation.dart';
 
 @immutable
+class NotificationRecipient {
+  const NotificationRecipient({
+    required this.id,
+    required this.email,
+    required this.role,
+    required this.status,
+  });
+
+  final int id;
+  final String email;
+  final String role;
+  final String status;
+
+  String get label => '$email - $role';
+
+  factory NotificationRecipient.fromJson(Map<String, dynamic> json) {
+    return NotificationRecipient(
+      id: ((json['id'] ?? 0) as num).toInt(),
+      email: json['email']?.toString() ?? '',
+      role: json['role']?.toString() ?? '',
+      status: json['status']?.toString() ?? '',
+    );
+  }
+}
+
+@immutable
 class NotificationItem {
   const NotificationItem({
     required this.id,
@@ -37,7 +63,8 @@ class NotificationItem {
       id: ((json['id'] ?? 0) as num).toInt(),
       title: json['title']?.toString() ?? '',
       body: json['body']?.toString() ?? '',
-      triggerType: json['triggerType']?.toString() ?? json['type']?.toString() ?? '',
+      triggerType:
+          json['triggerType']?.toString() ?? json['type']?.toString() ?? '',
       status: json['status']?.toString() ?? '',
       createdAt: _dateTimeFromJson(json['createdAt']) ?? DateTime.now(),
       readAt: _dateTimeFromJson(json['readAt']),
@@ -49,7 +76,8 @@ class NotificationItem {
     if (value == null) return null;
     if (value is DateTime) return value;
     if (value is num) {
-      final millis = value > 1000000000000 ? value.toInt() : (value * 1000).toInt();
+      final millis =
+          value > 1000000000000 ? value.toInt() : (value * 1000).toInt();
       return DateTime.fromMillisecondsSinceEpoch(millis, isUtc: true);
     }
     return DateTime.tryParse(value.toString());

@@ -54,7 +54,7 @@ public class NotificationController {
 
     /**
      * Sends a push notification to a single user or broadcasts to all users.
-     * Requires STAFF, MANAGER, or ADMIN role (enforced by SecurityConfig).
+     * Requires the ADMIN role (enforced by SecurityConfig).
      */
     @PostMapping("/send")
     public ResponseEntity<ApiResponse<String>> sendNotification(
@@ -65,9 +65,20 @@ public class NotificationController {
 
         String result;
         if (request.targetUserId() != null) {
-            result = notificationService.sendToUser(request.targetUserId(), request);
+            result = notificationService.sendToUser(
+                    request.targetUserId(),
+                    request.title(),
+                    request.body(),
+                    request.data(),
+                    "ADMIN_MANUAL"
+            );
         } else {
-            result = notificationService.sendBroadcast(request);
+            result = notificationService.sendBroadcast(
+                    request.title(),
+                    request.body(),
+                    request.data(),
+                    "ADMIN_MANUAL"
+            );
         }
 
         return ResponseEntity.ok(ApiResponse.success(result));

@@ -1,10 +1,12 @@
 package com.vnmap.report.service;
 
+import com.lowagie.text.pdf.PdfReader;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -47,5 +49,81 @@ class PdfReportRendererTest {
         );
         byte[] pdf = renderer.render("Verified report", "summary", List.of(), Map.of(), charts, "CHARTS_AND_TABLES");
         assertThat(pdf).startsWith("%PDF".getBytes()).hasSizeGreaterThan(10_000);
+    }
+
+    @Test
+    void keepsExecutiveReportConciseEvenWhenSectionsContainManyRows() throws Exception {
+        Map<String, List<Map<String, Object>>> sections = new LinkedHashMap<>();
+        sections.put("summary", rows(100));
+        sections.put("events", rows(100));
+        sections.put("schools", rows(100));
+        sections.put("interactions", rows(100));
+        List<ReportChart> charts = List.of(
+                chart("status", "DONUT"),
+                chart("events", "BAR"),
+                chart("trend", "LINE"),
+                chart("schools", "BAR")
+        );
+
+        byte[] pdf = renderer.render(
+                "Executive report",
+                "Large dataset verification",
+                List.of(Map.of("label", "Records", "value", 400)),
+                sections,
+                charts,
+                "CHARTS_AND_TABLES"
+        );
+
+        PdfReader reader = new PdfReader(pdf);
+        assertThat(reader.getNumberOfPages()).isEqualTo(4);
+        reader.close();
+    }
+
+    @Test
+    void boundsTheOptionalDataAppendix() throws Exception {
+        Map<String, List<Map<String, Object>>> sections = new LinkedHashMap<>();
+        sections.put("events", rows(100));
+        sections.put("schools", rows(100));
+
+        byte[] pdf = renderer.render(
+                "Data appendix",
+                "Bounded appendix verification",
+                List.of(),
+                sections,
+                List.of(),
+                "TABLES_ONLY"
+        );
+
+        PdfReader reader = new PdfReader(pdf);
+        assertThat(reader.getNumberOfPages()).isEqualTo(4);
+        reader.close();
+    }
+
+    private static List<Map<String, Object>> rows(int count) {
+        return IntStream.range(0, count)
+                .mapToObj(index -> Map.<String, Object>of(
+                        "id", index,
+                        "name", "Hà Nội record " + index,
+                        "status", index % 2 == 0 ? "ACTIVE" : "DRAFT",
+                        "province_name", "Hà Nội",
+                        "event_type", "SCHOOL_VISIT",
+                        "starts_at", "2026-07-17T08:00:00",
+                        "technical_column", "not needed"
+                ))
+                .toList();
+    }
+
+    private static ReportChart chart(String id, String type) {
+        return new ReportChart(
+                id,
+                "Chart " + id,
+                "Decision-focused chart",
+                type,
+                "count",
+                "2026",
+                "Test records",
+                "ACTIVE leads",
+                List.of(new ReportChart.Datum("ACTIVE", 4), new ReportChart.Datum("DRAFT", 2))
+        );
     }
 }
