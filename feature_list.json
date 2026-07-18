@@ -541,8 +541,8 @@
                          "dependencies":  [
                                               "feat-038"
                                           ],
-                         "status":  "pending",
-                         "evidence":  "",
+                         "status":  "completed",
+                         "evidence":  "2026-07-16: Docker mvn clean test BUILD SUCCESS (185 tests, 0 failures/errors). SonarQube project VietnamMap analysis 9c0eeaa2-ee9d-417b-a415-e30c6f3ff5c9: Quality Gate OK, coverage 91.0%, line coverage 94.6%, branch coverage 80.2%, bugs/vulnerabilities/code smells/security hotspots 0, unresolved issues 0.",
                          "files":  [
 
                                    ]
@@ -555,7 +555,7 @@
                                               "feat-039"
                                           ],
                          "status":  "pending",
-                         "evidence":  "",
+                         "evidence":  "2026-07-17: Clean debug APK built with API_BASE_URL=http://127.0.0.1:8080 and Gradle cache disabled; SHA-256 572E56764ED3ABD4F859FE0E55C57F33C1E87F3005A33212021CC79B64F4AE04. Previous package uninstalled, APK installed on USB device 45601099, adb reverse tcp:8080 active, cold launch foreground verified, backend healthy, and startup log has no fatal/Flutter error. Release APK/AAB and size target remain pending.",
                          "files":  [
 
                                    ]
@@ -1148,7 +1148,7 @@
                                               "feat-072"
                                           ],
                          "status":  "completed",
-                         "evidence":  "docker compose config succeeded; docker build --target builder -t vnmap-be-compile-check . succeeded; OpenPDF LGPL/MPL license note recorded in progress.md.",
+                         "evidence":  "docker compose config succeeded; Docker backend healthy. Android runtime verified report #56 through a 5-minute presigned MinIO URL whose host is the machine LAN address (192.168.1.6:9002), with no adb reverse; downloaded 55,217 bytes beginning with %PDF and opened Android ACTION_CREATE_DOCUMENT. Evidence: output/mobile-download-verification-20260717/.",
                          "files":  [
                                        "BE/pom.xml",
                                        "BE/docker-compose.yml",
@@ -1167,7 +1167,7 @@
                                               "feat-068"
                                           ],
                          "status":  "completed",
-                         "evidence":  "Backend Docker compile succeeded; frontend flutter pub get succeeded; notification center route wired. Full Flutter analyze blocked by local analyzer hang.",
+                         "evidence":  "Persistent backend notification inbox and safe deep-link route verified in Docker/browser; /notifications displayed 2 real audit records. Six targeted Flutter tests passed and targeted analyze reported No issues found. Android APK installed and cold-launched without a fatal exception. Evidence: output/notification-verification-20260717/notification-inbox-route-fixed.png.",
                          "files":  [
                                        "BE/src/main/java/com/vnmap/notification/",
                                        "BE/src/main/java/com/vnmap/common/config/SchedulingConfig.java",
@@ -1348,8 +1348,30 @@
                            "note":  "User asked about auto-grading approach based on interaction/outcome data"
                        }
                    ],
-    "pendingFeatures": [],
+    "pendingFeatures": [
+        {
+            "id": "feat-088",
+            "name": "KPI card alignment and responsive dashboard grid",
+            "status": "in_progress",
+            "note": "Source implementation and targeted flutter analyze are clean. Desktop runtime evidence is captured; exhaustive responsive breakpoint verification remains pending."
+        }
+    ],
     "completedFeatures": [
+        {
+            "id": "feat-089",
+            "name": "Executive-first PDF reports with compact charts",
+            "description": "Redesigned Campaign, Event, School, and Region PDFs as concise executive briefs: KPI summary, four sourced charts, key findings, and bounded data coverage. Raw rows remain in VNMap; the optional appendix is capped at 20 rows and 6 priority columns per section.",
+            "dependencies": ["feat-080"],
+            "status": "completed",
+            "evidence": "Authenticated Docker API produced READY reports #67-#70. Campaign, Event, School, and Region are each exactly 4 A4 pages; all 16 pages were rendered and visually inspected under output/pdf/report-redesign-20260717/evidence/. PdfReportRendererTest: 5/5 PASS. Responsive report form verified at 1440x900 and 390x844 with no horizontal overflow. Full Dart analyzer: 0 errors, 0 warnings, 246 pre-existing infos.",
+            "files": [
+                "BE/src/main/java/com/vnmap/report/service/PdfReportRenderer.java",
+                "BE/src/test/java/com/vnmap/report/service/PdfReportRendererTest.java",
+                "FE/lib/features/reports/presentation/widgets/report_form_scaffold.dart",
+                "output/pdf/report-redesign-20260717/",
+                "progress.md"
+            ]
+        },
         {
             "id": "feat-083",
             "name": "Fix BUG-1: profile update supports fullName + phone",
@@ -1423,6 +1445,23 @@
                 "FE/lib/features/admin/presentation/pages/admin_users_page.dart",
                 "FE/lib/features/admin/presentation/widgets/user_form_dialog.dart",
                 "FE/lib/features/admin/presentation/widgets/user_admin_table.dart"
+            ]
+        },
+        {
+            "id": "feat-087",
+            "name": "Localization consistency for Settings and shared navigation",
+            "description": "Localized Settings, Firebase Remote Config and Crashlytics feedback, sidebar navigation, and mobile shell tooltips so visible labels follow the selected English or Vietnamese locale.",
+            "dependencies": ["feat-002"],
+            "status": "completed",
+            "evidence": "Flutter analysis and release build completed. Runtime browser evidence for English and Vietnamese Settings is stored in system-analysis-assets/screenshots/16-settings-english-localized.jpg and 17-settings-vietnamese-localized.jpg.",
+            "files": [
+                "FE/lib/l10n/app_en.arb",
+                "FE/lib/l10n/app_vi.arb",
+                "FE/lib/features/settings/presentation/pages/settings_page.dart",
+                "FE/lib/app/router.dart",
+                "FE/lib/app/widgets/app_shell_scaffold.dart",
+                "FE/lib/app/widgets/app_sidebar.dart",
+                "progress.md"
             ]
         }
     ]

@@ -238,16 +238,15 @@ class KpiCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Accent bar
-          if (effectiveAccent != AppColors.primary)
-            Container(
-              height: 3,
-              width: 32,
-              margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-              decoration: BoxDecoration(
-                color: effectiveAccent,
-                borderRadius: BorderRadius.circular(2),
-              ),
+          Container(
+            height: 3,
+            width: 32,
+            margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: effectiveAccent,
+              borderRadius: BorderRadius.circular(2),
             ),
+          ),
           // Header row
           Row(
             children: [
@@ -271,9 +270,8 @@ class KpiCard extends StatelessWidget {
                     vertical: AppSpacing.xxs,
                   ),
                   decoration: BoxDecoration(
-                    color: trendUp
-                        ? AppColors.successLight
-                        : AppColors.errorLight,
+                    color:
+                        trendUp ? AppColors.successLight : AppColors.errorLight,
                     borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                   ),
                   child: Row(
@@ -284,9 +282,7 @@ class KpiCard extends StatelessWidget {
                             ? Icons.trending_up_rounded
                             : Icons.trending_down_rounded,
                         size: AppSpacing.iconXs,
-                        color: trendUp
-                            ? AppColors.success
-                            : AppColors.error,
+                        color: trendUp ? AppColors.success : AppColors.error,
                       ),
                       const SizedBox(width: 2),
                       Text(
@@ -294,9 +290,7 @@ class KpiCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: trendUp
-                              ? AppColors.success
-                              : AppColors.error,
+                          color: trendUp ? AppColors.success : AppColors.error,
                         ),
                       ),
                     ],
@@ -425,8 +419,11 @@ class StatusChip extends StatelessWidget {
           background: isDark
               ? AppColors.surfaceContainerHighestDark
               : AppColors.surfaceContainerHighestLight,
-          dot: isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
-          text: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+          dot:
+              isDark ? AppColors.textTertiaryDark : AppColors.textTertiaryLight,
+          text: isDark
+              ? AppColors.textSecondaryDark
+              : AppColors.textSecondaryLight,
         );
       case StatusType.done:
         return _StatusColors(

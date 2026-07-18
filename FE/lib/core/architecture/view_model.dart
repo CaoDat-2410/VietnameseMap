@@ -29,7 +29,6 @@ abstract class ViewModel<Loading extends ViewState<dynamic>, Data extends ViewSt
   ViewModel() : super(const ViewStateLoading());
 
   /// Sets the loading state.
-  // ignore: use_setters_to_change_properties
   void setLoading() {
     // ignore: avoid_returning_this
   }

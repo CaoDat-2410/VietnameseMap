@@ -27,6 +27,7 @@ import '../features/map/presentation/pages/map_page.dart';
 import '../features/school/presentation/pages/school_detail_page.dart';
 import '../features/school/presentation/pages/school_list_page.dart';
 import '../features/settings/presentation/pages/settings_page.dart';
+import '../features/notifications/presentation/pages/notification_center_page.dart';
 import '../features/reports/presentation/pages/campaign_report_type_page.dart';
 import '../features/reports/presentation/pages/event_report_type_page.dart';
 import '../features/reports/presentation/pages/region_report_type_page.dart';
@@ -94,8 +95,7 @@ MapRouteArgs parseMapArgs(Uri uri) {
   final schoolsParam = params['schools'];
   List<String>? schoolUids;
   if (schoolsParam != null && schoolsParam.isNotEmpty) {
-    schoolUids =
-        schoolsParam.split(',').where((s) => s.isNotEmpty).toList();
+    schoolUids = schoolsParam.split(',').where((s) => s.isNotEmpty).toList();
   }
   return MapRouteArgs(
     focusLat: lat,
@@ -348,6 +348,14 @@ final router = GoRouter(
           ),
         ),
         GoRoute(
+          path: '/notifications',
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
+            child: const NotificationCenterPage(),
+          ),
+        ),
+        GoRoute(
           path: '/settings',
           pageBuilder: (context, state) => _buildPageWithSlideTransition(
             context: context,
@@ -460,13 +468,15 @@ class _AppShell extends ConsumerWidget {
     if (location.startsWith('/login')) return '/login';
     if (location.startsWith('/logout')) return '/logout';
     if (location.startsWith('/settings')) return '/settings';
+    if (location.startsWith('/notifications')) return '/notifications';
     if (location.startsWith('/profile')) return '/profile';
     if (location.startsWith('/campaigns') || location.startsWith('/events')) {
       return '/campaigns';
     }
     if (location.startsWith('/schools')) return '/schools';
     if (location.startsWith('/reports')) return '/reports';
-    if (location.startsWith('/staff/registrations')) return '/staff/registrations';
+    if (location.startsWith('/staff/registrations'))
+      return '/staff/registrations';
     if (location.startsWith('/student/my-registrations')) {
       return '/student/my-registrations';
     }
@@ -480,12 +490,12 @@ class _AppShell extends ConsumerWidget {
   }
 
   String _homePathFor(String? role) => switch (role) {
-    'MANAGER' => '/home/manager',
-    'ADMIN'   => '/home/admin',
-    'STAFF'   => '/home/staff',
-    'STUDENT' => '/home/student',
-    _         => '/home/staff',
-  };
+        'MANAGER' => '/home/manager',
+        'ADMIN' => '/home/admin',
+        'STAFF' => '/home/staff',
+        'STUDENT' => '/home/student',
+        _ => '/home/staff',
+      };
 
   List<_NavItem> _navItemsFor(String? role, AppLocalizations l10n) {
     final items = <_NavItem>[];
@@ -494,7 +504,7 @@ class _AppShell extends ConsumerWidget {
     if (role != null) {
       items.add(_NavItem(
         _homePathFor(role),
-        'Tổng quan',
+        l10n.overview,
         Icons.dashboard_outlined,
         Icons.dashboard,
       ));
@@ -503,51 +513,52 @@ class _AppShell extends ConsumerWidget {
     items.add(_NavItem('/map', l10n.map, Icons.map_outlined, Icons.map));
 
     if (role == null) {
-      items.add(
-          _NavItem('/settings', l10n.settings, Icons.settings_outlined, Icons.settings));
+      items.add(_NavItem(
+          '/settings', l10n.settings, Icons.settings_outlined, Icons.settings));
       items.add(
           _NavItem('/login', l10n.login, Icons.login_outlined, Icons.login));
       return items;
     }
 
-    items.add(_NavItem('/profile', 'Hồ sơ', Icons.account_circle_outlined, Icons.account_circle));
+    items.add(_NavItem('/profile', l10n.profile, Icons.account_circle_outlined,
+        Icons.account_circle));
 
     if (role == 'STUDENT') {
-      items.add(_NavItem(
-          '/campaigns', l10n.campaigns, Icons.campaign_outlined, Icons.campaign));
+      items.add(_NavItem('/campaigns', l10n.campaigns, Icons.campaign_outlined,
+          Icons.campaign));
       items.add(_NavItem(
           '/schools', l10n.schools, Icons.school_outlined, Icons.school));
       items.add(_NavItem('/student/my-registrations', l10n.mine,
           Icons.assignment_ind_outlined, Icons.assignment_ind));
-      items.add(_NavItem('/settings', l10n.settings,
-          Icons.settings_outlined, Icons.settings));
+      items.add(_NavItem(
+          '/settings', l10n.settings, Icons.settings_outlined, Icons.settings));
       items.add(_NavItem(
           '/logout', l10n.logout, Icons.logout_outlined, Icons.logout));
       return items;
     }
 
     if (role == 'STAFF' || role == 'MANAGER' || role == 'ADMIN') {
-      items.add(_NavItem(
-          '/campaigns', l10n.campaigns, Icons.campaign_outlined, Icons.campaign));
-      items.add(_NavItem(
-          '/analytics', 'Analytics', Icons.analytics_outlined, Icons.analytics));
-      items.add(_NavItem('/staff/registrations', 'Duyệt đơn',
+      items.add(_NavItem('/campaigns', l10n.campaigns, Icons.campaign_outlined,
+          Icons.campaign));
+      items.add(_NavItem('/analytics', l10n.analytics, Icons.analytics_outlined,
+          Icons.analytics));
+      items.add(_NavItem('/staff/registrations', l10n.registrationReview,
           Icons.assignment_turned_in_outlined, Icons.assignment_turned_in));
       items.add(_NavItem(
           '/schools', l10n.schools, Icons.school_outlined, Icons.school));
     }
     if (role == 'MANAGER' || role == 'ADMIN') {
       items.add(_NavItem(
-          '/reports', 'Báo cáo', Icons.summarize_outlined, Icons.summarize));
+          '/reports', l10n.reports, Icons.summarize_outlined, Icons.summarize));
     }
     if (role == 'ADMIN') {
       items.add(_NavItem('/admin/users', l10n.users,
           Icons.admin_panel_settings_outlined, Icons.admin_panel_settings));
     }
-    items.add(_NavItem('/settings', l10n.settings,
-        Icons.settings_outlined, Icons.settings));
     items.add(_NavItem(
-        '/logout', l10n.logout, Icons.logout_outlined, Icons.logout));
+        '/settings', l10n.settings, Icons.settings_outlined, Icons.settings));
+    items.add(
+        _NavItem('/logout', l10n.logout, Icons.logout_outlined, Icons.logout));
     return items;
   }
 }

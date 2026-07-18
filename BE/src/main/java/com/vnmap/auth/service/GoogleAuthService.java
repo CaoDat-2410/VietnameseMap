@@ -14,6 +14,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.util.Map;
 import java.util.Optional;
 
@@ -189,14 +190,14 @@ public class GoogleAuthService {
                     INSERT INTO app_users (email, password_hash, firebase_uid, role, status)
                     VALUES (?, '', ?, 'STUDENT', 'ACTIVE')
                     """,
-                    PreparedStatement.RETURN_GENERATED_KEYS
+                    Statement.RETURN_GENERATED_KEYS
             );
             ps.setString(1, payload.email());
             ps.setString(2, payload.sub());
             return ps;
         }, keyHolder);
         var keys = keyHolder.getKeyList();
-        if (keys != null && !keys.isEmpty()) {
+        if (!keys.isEmpty()) {
             Object id = keys.get(0).get("id");
             if (id instanceof Number number) {
                 return number.longValue();

@@ -29,6 +29,8 @@ public class SecurityConfig {
     private static final String STUDENT = "STUDENT";
     private static final String EVENTS_API = "/api/v1/events/**";
 
+    /** Stateless Bearer/JWT API: no cookie-authenticated session exists for CSRF to exploit. */
+    @SuppressWarnings("java:S4502")
     @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
@@ -83,7 +85,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/notifications", "/api/v1/notifications/unread-count").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/v1/notifications/*/read").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/notifications/read-all").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/notifications/send").hasAnyRole(MANAGER, ADMIN)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/notifications/send").hasRole(ADMIN)
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

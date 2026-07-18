@@ -62,6 +62,8 @@ class CampaignServiceDatabaseTest {
     }
 
     @Test
+    // This end-to-end database flow intentionally verifies one cohesive lifecycle.
+    @SuppressWarnings("java:S5961")
     void coversCampaignEventRegistrationInteractionAndCrudFlows() {
         EmployeeDto manager = service.createEmployee(new EmployeeDto(null, runId + " Manager", "MANAGER"));
         EmployeeDto staff = service.createEmployee(new EmployeeDto(null, runId + " Staff", "STAFF"));
@@ -75,8 +77,9 @@ class CampaignServiceDatabaseTest {
                 LocalDate.of(2026, Month.JULY, 31),
                 manager.id()
         ));
+        long campaignId = campaign.id();
         CampaignDto updatedCampaign = service.updateCampaign(
-                campaign.id(),
+                campaignId,
                 new CampaignRequest(
                         runId + " Campaign Updated",
                         "ACTIVE",
@@ -87,11 +90,11 @@ class CampaignServiceDatabaseTest {
                 )
         );
         assertThat(updatedCampaign.name()).endsWith("Updated");
-        assertThat(service.getCampaigns(false)).extracting(CampaignDto::id).contains(campaign.id());
-        assertThat(service.getCampaign(campaign.id()).objective()).isEqualTo("Updated objective");
+        assertThat(service.getCampaigns(false)).extracting(CampaignDto::id).contains(campaignId);
+        assertThat(service.getCampaign(campaignId).objective()).isEqualTo("Updated objective");
 
         CampaignEventDto event = service.createEvent(
-                campaign.id(),
+                campaignId,
                 new CampaignEventRequest(
                         runId + " Event",
                         "SCHOOL_VISIT",
@@ -102,8 +105,9 @@ class CampaignServiceDatabaseTest {
                         null, null, null, null, null
                 )
         );
+        long eventId = event.id();
         CampaignEventDto updatedEvent = service.updateEvent(
-                event.id(),
+                eventId,
                 new CampaignEventRequest(
                         runId + " Event Updated",
                         "SCHOOL_VISIT",
@@ -120,31 +124,37 @@ class CampaignServiceDatabaseTest {
         assertThat(updatedEvent.longitude()).isEqualTo(105.8542);
         assertThat(updatedEvent.schoolUid()).isEqualTo(schoolUid);
         assertThat(updatedEvent.provinceCode()).isEqualTo("99");
-        assertThat(service.getEvents(campaign.id(), false)).extracting(CampaignEventDto::id).contains(event.id());
-        assertThat(service.getEvent(event.id()).name()).contains("Updated");
-        assertThat(service.getEvent(event.id()).latitude()).isEqualTo(21.0285);
+        assertThat(service.getEvents(campaignId, false)).extracting(CampaignEventDto::id).contains(eventId);
+        assertThat(service.getEvent(eventId).name()).contains("Updated");
+        assertThat(service.getEvent(eventId).latitude()).isEqualTo(21.0285);
 
         assertThat(service.getSchools(-5, 999, "99", null, "KV3", "Coverage").items())
                 .extracting(SchoolDto::schoolUid)
                 .contains(schoolUid);
         SchoolDetailDto initialDetail = service.getSchoolDetail(schoolUid);
-        assertThat(initialDetail.school().schoolName()).contains("Coverage");
+assertThat(initialDetail.school().schoolName()).contains("Coverage");
+        SchoolCoordinatesDto fullCoordinates = service.updateSchoolCoordinates(schoolUid, 21.0285, 105.8542);
+        assertThat(fullCoordinates.geocodeStatus()).isEqualTo("FULL");
+        assertThat(service.getSchoolCoordinate(schoolUid).latitude()).isEqualTo(21.0285);
+        assertThat(service.getSchoolCoordinates("99", null)).extracting(SchoolCoordinatesDto::schoolUid).contains(schoolUid);
+        SchoolCoordinatesDto pendingCoordinates = service.updateSchoolCoordinates(schoolUid, null, null);
+        assertThat(pendingCoordinates.geocodeStatus()).isEqualTo("PENDING");
 
-        service.assignSchool(event.id(), schoolUid);
-        service.assignSchool(event.id(), secondSchoolUid);
-        assertThat(service.getEventSchools(event.id())).extracting(SchoolDto::schoolUid)
+        service.assignSchool(eventId, schoolUid);
+        service.assignSchool(eventId, secondSchoolUid);
+        assertThat(service.getEventSchools(eventId)).extracting(SchoolDto::schoolUid)
                 .contains(schoolUid, secondSchoolUid);
-        service.removeSchool(event.id(), secondSchoolUid);
-        assertThat(service.getEventSchools(event.id())).extracting(SchoolDto::schoolUid)
+        service.removeSchool(eventId, secondSchoolUid);
+        assertThat(service.getEventSchools(eventId)).extracting(SchoolDto::schoolUid)
                 .contains(schoolUid)
                 .doesNotContain(secondSchoolUid);
 
-        service.assignEmployee(event.id(), manager.id());
-        service.assignEmployee(event.id(), staff.id());
-        assertThat(service.getEventAssignments(event.id())).extracting(EmployeeDto::id)
+        service.assignEmployee(eventId, manager.id());
+        service.assignEmployee(eventId, staff.id());
+        assertThat(service.getEventAssignments(eventId)).extracting(EmployeeDto::id)
                 .contains(manager.id(), staff.id());
-        service.removeEmployee(event.id(), staff.id());
-        assertThat(service.getEventAssignments(event.id())).extracting(EmployeeDto::id)
+        service.removeEmployee(eventId, staff.id());
+        assertThat(service.getEventAssignments(eventId)).extracting(EmployeeDto::id)
                 .contains(manager.id())
                 .doesNotContain(staff.id());
 
@@ -160,20 +170,22 @@ class CampaignServiceDatabaseTest {
                 "Coverage address",
                 "Interested"
         );
-        StudentRegistrationDto registration = service.registerStudent(campaign.id(), registrationRequest, null);
+        StudentRegistrationDto registration = service.registerStudent(campaignId, registrationRequest, null);
+        long registrationId = registration.id();
+        CurrentUser adminUser = new CurrentUser(1L, "admin@test.local", "ADMIN", "ACTIVE", null, null);
         assertThat(registration.status()).isEqualTo("PENDING");
-        assertThat(service.getCampaignRegistrations(campaign.id())).extracting(StudentRegistrationDto::id)
-                .contains(registration.id());
+        assertThat(service.getCampaignRegistrations(campaignId)).extracting(StudentRegistrationDto::id)
+                .contains(registrationId);
         assertThat(service.getMyRegistrations(new CurrentUser(9L, runId + "@student.local", "STUDENT", "ACTIVE", null, registration.studentId())))
                 .extracting(StudentRegistrationDto::id)
-                .contains(registration.id());
-        assertThat(service.updateRegistrationStatus(registration.id(), "APPROVED", new CurrentUser(1L, "admin@test.local", "ADMIN", "ACTIVE", null, null)).status()).isEqualTo("APPROVED");
-        assertThatThrownBy(() -> service.registerStudent(campaign.id(), registrationRequest, null))
+                .contains(registrationId);
+        assertThat(service.updateRegistrationStatus(registrationId, "APPROVED", adminUser).status()).isEqualTo("APPROVED");
+        assertThatThrownBy(() -> service.registerStudent(campaignId, registrationRequest, null))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Registration already exists");
 
-        service.updateRegistrationStatus(registration.id(), "REJECTED", new CurrentUser(1L, "admin@test.local", "ADMIN", "ACTIVE", null, null));
-        StudentRegistrationDto reopened = service.registerStudent(campaign.id(), registrationRequest, null);
+        service.updateRegistrationStatus(registrationId, "REJECTED", adminUser);
+        StudentRegistrationDto reopened = service.registerStudent(campaignId, registrationRequest, null);
         assertThat(reopened.status()).isEqualTo("PENDING");
         StudentRegistrationRequest wrongPassword = new StudentRegistrationRequest(
                 schoolUid,
@@ -187,12 +199,12 @@ class CampaignServiceDatabaseTest {
                 "Coverage address",
                 "Interested"
         );
-        assertThatThrownBy(() -> service.registerStudent(campaign.id(), wrongPassword, null))
+        assertThatThrownBy(() -> service.registerStudent(campaignId, wrongPassword, null))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Email or password is incorrect");
 
         InteractionDto interaction = service.createInteraction(
-                event.id(),
+                eventId,
                 new CreateInteractionRequest(
                         manager.id(),
                         schoolUid,
@@ -204,12 +216,13 @@ class CampaignServiceDatabaseTest {
                         LocalDateTime.of(2026, Month.JUNE, 25, 9, 0)
                 )
         );
-        assertThat(service.getInteractions(event.id())).extracting(InteractionDto::id).contains(interaction.id());
-        assertThat(service.getDashboard(campaign.id()).interactionsByOutcome().get("INTERESTED")).isGreaterThanOrEqualTo(1);
+        long interactionId = interaction.id();
+        assertThat(service.getInteractions(eventId)).extracting(InteractionDto::id).contains(interactionId);
+        assertThat(service.getDashboard(campaignId).interactionsByOutcome().get("INTERESTED")).isGreaterThanOrEqualTo(1);
 
         InteractionDto updatedInteraction = service.updateInteraction(
-                event.id(),
-                interaction.id(),
+                eventId,
+                interactionId,
                 new CreateInteractionRequest(
                         manager.id(),
                         schoolUid,
@@ -223,15 +236,16 @@ class CampaignServiceDatabaseTest {
                 new CurrentUser(2L, "manager@vnmap.local", "MANAGER", "ACTIVE", manager.id(), null)
         );
         assertThat(updatedInteraction.outcome()).isEqualTo("FOLLOW_UP");
+        CurrentUser otherStaff = new CurrentUser(3L, "other@vnmap.local", "STAFF", "ACTIVE", 999999L, null);
         assertThatThrownBy(() -> service.deleteInteraction(
-                event.id(),
-                interaction.id(),
-                new CurrentUser(3L, "other@vnmap.local", "STAFF", "ACTIVE", 999999L, null)
+                eventId,
+                interactionId,
+                otherStaff
         )).isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Forbidden");
         service.deleteInteraction(
-                event.id(),
-                interaction.id(),
+                eventId,
+                interactionId,
                 new CurrentUser(2L, "manager@vnmap.local", "MANAGER", "ACTIVE", manager.id(), null)
         );
 
@@ -289,8 +303,9 @@ class CampaignServiceDatabaseTest {
                 staff.id(),
                 null
         ));
-        assertThat(service.getUsers()).extracting(UserDto::id).contains(user.id());
-        assertThat(service.updateUser(user.id(), new UserRequest(
+        long userId = user.id();
+        assertThat(service.getUsers()).extracting(UserDto::id).contains(userId);
+        assertThat(service.updateUser(userId, new UserRequest(
                 runId + "@staff.local",
                 "password123",
                 "MANAGER",
@@ -298,8 +313,8 @@ class CampaignServiceDatabaseTest {
                 staff.id(),
                 null
         )).role()).isEqualTo("MANAGER");
-        assertThat(service.updateUserRole(user.id(), "ADMIN").role()).isEqualTo("ADMIN");
-        assertThat(service.updateUser(user.id(), new UserRequest(
+        assertThat(service.updateUserRole(userId, "ADMIN").role()).isEqualTo("ADMIN");
+        assertThat(service.updateUser(userId, new UserRequest(
                 runId + "@staff.local",
                 null,
                 "ADMIN",
@@ -307,28 +322,28 @@ class CampaignServiceDatabaseTest {
                 staff.id(),
                 null
         )).role()).isEqualTo("ADMIN");
-        assertThat(service.updateUserStatus(user.id(), "DISABLED").status()).isEqualTo("DISABLED");
-        assertThatThrownBy(() -> service.updateUserRole(user.id(), "ROOT"))
+        assertThat(service.updateUserStatus(userId, "DISABLED").status()).isEqualTo("DISABLED");
+        assertThatThrownBy(() -> service.updateUserRole(userId, "ROOT"))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Invalid value");
 
         EmployeeDto updatedEmployee = service.updateEmployee(staff.id(), new EmployeeDto(staff.id(), runId + " Staff Updated", "STAFF"));
         assertThat(updatedEmployee.fullName()).contains("Updated");
 
-        service.deleteUser(user.id());
+        service.deleteUser(userId);
         service.deleteRelative(relative.id());
         service.deletePerson(person.id());
         service.deleteStudent(manualStudent.id());
-        service.archiveEvent(event.id());
-        service.archiveCampaign(campaign.id());
-        assertThat(service.getEvents(campaign.id(), false)).extracting(CampaignEventDto::id).doesNotContain(event.id());
-        assertThat(service.getEvents(campaign.id(), true)).extracting(CampaignEventDto::id).contains(event.id());
-        assertThat(service.getCampaigns(false)).extracting(CampaignDto::id).doesNotContain(campaign.id());
-        assertThat(service.getCampaigns(true)).extracting(CampaignDto::id).contains(campaign.id());
+        service.archiveEvent(eventId);
+        service.archiveCampaign(campaignId);
+        assertThat(service.getEvents(campaignId, false)).extracting(CampaignEventDto::id).doesNotContain(eventId);
+        assertThat(service.getEvents(campaignId, true)).extracting(CampaignEventDto::id).contains(eventId);
+        assertThat(service.getCampaigns(false)).extracting(CampaignDto::id).doesNotContain(campaignId);
+        assertThat(service.getCampaigns(true)).extracting(CampaignDto::id).contains(campaignId);
 
         assertThatThrownBy(() -> service.deleteEmployee(99999999L))
                 .isInstanceOf(ResourceNotFoundException.class);
-        assertThatThrownBy(() -> service.updateRegistrationStatus(registration.id(), "UNKNOWN", new CurrentUser(1L, "admin@test.local", "ADMIN", "ACTIVE", null, null)))
+        assertThatThrownBy(() -> service.updateRegistrationStatus(registrationId, "UNKNOWN", adminUser))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Invalid value");
     }

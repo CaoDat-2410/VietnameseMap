@@ -121,39 +121,11 @@ class _HomeGridRow extends StatelessWidget {
 class _KpiRow extends StatelessWidget {
   const _KpiRow({required this.model});
   final StudentHomeModel model;
-
   @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final cardWidth = constraints.maxWidth > 500
-            ? (constraints.maxWidth - AppSpacing.bentoGap) / 2
-            : constraints.maxWidth;
-        return Wrap(
-          spacing: AppSpacing.bentoGap,
-          runSpacing: AppSpacing.bentoGap,
-          children: [
-            KpiCard(
-              title: 'Đăng ký của tôi',
-              value: '${model.registrations.length}',
-              icon: Icons.assignment_ind_outlined,
-              accentColor: AppColors.primary,
-              subtitle: 'Tổng số đăng ký',
-            ),
-            KpiCard(
-              title: 'Đã duyệt',
-              value: '${model.approvedCount}',
-              icon: Icons.check_circle_outline,
-              accentColor: AppColors.success,
-              subtitle: 'Được chấp nhận',
-              trend: '${model.pendingCount} đang chờ',
-              trendUp: false,
-            ),
-          ].map((k) => SizedBox(width: cardWidth, child: k)).toList(),
-        );
-      },
-    );
-  }
+  Widget build(BuildContext context) => HomeKpiGrid(desktopColumns: 2, children: [
+    KpiCard(title: 'Đăng ký của tôi', value: '${model.registrations.length}', icon: Icons.assignment_ind_outlined, accentColor: AppColors.primary, subtitle: 'Tổng số đăng ký'),
+    KpiCard(title: 'Đã duyệt', value: '${model.approvedCount}', icon: Icons.check_circle_outline, accentColor: AppColors.success, subtitle: 'Được chấp nhận', trend: '${model.pendingCount} đang chờ', trendUp: false),
+  ]);
 }
 
 class _RegistrationsCard extends StatelessWidget {

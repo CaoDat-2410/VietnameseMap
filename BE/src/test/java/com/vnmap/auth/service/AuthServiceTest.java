@@ -161,6 +161,143 @@ class AuthServiceTest {
         assertThat(me.studentId()).isNull();
     }
 
+    @Test
+    void updateProfileUpdatesEmployeeAvatarAndName() {
+        CurrentUser employee = new CurrentUser(1L, "employee@vnmap.local", "STAFF", "ACTIVE", 11L, null);
+        when(jdbc.update("UPDATE employees SET full_name = ? WHERE id = ?", "Nguyen Van A", 11L)).thenReturn(1);
+
+        AuthUserDto result = service.updateProfile(employee, new com.vnmap.auth.dto.UpdateProfileRequest("avatars/a.png", "  Nguyen Van A  ", null));
+
+        assertThat(result.email()).isEqualTo("admin@vnmap.local");
+        verify(jdbc).update("UPDATE app_users SET avatar_object_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", "avatars/a.png", 1L);
+        verify(jdbc).update("UPDATE employees SET full_name = ? WHERE id = ?", "Nguyen Van A", 11L);
+    }
+
+    @Test
+    void updateProfileUpdatesStudentPhoneAndClearsBlankValue() {
+        CurrentUser student = new CurrentUser(2L, "student@vnmap.local", "STUDENT", "ACTIVE", null, 22L);
+
+        service.updateProfile(student, new com.vnmap.auth.dto.UpdateProfileRequest(null, null, "  "));
+
+        verify(jdbc).update("UPDATE students SET phone = ? WHERE id = ?", null, 22L);
+        verify(jdbc).update("UPDATE app_users SET updated_at = CURRENT_TIMESTAMP WHERE id = ?", 2L);
+    }
+
+    @Test
+    void updateProfileRejectsInvalidFieldsAndMissingAssociation() {
+        CurrentUser employee = new CurrentUser(1L, "employee@vnmap.local", "STAFF", "ACTIVE", 11L, null);
+        CurrentUser unlinked = new CurrentUser(1L, "unlinked@vnmap.local", "STAFF", "ACTIVE", null, null);
+
+        assertThatThrownBy(() -> service.updateProfile(employee, new com.vnmap.auth.dto.UpdateProfileRequest("x".repeat(256), null, null))).hasMessageContaining("avatarObjectKey is too long");
+        assertThatThrownBy(() -> service.updateProfile(employee, new com.vnmap.auth.dto.UpdateProfileRequest(null, " ", null))).hasMessageContaining("fullName must not be blank");
+        assertThatThrownBy(() -> service.updateProfile(unlinked, new com.vnmap.auth.dto.UpdateProfileRequest(null, "Name", null))).hasMessageContaining("no associated");
+        assertThatThrownBy(() -> service.updateProfile(employee, new com.vnmap.auth.dto.UpdateProfileRequest(null, null, "090"))).hasMessageContaining("Phone can only");
+    }
+
+    @Test
+    void changePasswordValidatesProviderCurrentPasswordAndUpdatesLocalAccount() {
+        CurrentUser user = new CurrentUser(1L, "admin@vnmap.local", "ADMIN", "ACTIVE", 1L, null);
+        when(jdbc.queryForMap(anyString(), org.mockito.ArgumentMatchers.eq(1L))).thenReturn(Map.of("password_hash", "hash", "firebase_uid", ""));
+        assertThatThrownBy(() -> service.changePassword(user, new com.vnmap.auth.dto.ChangePasswordRequest("same", "same"))).hasMessageContaining("must be different");
+        assertThatThrownBy(() -> service.changePassword(user, new com.vnmap.auth.dto.ChangePasswordRequest("old", "new"))).hasMessageContaining("signed in with Google");
+
+        when(jdbc.queryForMap(anyString(), org.mockito.ArgumentMatchers.eq(1L))).thenReturn(Map.of("password_hash", "hash"));
+        when(passwordEncoder.matches("bad", "hash")).thenReturn(false);
+        assertThatThrownBy(() -> service.changePassword(user, new com.vnmap.auth.dto.ChangePasswordRequest("bad", "new"))).hasMessageContaining("Current password is incorrect");
+
+        when(passwordEncoder.matches("old", "hash")).thenReturn(true);
+        when(passwordEncoder.encode("new-password")).thenReturn("encoded");
+        service.changePassword(user, new com.vnmap.auth.dto.ChangePasswordRequest("old", "new-password"));
+        verify(jdbc).update("UPDATE app_users SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", "encoded", 1L);
+    }
+    @Test
+    void findUserMethodsExecuteRowMappersAndRejectMissingRows() throws Exception {
+        when(jdbc.query(anyString(), any(RowMapper.class), org.mockito.ArgumentMatchers.eq("mapped@test")))
+                .thenAnswer(invocation -> {
+                    RowMapper<?> mapper = invocation.getArgument(1);
+                    ResultSet rs = mock(ResultSet.class);
+                    when(rs.getLong("id")).thenReturn(77L);
+                    when(rs.getString("email")).thenReturn("mapped@test");
+                    when(rs.getString("password_hash")).thenReturn("hash");
+                    when(rs.getString("role")).thenReturn("STUDENT");
+                    when(rs.getString("status")).thenReturn("ACTIVE");
+                    when(rs.getObject("employee_id", Long.class)).thenReturn(null);
+                    when(rs.getObject("student_id", Long.class)).thenReturn(8L);
+                    return List.of(mapper.mapRow(rs, 0));
+                });
+        AuthService.UserWithPassword byEmail = service.findUserByEmail("mapped@test");
+        assertThat(byEmail.id()).isEqualTo(77L);
+        assertThat(byEmail.studentId()).isEqualTo(8L);
+
+        when(jdbc.query(anyString(), any(RowMapper.class), org.mockito.ArgumentMatchers.eq(77L)))
+                .thenAnswer(invocation -> {
+                    RowMapper<?> mapper = invocation.getArgument(1);
+                    ResultSet rs = mock(ResultSet.class);
+                    when(rs.getLong("id")).thenReturn(77L);
+                    when(rs.getString("email")).thenReturn("mapped@test");
+                    when(rs.getString("password_hash")).thenReturn("hash");
+                    when(rs.getString("role")).thenReturn("STUDENT");
+                    when(rs.getString("status")).thenReturn("ACTIVE");
+                    when(rs.getObject("employee_id", Long.class)).thenReturn(null);
+                    when(rs.getObject("student_id", Long.class)).thenReturn(8L);
+                    return List.of(mapper.mapRow(rs, 0));
+                });
+        assertThat(service.findUserById(77L).toCurrentUser().studentId()).isEqualTo(8L);
+
+        when(jdbc.query(anyString(), any(RowMapper.class), org.mockito.ArgumentMatchers.eq("missing@test")))
+                .thenReturn(List.of());
+        assertThatThrownBy(() -> service.findUserByEmail("missing@test"))
+                .isInstanceOf(ResponseStatusException.class);
+        when(jdbc.query(anyString(), any(RowMapper.class), org.mockito.ArgumentMatchers.eq(99L)))
+                .thenReturn(List.of());
+        assertThatThrownBy(() -> service.findUserById(99L))
+                .isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void mapsStudentProfileAndCoversProfileValidationBranches() {
+        Map<String, Object> studentRow = userDtoRow(2L, "student@test", "STUDENT", "ACTIVE", null, 22L);
+        studentRow.put("student_name", "Student Name");
+        studentRow.put("student_phone", "090");
+        studentRow.put("firebase_uid", "firebase-uid");
+        when(jdbc.queryForMap(anyString(), org.mockito.ArgumentMatchers.eq(2L))).thenReturn(studentRow);
+        AuthUserDto mapped = service.me(new CurrentUser(2L, "student@test", "STUDENT", "ACTIVE", null, 22L));
+        assertThat(mapped.fullName()).isEqualTo("Student Name");
+        assertThat(mapped.phone()).isEqualTo("090");
+        assertThat(mapped.firebaseUser()).isTrue();
+
+        when(jdbc.update("UPDATE students SET full_name = ? WHERE id = ?", "Updated Student", 22L)).thenReturn(1);
+        service.updateProfile(
+                new CurrentUser(2L, "student@test", "STUDENT", "ACTIVE", null, 22L),
+                new com.vnmap.auth.dto.UpdateProfileRequest(null, " Updated Student ", null)
+        );
+        verify(jdbc).update("UPDATE students SET full_name = ? WHERE id = ?", "Updated Student", 22L);
+
+        CurrentUser employee = new CurrentUser(1L, "employee@test", "STAFF", "ACTIVE", 11L, null);
+        com.vnmap.auth.dto.UpdateProfileRequest longName = new com.vnmap.auth.dto.UpdateProfileRequest(null, "x".repeat(256), null);
+        com.vnmap.auth.dto.UpdateProfileRequest longPhone = new com.vnmap.auth.dto.UpdateProfileRequest(null, null, "1".repeat(51));
+        assertThatThrownBy(() -> service.updateProfile(employee, longName)).hasMessageContaining("fullName is too long");
+        CurrentUser student = new CurrentUser(2L, "student@test", "STUDENT", "ACTIVE", null, 22L);
+        assertThatThrownBy(() -> service.updateProfile(student, longPhone)).hasMessageContaining("phone is too long");
+
+        when(jdbc.update("UPDATE employees SET full_name = ? WHERE id = ?", "Missing", 11L)).thenReturn(0);
+        com.vnmap.auth.dto.UpdateProfileRequest missingName = new com.vnmap.auth.dto.UpdateProfileRequest(null, "Missing", null);
+        assertThatThrownBy(() -> service.updateProfile(employee, missingName)).hasMessageContaining("not found");
+        service.updateProfile(employee, new com.vnmap.auth.dto.UpdateProfileRequest(" ", null, null));
+        verify(jdbc).update("UPDATE app_users SET avatar_object_key = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", null, 1L);
+    }
+
+    @Test
+    void logoutAcceptsNullAndChangePasswordRejectsMissingLocalHash() {
+        assertThatCode(() -> service.logout(null)).doesNotThrowAnyException();
+        CurrentUser user = new CurrentUser(1L, "admin@vnmap.local", "ADMIN", "ACTIVE", 1L, null);
+        Map<String, Object> noHash = new HashMap<>();
+        noHash.put("password_hash", null);
+        noHash.put("firebase_uid", null);
+        when(jdbc.queryForMap(anyString(), org.mockito.ArgumentMatchers.eq(1L))).thenReturn(noHash);
+        com.vnmap.auth.dto.ChangePasswordRequest request = new com.vnmap.auth.dto.ChangePasswordRequest("old", "new-password");
+        assertThatThrownBy(() -> service.changePassword(user, request)).hasMessageContaining("Google");
+    }
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void stubUserQuery(List<AuthService.UserWithPassword> result) {
         when(jdbc.query(anyString(), any(RowMapper.class), any(Object[].class))).thenReturn((List) result);

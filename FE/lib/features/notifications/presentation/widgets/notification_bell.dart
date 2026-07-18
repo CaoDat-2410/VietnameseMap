@@ -26,8 +26,7 @@ class NotificationBellButton extends ConsumerWidget {
               isScrollControlled: true,
               showDragHandle: true,
               builder: (sheetCtx) => NotificationPreviewModal(
-                onMarkChanged: () =>
-                    invalidateNotifications(ref),
+                onMarkChanged: () => invalidateNotifications(ref),
               ),
             );
           },
@@ -110,14 +109,15 @@ class _NotificationPreviewModalState
                         : () async {
                             setState(() => _markingAll = true);
                             try {
-                              final repo = ref.read(
-                                  notificationRepositoryProvider);
+                              final repo =
+                                  ref.read(notificationRepositoryProvider);
                               await repo.markAllRead();
                               widget.onMarkChanged();
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                      content: Text('Đã đánh dấu tất cả là đã đọc')),
+                                      content:
+                                          Text('Đã đánh dấu tất cả là đã đọc')),
                                 );
                               }
                             } catch (_) {
@@ -156,8 +156,7 @@ class _NotificationPreviewModalState
                           style: theme.textTheme.bodyMedium),
                       const SizedBox(height: 4),
                       TextButton(
-                        onPressed: () =>
-                            invalidateNotifications(ref),
+                        onPressed: () => invalidateNotifications(ref),
                         child: const Text('Thử lại'),
                       ),
                     ],
@@ -186,7 +185,7 @@ class _NotificationPreviewModalState
                     separatorBuilder: (_, __) =>
                         const Divider(height: 1, indent: 64),
                     itemBuilder: (_, i) {
-                      final item = items[i] as NotificationItem;
+                      final item = items[i];
                       final outerContext = context;
                       return _NotificationRow(
                         item: item,
@@ -238,16 +237,16 @@ class _NotificationPreviewModalState
       case 'event_reminder':
         if (eventId != null && eventId.isNotEmpty) {
           context.go('/events/$eventId');
-          AnalyticsService.logEvent('notification_tapped',
-              {'type': type, 'event_id': eventId});
+          AnalyticsService.logEvent(
+              'notification_tapped', {'type': type, 'event_id': eventId});
           return;
         }
         break;
       case 'campaign_update':
         if (campaignId != null && campaignId.isNotEmpty) {
           context.go('/campaigns/$campaignId/dashboard');
-          AnalyticsService.logEvent('notification_tapped',
-              {'type': type, 'campaign_id': campaignId});
+          AnalyticsService.logEvent(
+              'notification_tapped', {'type': type, 'campaign_id': campaignId});
           return;
         }
         break;
@@ -269,9 +268,8 @@ class _NotificationRow extends StatelessWidget {
     return ListTile(
       onTap: onTap,
       leading: CircleAvatar(
-        backgroundColor: item.isUnread
-            ? cs.primaryContainer
-            : cs.surfaceContainerHighest,
+        backgroundColor:
+            item.isUnread ? cs.primaryContainer : cs.surfaceContainerHighest,
         child: Icon(
           _iconForType(item.triggerType),
           color: item.isUnread ? cs.primary : cs.outline,
@@ -299,8 +297,7 @@ class _NotificationRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(_formatTime(item.createdAt),
-              style: theme.textTheme.labelSmall
-                  ?.copyWith(color: cs.outline)),
+              style: theme.textTheme.labelSmall?.copyWith(color: cs.outline)),
           if (item.isUnread)
             Container(
               margin: const EdgeInsets.only(top: 4),

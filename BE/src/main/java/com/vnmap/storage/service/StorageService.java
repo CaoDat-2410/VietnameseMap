@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Map;
 
 /**
  * Service for generating pre-signed URLs and uploading generated objects to MinIO.

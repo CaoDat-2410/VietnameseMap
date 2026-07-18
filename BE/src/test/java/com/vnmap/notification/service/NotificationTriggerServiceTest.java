@@ -25,6 +25,21 @@ class NotificationTriggerServiceTest {
         service.eventCreated(5L, "School visit");
         service.staffAssigned(5L, 7L);
         service.accountDeactivated(8L);
+        when(jdbc.queryForList(contains("JOIN app_users u"), eq(12L)))
+                .thenReturn(List.of(Map.of(
+                        "user_id", 20L,
+                        "campaign_id", 4L,
+                        "campaign_name", "Summer campaign"
+                )));
+        service.registrationStatusChanged(12L, "APPROVED");
+
+        verify(notifications).sendToUser(
+                eq(20L),
+                eq("Registration approved"),
+                contains("Summer campaign"),
+                argThat(data -> "registration_approved".equals(data.get("type"))),
+                eq("REGISTRATION_APPROVED")
+        );
 
         verify(notifications).sendToUsers(eq(List.of(1L, 2L)), eq("Campaign created"), anyString(), anyMap(), eq("CAMPAIGN_CREATED"));
         verify(notifications).sendToUsers(eq(List.of(1L, 2L)), eq("Event created"), anyString(), anyMap(), eq("EVENT_CREATED"));

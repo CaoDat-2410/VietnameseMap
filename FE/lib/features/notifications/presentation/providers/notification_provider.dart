@@ -12,14 +12,21 @@ final notificationUnreadCountProvider = FutureProvider.autoDispose<int>(
   (ref) async => ref.watch(notificationRepositoryProvider).unreadCount(),
 );
 
-final recentNotificationsProvider = FutureProvider.autoDispose<List<NotificationItem>>(
+final recentNotificationsProvider =
+    FutureProvider.autoDispose<List<NotificationItem>>(
   (ref) async => ref.watch(notificationRepositoryProvider).listMy(),
 );
 
-/// Forces a refresh of both the recent list and the unread count after a
-/// notification is marked read or marked-all-read.
+final allNotificationsProvider =
+    FutureProvider.autoDispose<List<NotificationItem>>(
+  (ref) async => ref.watch(notificationRepositoryProvider).listMy(limit: 200),
+);
+
+/// Forces a refresh of notification lists and the unread count after a
+/// notification is received, marked read, or marked-all-read.
 void invalidateNotifications(WidgetRef ref) {
   ref.invalidate(recentNotificationsProvider);
+  ref.invalidate(allNotificationsProvider);
   ref.invalidate(notificationUnreadCountProvider);
 }
 

@@ -133,53 +133,13 @@ class _HomeGridRow extends StatelessWidget {
 class _KpiRow extends StatelessWidget {
   const _KpiRow({required this.model});
   final ManagerHomeModel model;
-
   @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth > 600;
-        final cardWidth = isWide
-            ? (constraints.maxWidth - AppSpacing.bentoGap * 3) / 4
-            : (constraints.maxWidth - AppSpacing.bentoGap) / 2;
-        return Wrap(
-          spacing: AppSpacing.bentoGap,
-          runSpacing: AppSpacing.bentoGap,
-          children: [
-            KpiCard(
-              title: 'Chiến dịch',
-              value: '${model.totalCampaigns}',
-              icon: Icons.campaign_outlined,
-              accentColor: AppColors.primary,
-              subtitle: 'Tổng số',
-            ),
-            KpiCard(
-              title: 'Sự kiện',
-              value: '${model.totalEvents}',
-              icon: Icons.event_outlined,
-              accentColor: AppColors.chartColors[1],
-              subtitle: 'Tổng số',
-            ),
-            KpiCard(
-              title: 'Tương tác',
-              value: '${model.totalInteractions}',
-              icon: Icons.chat_outlined,
-              accentColor: AppColors.chartColors[2],
-              subtitle: 'Tất cả thời gian',
-              trend: '+12%',
-            ),
-            KpiCard(
-              title: 'Trường học',
-              value: '${model.totalSchools}',
-              icon: Icons.school_outlined,
-              accentColor: AppColors.chartColors[3],
-              subtitle: 'Đã tham gia',
-            ),
-          ].map((k) => SizedBox(width: cardWidth, child: k)).toList(),
-        );
-      },
-    );
-  }
+  Widget build(BuildContext context) => HomeKpiGrid(children: [
+    KpiCard(title: 'Chiến dịch', value: '${model.totalCampaigns}', icon: Icons.campaign_outlined, accentColor: AppColors.primary, subtitle: 'Tổng số'),
+    KpiCard(title: 'Sự kiện', value: '${model.totalEvents}', icon: Icons.event_outlined, accentColor: AppColors.chartColors[1], subtitle: 'Tổng số'),
+    KpiCard(title: 'Tương tác', value: '${model.totalInteractions}', icon: Icons.chat_outlined, accentColor: AppColors.chartColors[2], subtitle: 'Tất cả thời gian', trend: '+12%'),
+    KpiCard(title: 'Trường học', value: '${model.totalSchools}', icon: Icons.school_outlined, accentColor: AppColors.chartColors[3], subtitle: 'Đã tham gia'),
+  ]);
 }
 
 class _TrendCard extends StatelessWidget {

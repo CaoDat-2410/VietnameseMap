@@ -1,4 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/dio_client.dart';
@@ -49,6 +52,10 @@ class AuthRepository {
     } on DioException {
       // Local logout still wins if the server token is already invalid.
     } finally {
+      await FirebaseAuth.instance.signOut();
+      if (!kIsWeb) {
+        await GoogleSignIn().signOut();
+      }
       await _storage.clear();
     }
   }
@@ -67,12 +74,12 @@ class AuthRepository {
     return auth.user;
   }
 
-
   Map<String, dynamic> _responseData(Response<Map<String, dynamic>> res) {
     final payload = res.data?['data'];
     if (payload is Map<String, dynamic>) return payload;
     throw StateError('Invalid auth response: missing data payload');
   }
+
   Future<bool> hasAccessToken() async {
     final token = await _storage.readAccessToken();
     return token != null && token.isNotEmpty;

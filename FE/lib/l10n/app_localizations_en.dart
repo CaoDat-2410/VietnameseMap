@@ -530,4 +530,215 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noSchoolsFoundHint => 'No schools found. Try a different keyword.';
+
+  @override
+  String get overview => 'Overview';
+
+  @override
+  String get profile => 'Profile';
+
+  @override
+  String get analytics => 'Analytics';
+
+  @override
+  String get registrationReview => 'Registration review';
+
+  @override
+  String get reports => 'Reports';
+
+  @override
+  String get menu => 'Menu';
+
+  @override
+  String get expand => 'Expand';
+
+  @override
+  String get collapse => 'Collapse';
+
+  @override
+  String get appearance => 'Appearance';
+
+  @override
+  String get language => 'Language';
+
+  @override
+  String get privacyAnalytics => 'Privacy & Analytics';
+
+  @override
+  String get appInformation => 'App information';
+
+  @override
+  String get lightTheme => 'Light';
+
+  @override
+  String get darkTheme => 'Dark';
+
+  @override
+  String get systemTheme => 'System';
+
+  @override
+  String get allowAnalytics => 'Allow analytics';
+
+  @override
+  String get allowAnalyticsDescription =>
+      'Send anonymous usage data to improve the app';
+
+  @override
+  String get analyticsDisabledDescription => 'Usage analytics is disabled';
+
+  @override
+  String get firebaseDemo => 'Firebase demo';
+
+  @override
+  String remoteConfigStatus(String google, String maintenance) {
+    return 'Remote Config: Google $google · Maintenance $maintenance';
+  }
+
+  @override
+  String get enabled => 'Enabled';
+
+  @override
+  String get disabled => 'Disabled';
+
+  @override
+  String get refreshRemoteConfig => 'Refresh Remote Config';
+
+  @override
+  String get remoteConfigRefreshed => 'Remote Config refreshed.';
+
+  @override
+  String get crashlyticsDemo => 'Crashlytics demo';
+
+  @override
+  String get crashlyticsDemoDescription =>
+      'Send a non-fatal event without stopping the app.';
+
+  @override
+  String get sendNonFatalDemo => 'Send non-fatal demo';
+
+  @override
+  String get crashlyticsEventSent => 'Non-fatal event sent to Crashlytics.';
+
+  @override
+  String get crashlyticsUnavailable =>
+      'Crashlytics demo is available on Android and iOS only.';
+
+  @override
+  String version(String version) {
+    return 'Version $version';
+  }
+
+  @override
+  String get campaignModule => 'Campaign Module';
+
+  @override
+  String get notificationManagement => 'Notification management';
+
+  @override
+  String get notificationManagementDescription =>
+      'Only administrators can send notifications. Recipients see a device push and an inbox record.';
+
+  @override
+  String get notificationRecipient => 'Recipient';
+
+  @override
+  String get notificationAllUsers => 'All users';
+
+  @override
+  String get notificationSearchRecipient => 'Search by email or role';
+
+  @override
+  String get notificationCategory => 'Notification type';
+
+  @override
+  String get notificationGeneral => 'General announcement';
+
+  @override
+  String get notificationCampaignUpdate => 'Campaign update';
+
+  @override
+  String get notificationEventReminder => 'Event reminder';
+
+  @override
+  String get notificationSystemNotice => 'System notice';
+
+  @override
+  String get notificationTitle => 'Title';
+
+  @override
+  String get notificationBody => 'Message';
+
+  @override
+  String get notificationSend => 'Send notification';
+
+  @override
+  String get notificationSending => 'Sending...';
+
+  @override
+  String get notificationSent => 'Notification sent to the device.';
+
+  @override
+  String get notificationSavedNoDevice =>
+      'Saved to the inbox; the recipient has no registered FCM device.';
+
+  @override
+  String get notificationTitleRequired => 'Enter a title.';
+
+  @override
+  String get notificationBodyRequired => 'Enter a message.';
+
+  @override
+  String get notificationLoadUsersFailed => 'Unable to load recipients.';
+
+  @override
+  String get notificationSendFailed =>
+      'Unable to send the notification. Try again.';
+
+  @override
+  String get supportedNotifications => 'Supported notifications';
+
+  @override
+  String get supportedNotificationsDescription =>
+      'Automatic pushes and administrator messages.';
+
+  @override
+  String get notifyRegistrationResult =>
+      'Registration review result: approved, rejected, or cancelled';
+
+  @override
+  String get notifyCampaignCreated => 'New campaign created';
+
+  @override
+  String get notifyEventCreated => 'New event created';
+
+  @override
+  String get notifyEventAssignment => 'Staff event assignment';
+
+  @override
+  String get notifyAccountDeactivated => 'Account deactivated';
+
+  @override
+  String get notifyDailyEventReminder => 'Same-day event reminder';
+
+  @override
+  String get notifications => 'Notifications';
+
+  @override
+  String get notificationInboxDescription =>
+      'Notifications sent to your account are stored here.';
+
+  @override
+  String get noNotifications => 'No notifications yet';
+
+  @override
+  String get markAllNotificationsRead => 'Mark all read';
+
+  @override
+  String get allNotificationsRead => 'All notifications marked as read.';
+
+  @override
+  String get notificationLoadFailed => 'Unable to load notifications.';
+
+  @override
+  String get notificationJustNow => 'Just now';
 }

@@ -12,6 +12,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 
 import java.util.Optional;
 
@@ -25,7 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GeoRepositoryIT {
 
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgis/postgis:16-3.4")
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(DockerImageName.parse("postgis/postgis:16-3.4").asCompatibleSubstituteFor("postgres"))
             .withDatabaseName("testdb")
             .withUsername("test")
             .withPassword("test");
@@ -63,8 +64,9 @@ class GeoRepositoryIT {
 
         var provinces = repository.findByKind(KIND_PROVINCE);
 
-        assertThat(provinces).hasSize(2);
-        assertThat(provinces).allMatch(u -> KIND_PROVINCE.equals(u.getKind()));
+        assertThat(provinces)
+                .hasSize(2)
+                .allMatch(u -> KIND_PROVINCE.equals(u.getKind()));
     }
 
     @Test

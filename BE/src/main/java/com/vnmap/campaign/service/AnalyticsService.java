@@ -26,6 +26,8 @@ import java.util.Map;
  * totals and breakdowns are scoped to the matching subset of {@code interactions}
  * rows. Without a filter the response is a global roll-up.</p>
  */
+// SQL fragments are selected from internal constants; all external values remain JDBC parameters.
+@SuppressWarnings("java:S2077")
 @Service
 public class AnalyticsService {
 
