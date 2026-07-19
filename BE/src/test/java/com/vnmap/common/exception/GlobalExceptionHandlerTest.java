@@ -1,11 +1,12 @@
 package com.vnmap.common.exception;
 
+import com.vnmap.common.model.ApiError;
+import com.vnmap.common.model.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -14,7 +15,6 @@ import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.ConstraintViolation;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,12 +34,14 @@ class GlobalExceptionHandlerTest {
         when(request.getRequestURI()).thenReturn("/api/test");
     }
 
-    private ResponseEntity<ErrorResponse> assertResponse(ResponseEntity<ErrorResponse> response, int status, String error) {
+    private ResponseEntity<ApiResponse<ApiError>> assertResponse(ResponseEntity<ApiResponse<ApiError>> response, int status, String error) {
         assertThat(response.getStatusCode().value()).isEqualTo(status);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().getStatus()).isEqualTo(status);
-        assertThat(response.getBody().getError()).isEqualTo(error);
-        assertThat(response.getBody().getPath()).isEqualTo("/api/test");
+        assertThat(response.getBody().isSuccess()).isFalse();
+        assertThat(response.getBody().getTraceId()).isEqualTo(response.getBody().getData().traceId());
+        assertThat(response.getBody().getData().status()).isEqualTo(status);
+        assertThat(response.getBody().getData().code()).isEqualTo(error);
+        assertThat(response.getBody().getData().path()).isEqualTo("/api/test");
         return response;
     }
 
@@ -51,9 +53,9 @@ class GlobalExceptionHandlerTest {
         @DisplayName("should return 404")
         void shouldReturn404() {
             ResourceNotFoundException ex = new ResourceNotFoundException("User", "id", "123");
-            ResponseEntity<ErrorResponse> response = handler.handleResourceNotFoundException(ex, request);
+            ResponseEntity<ApiResponse<ApiError>> response = handler.handleResourceNotFoundException(ex, request);
 
-            assertResponse(response, 404, "Not Found");
+            assertResponse(response, 404, "NOT_FOUND");
             assertThat(response.getBody().getMessage()).isEqualTo("User not found with id: '123'");
         }
     }
@@ -66,9 +68,9 @@ class GlobalExceptionHandlerTest {
         @DisplayName("should return 502")
         void shouldReturn502() {
             ExternalApiException ex = new ExternalApiException("Weather", "API timeout");
-            ResponseEntity<ErrorResponse> response = handler.handleExternalApiException(ex, request);
+            ResponseEntity<ApiResponse<ApiError>> response = handler.handleExternalApiException(ex, request);
 
-            assertResponse(response, 502, "External Service Error");
+            assertResponse(response, 502, "EXTERNAL_SERVICE_ERROR");
             assertThat(response.getBody().getMessage()).contains("Unable to retrieve");
         }
 
@@ -76,9 +78,9 @@ class GlobalExceptionHandlerTest {
         @DisplayName("should include status code in message")
         void shouldIncludeStatusCode() {
             ExternalApiException ex = new ExternalApiException("Weather", 500, "Server error");
-            ResponseEntity<ErrorResponse> response = handler.handleExternalApiException(ex, request);
+            ResponseEntity<ApiResponse<ApiError>> response = handler.handleExternalApiException(ex, request);
 
-            assertResponse(response, 502, "External Service Error");
+            assertResponse(response, 502, "EXTERNAL_SERVICE_ERROR");
             assertThat(response.getBody().getMessage()).contains("Server error");
         }
     }
@@ -97,10 +99,10 @@ class GlobalExceptionHandlerTest {
             when(ex.getBindingResult()).thenReturn(bindingResult);
             when(bindingResult.getFieldErrors()).thenReturn(List.of(fieldError));
 
-            ResponseEntity<ErrorResponse> response = handler.handleValidationException(ex, request);
+            ResponseEntity<ApiResponse<ApiError>> response = handler.handleValidationException(ex, request);
 
-            assertResponse(response, 400, "Validation Failed");
-            assertThat(response.getBody().getValidationErrors()).containsKey("email");
+            assertResponse(response, 400, "VALIDATION_FAILED");
+            assertThat(response.getBody().getData().fieldErrors()).containsKey("email");
         }
     }
 
@@ -113,9 +115,9 @@ class GlobalExceptionHandlerTest {
         void shouldReturn400() {
             MissingServletRequestParameterException ex =
                     new MissingServletRequestParameterException("lat", "Double");
-            ResponseEntity<ErrorResponse> response = handler.handleMissingParameterException(ex, request);
+            ResponseEntity<ApiResponse<ApiError>> response = handler.handleMissingParameterException(ex, request);
 
-            assertResponse(response, 400, "Missing Parameter");
+            assertResponse(response, 400, "MISSING_PARAMETER");
             assertThat(response.getBody().getMessage()).contains("'lat'");
         }
     }
@@ -129,9 +131,9 @@ class GlobalExceptionHandlerTest {
         void shouldReturn400() {
             MethodArgumentTypeMismatchException ex =
                     new MethodArgumentTypeMismatchException("abc", String.class, "name", null, null);
-            ResponseEntity<ErrorResponse> response = handler.handleTypeMismatchException(ex, request);
+            ResponseEntity<ApiResponse<ApiError>> response = handler.handleTypeMismatchException(ex, request);
 
-            assertResponse(response, 400, "Type Mismatch");
+            assertResponse(response, 400, "TYPE_MISMATCH");
             assertThat(response.getBody().getMessage()).contains("'name'").contains("String");
         }
     }
@@ -144,9 +146,9 @@ class GlobalExceptionHandlerTest {
         @DisplayName("should return 400")
         void shouldReturn400() {
             IllegalArgumentException ex = new IllegalArgumentException("Invalid province code");
-            ResponseEntity<ErrorResponse> response = handler.handleIllegalArgumentException(ex, request);
+            ResponseEntity<ApiResponse<ApiError>> response = handler.handleIllegalArgumentException(ex, request);
 
-            assertResponse(response, 400, "Bad Request");
+            assertResponse(response, 400, "BAD_REQUEST");
             assertThat(response.getBody().getMessage()).isEqualTo("Invalid province code");
         }
     }
@@ -164,9 +166,9 @@ class GlobalExceptionHandlerTest {
             when(violation.getPropertyPath()).thenReturn(mock(jakarta.validation.Path.class));
             when(ex.getConstraintViolations()).thenReturn(Set.of(violation));
 
-            ResponseEntity<ErrorResponse> response = handler.handleConstraintViolationException(ex, request);
+            ResponseEntity<ApiResponse<ApiError>> response = handler.handleConstraintViolationException(ex, request);
 
-            assertResponse(response, 400, "Validation Failed");
+            assertResponse(response, 400, "VALIDATION_FAILED");
         }
     }
 
@@ -178,9 +180,9 @@ class GlobalExceptionHandlerTest {
         @DisplayName("should return 500")
         void shouldReturn500() {
             Exception ex = new RuntimeException("Something went wrong");
-            ResponseEntity<ErrorResponse> response = handler.handleGenericException(ex, request);
+            ResponseEntity<ApiResponse<ApiError>> response = handler.handleGenericException(ex, request);
 
-            assertResponse(response, 500, "Internal Server Error");
+            assertResponse(response, 500, "INTERNAL_ERROR");
             assertThat(response.getBody().getMessage()).contains("unexpected error");
         }
     }

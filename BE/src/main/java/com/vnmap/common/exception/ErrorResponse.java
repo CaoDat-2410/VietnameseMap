@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 
@@ -27,7 +28,7 @@ public class ErrorResponse {
 
     public static ErrorResponse of(int status, String error, String message, String path) {
         return ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(ZoneOffset.UTC))
                 .status(status)
                 .error(error)
                 .message(message)
@@ -38,7 +39,7 @@ public class ErrorResponse {
     public static ErrorResponse withValidation(int status, String error, String message, String path,
                                                Map<String, List<String>> validationErrors) {
         return ErrorResponse.builder()
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(ZoneOffset.UTC))
                 .status(status)
                 .error(error)
                 .message(message)

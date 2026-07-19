@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Loads bundled GeoJSON assets (provinces.geojson) sourced from
 /// https://huggingface.co/datasets/tmquan/sapnhap-bando-vn
-/// 
+///
 /// Cache versioning: uses 'geo_cache_v2' key to distinguish from old v1 cache
 /// during migration. Old cache keys are automatically cleared on first launch.
 class GeoLocalDataSource {
@@ -37,11 +37,12 @@ class GeoLocalDataSource {
     try {
       final prefs = await SharedPreferences.getInstance();
       final cachedVersion = prefs.getString(_cacheVersionKey);
-      
+
       if (cachedVersion != _currentCacheVersion) {
-        debugPrint('Cache version mismatch. Old: $cachedVersion, Current: $_currentCacheVersion');
+        debugPrint(
+            'Cache version mismatch. Old: $cachedVersion, Current: $_currentCacheVersion');
         debugPrint('Clearing old geo cache...');
-        
+
         // Clear any old cache keys
         final keys = prefs.getKeys();
         for (final key in keys) {
@@ -49,7 +50,7 @@ class GeoLocalDataSource {
             await prefs.remove(key);
           }
         }
-        
+
         // Mark new cache version
         await prefs.setString(_cacheVersionKey, _currentCacheVersion);
         debugPrint('Geo cache cleared and marked as $_currentCacheVersion');
@@ -129,31 +130,42 @@ List<ProvincePolygonEntry> _parseAndBuildEntries(String jsonString) {
 List<List<Map<String, double>>> extractRings(dynamic coords) {
   final rings = <List<Map<String, double>>>[];
 
-  void extractRing(dynamic ringCoords) {
+  bool isPosition(dynamic value) =>
+      value is List &&
+      value.length >= 2 &&
+      value[0] is num &&
+      value[1] is num;
+
+  bool isRing(dynamic value) =>
+      value is List && value.isNotEmpty && isPosition(value.first);
+
+  void addRing(dynamic ringCoords) {
     if (ringCoords is! List || ringCoords.isEmpty) return;
     final ring = <Map<String, double>>[];
     for (final point in ringCoords) {
-      if (point is List && point.length >= 2 && point[0] is num && point[1] is num) {
-        ring.add({'lat': (point[1] as num).toDouble(), 'lng': (point[0] as num).toDouble()});
+      if (isPosition(point)) {
+        ring.add({
+          'lat': (point[1] as num).toDouble(),
+          'lng': (point[0] as num).toDouble()
+        });
       }
     }
     if (ring.isNotEmpty) rings.add(ring);
   }
 
-  if (coords is List && coords.isNotEmpty) {
-    final first = coords.first;
-    if (first is List && first.isNotEmpty) {
-      final second = first.first;
-      if (second is List) {
-        for (final polygon in coords) {
-          extractRing(polygon);
-        }
-      } else {
-        extractRing(coords);
+  void walk(dynamic value) {
+    if (isRing(value)) {
+      addRing(value);
+      return;
+    }
+    if (value is List) {
+      for (final child in value) {
+        walk(child);
       }
     }
   }
 
+  walk(coords);
   return rings;
 }
 

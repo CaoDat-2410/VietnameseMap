@@ -127,7 +127,7 @@ class _ProvinceListBodyState extends ConsumerState<ProvinceListBody> {
       padding: const EdgeInsets.all(16.0),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -151,13 +151,14 @@ class _ProvinceListBodyState extends ConsumerState<ProvinceListBody> {
             },
             decoration: InputDecoration(
               hintText: 'Tìm kiếm tỉnh thành...',
-              hintStyle: TextStyle(color: Colors.grey.shade400),
-              prefixIcon: Icon(Icons.search, color: Colors.blue.shade300),
+              hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              prefixIcon: Icon(Icons.search, color: Theme.of(context).colorScheme.primary),
               suffixIcon: query.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.close, color: Colors.grey),
+                      icon: Icon(Icons.close, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       onPressed: () {
-                        ref.read(provinceSearchQueryProvider.notifier).state = '';
+                        ref.read(provinceSearchQueryProvider.notifier).state =
+                            '';
                       },
                     )
                   : null,
@@ -200,7 +201,7 @@ class _DrillDownHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -220,7 +221,8 @@ class _DrillDownHeader extends StatelessWidget {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
+              child: Icon(Icons.chevron_right,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant, size: 20),
             ),
           ],
           Expanded(
@@ -371,7 +373,8 @@ class _ProvinceListView extends ConsumerWidget {
             children: [
               if (query.isNotEmpty)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 8, left: 16, right: 16),
+                  padding:
+                      const EdgeInsets.only(bottom: 8, left: 16, right: 16),
                   child: Row(
                     children: [
                       Text(
@@ -388,13 +391,13 @@ class _ProvinceListView extends ConsumerWidget {
               Expanded(
                 child: ListView.separated(
                   controller: scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   itemCount: filtered.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final province = filtered[index];
-                    final isSelected =
-                        selectedProvince?.code == province.code;
+                    final isSelected = selectedProvince?.code == province.code;
 
                     return _UnitCard(
                       unit: province,
@@ -404,7 +407,8 @@ class _ProvinceListView extends ConsumerWidget {
                         ref.read(selectedProvinceProvider.notifier).state =
                             province;
                         ref.read(selectedCommuneProvider.notifier).state = null;
-                        ref.read(provinceSearchQueryProvider.notifier).state = '';
+                        ref.read(provinceSearchQueryProvider.notifier).state =
+                            '';
                         _selectWeatherForUnit(
                           ref,
                           unit: province,
@@ -453,7 +457,8 @@ class _CommuneListView extends ConsumerWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.location_off, size: 48, color: Colors.grey.shade400),
+                  Icon(Icons.location_off,
+                      size: 48, color: Theme.of(context).colorScheme.onSurfaceVariant),
                   const SizedBox(height: 8),
                   Text('Không có dữ liệu xã/phường',
                       style: TextStyle(color: Colors.grey.shade500)),
@@ -478,8 +483,11 @@ class _CommuneListView extends ConsumerWidget {
                 color: const Color(0xFF00695C),
                 showChevron: false,
                 onTap: () async {
-                  ref.read(selectedCommuneProvider.notifier).state =
-                      (code: commune.code, name: commune.name, id: commune.id ?? 0);
+                  ref.read(selectedCommuneProvider.notifier).state = (
+                    code: commune.code,
+                    name: commune.name,
+                    id: commune.id ?? 0
+                  );
                   await _selectWeatherForUnit(
                     ref,
                     unit: commune,
@@ -533,7 +541,8 @@ Future<void> _selectWeatherForUnit(
     return;
   }
 
-  final unitResult = await ref.read(geoRepositoryProvider).getUnitByCode(unit.code);
+  final unitResult =
+      await ref.read(geoRepositoryProvider).getUnitByCode(unit.code);
   unitResult.when(
     ok: (detail) {
       final lat = detail.centroidLat;
@@ -619,15 +628,18 @@ class _UnitCard extends ConsumerWidget {
       curve: Curves.easeOutCubic,
       margin: EdgeInsets.zero,
       decoration: BoxDecoration(
-        color: isSelected ? _color.withValues(alpha: 0.08) : Colors.white,
+        color: isSelected ? _color.withValues(alpha: 0.08) : Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isSelected ? _color.withValues(alpha: 0.5) : Colors.transparent,
+          color:
+              isSelected ? _color.withValues(alpha: 0.5) : Colors.transparent,
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: isSelected ? _color.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.03),
+            color: isSelected
+                ? _color.withValues(alpha: 0.15)
+                : Colors.black.withValues(alpha: 0.03),
             blurRadius: isSelected ? 12 : 8,
             offset: const Offset(0, 4),
           ),
@@ -671,7 +683,8 @@ class _UnitCard extends ConsumerWidget {
                       ),
                       const SizedBox(height: 4),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
                           color: Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(6),
@@ -735,12 +748,12 @@ class _UnitCard extends ConsumerWidget {
                     ],
                   ),
                 ),
-              if (showChevron)
-                Icon(
-                  Icons.chevron_right,
-                  color: isSelected ? _color : Colors.grey.shade400,
-                  size: 24,
-                ),
+                if (showChevron)
+                  Icon(
+                    Icons.chevron_right,
+                    color: isSelected ? _color : Theme.of(context).colorScheme.onSurfaceVariant,
+                    size: 24,
+                  ),
               ],
             ),
           ),

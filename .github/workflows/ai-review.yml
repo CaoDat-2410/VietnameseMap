@@ -1,0 +1,71 @@
+name: AI Code Review
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CONFIGURATION: Choose one AI review tool below and uncomment it.
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Option A — CodeRabbit (recommended, free for open source)
+#   Install: https://docs.coderabbit.ai/integrations/github-action
+#   1. Get your Coderabbit API key from https://coderabbit.ai
+#   2. Add to GitHub repo secrets: CODERRABBIT_API_KEY
+#   3. Uncomment the "Codereviewrabbit" step below
+#
+# Option B — DeepReview (OpenAI-based)
+#   Install: Use the DeepReview GitHub Action from the Marketplace
+#   Requires: OPENAI_API_KEY in repo secrets
+#
+# Option C — ReviewNB
+#   Install: https://www.reviewnb.com (UI-based, no API key needed)
+#
+# Option D — Custom LLM call via workflow_dispatch
+#   See: .github/scripts/ai-review.sh
+#
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - '**.dart'
+      - '**.java'
+      - '**.yaml'
+      - '**.yml'
+      - '!pubspec.lock'
+      - '!package-lock.json'
+  pull_request:
+    paths:
+      - '**.dart'
+      - '**.java'
+      - '**.yaml'
+      - '!.github/workflows/ai-review.yml'
+
+jobs:
+  ai-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── Option A: CodeRabbit ──────────────────────────────────────────────
+      # - name: CodeRabbit AI Review
+      #   uses: coderabbitai/coderabbitai@v2
+      #   with:
+      #     repo_token: ${{ secrets.GITHUB_TOKEN }}
+      #     api_key: ${{ secrets.CODERRABBIT_API_KEY }}
+      #     language: Vietnamese
+      #     max_comments: 20
+      #     review_simple_changes: false
+      #     review_status: true
+      #     poem: false
+
+      # ── Option B: DeepReview ──────────────────────────────────────────────
+      # - name: DeepReview
+      #   uses: deep-review/action@v1
+      #   with:
+      #     api_key: ${{ secrets.OPENAI_API_KEY }}
+      #     language: vi
+
+      - name: No AI tool configured — run Flutter analyze instead
+        run: |
+          echo "AI review tool not configured yet."
+          echo "To enable, edit .github/workflows/ai-review.yml and uncomment a provider."
+          echo "See: https://github.com/coderabbitai/coderabbitai"

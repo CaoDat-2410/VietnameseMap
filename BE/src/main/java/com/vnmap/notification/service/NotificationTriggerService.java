@@ -1,0 +1,228 @@
+package com.vnmap.notification.service;
+
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class NotificationTriggerService {
+
+    private static final String ADMIN_ROLE = "ADMIN";
+    private static final String EVENT_ID_KEY = "eventId";
+    private static final java.time.ZoneId VIETNAM_ZONE = java.time.ZoneId.of("Asia/Saigon");
+
+    private final JdbcTemplate jdbc;
+    private final NotificationService notificationService;
+
+    public NotificationTriggerService(JdbcTemplate jdbc, NotificationService notificationService) {
+        this.jdbc = jdbc;
+        this.notificationService = notificationService;
+    }
+
+    public void campaignCreated(long campaignId, String campaignName) {
+        List<Long> users = usersByRoles("MANAGER", ADMIN_ROLE);
+        notificationService.sendToUsers(
+                users,
+                "Campaign created",
+                "New campaign: " + campaignName,
+                Map.of("type", "campaign_created", "campaignId", String.valueOf(campaignId)),
+                "CAMPAIGN_CREATED"
+        );
+    }
+
+    public void eventCreated(long eventId, String eventName) {
+        List<Long> users = usersByRoles("MANAGER", ADMIN_ROLE);
+        users.addAll(assignedUsersForEvent(eventId));
+        notificationService.sendToUsers(
+                users.stream().distinct().toList(),
+                "Event created",
+                "New event: " + eventName,
+                Map.of("type", "event_created", EVENT_ID_KEY, String.valueOf(eventId)),
+                "EVENT_CREATED"
+        );
+    }
+
+    public void staffCheckedIn(long employeeId, long campaignId, String campaignName) {
+        String employeeName = employeeName(employeeId);
+        List<Long> users = usersByRoles("MANAGER", ADMIN_ROLE);
+        notificationService.sendToUsers(
+                users,
+                "Staff checked in",
+                employeeName + " checked in for campaign: " + campaignName,
+                Map.of(
+                        "type", "staff_checked_in",
+                        "employeeId", String.valueOf(employeeId),
+                        "campaignId", String.valueOf(campaignId)
+                ),
+                "STAFF_CHECKED_IN"
+        );
+    }
+
+    public void staffCheckedOut(long employeeId, long campaignId, String campaignName) {
+        String employeeName = employeeName(employeeId);
+        List<Long> users = usersByRoles("MANAGER", ADMIN_ROLE);
+        notificationService.sendToUsers(
+                users,
+                "Staff checked out",
+                employeeName + " checked out from campaign: " + campaignName,
+                Map.of(
+                        "type", "staff_checked_out",
+                        "employeeId", String.valueOf(employeeId),
+                        "campaignId", String.valueOf(campaignId)
+                ),
+                "STAFF_CHECKED_OUT"
+        );
+    }
+
+    public void staffAssigned(long eventId, long employeeId) {
+        List<Long> users = jdbc.queryForList(
+                "SELECT id FROM app_users WHERE employee_id = ? AND status = 'ACTIVE'",
+                Long.class,
+                employeeId
+        );
+        notificationService.sendToUsers(
+                users,
+                "Event assignment",
+                "You have been assigned to an event",
+                Map.of("type", "event_assigned", EVENT_ID_KEY, String.valueOf(eventId)),
+                "EVENT_ASSIGNED"
+        );
+    }
+
+
+    public void registrationStatusChanged(long registrationId, String status) {
+        List<Map<String, Object>> recipients = jdbc.queryForList("""
+                SELECT u.id AS user_id, r.campaign_id, c.name AS campaign_name
+                FROM campaign_student_registrations r
+                JOIN campaigns c ON c.id = r.campaign_id
+                JOIN app_users u ON u.student_id = r.student_id
+                WHERE r.id = ? AND u.status = 'ACTIVE'
+                """, registrationId);
+        if (recipients.isEmpty()) {
+            return;
+        }
+
+        String normalizedStatus = status.toUpperCase(java.util.Locale.ROOT);
+        String title = switch (normalizedStatus) {
+            case "APPROVED" -> "Registration approved";
+            case "REJECTED" -> "Registration rejected";
+            case "CANCELLED" -> "Registration cancelled";
+            default -> "Registration updated";
+        };
+        for (Map<String, Object> recipient : recipients) {
+            long userId = ((Number) recipient.get("user_id")).longValue();
+            long campaignId = ((Number) recipient.get("campaign_id")).longValue();
+            String campaignName = String.valueOf(recipient.get("campaign_name"));
+            String body = "Your registration for " + campaignName
+                    + " is now " + normalizedStatus.toLowerCase(java.util.Locale.ROOT) + ".";
+            notificationService.sendToUser(
+                    userId,
+                    title,
+                    body,
+                    Map.of(
+                            "type", "registration_" + normalizedStatus.toLowerCase(java.util.Locale.ROOT),
+                            "registrationId", String.valueOf(registrationId),
+                            "campaignId", String.valueOf(campaignId)
+                    ),
+                    "REGISTRATION_" + normalizedStatus
+            );
+        }
+    }
+
+    public void accountDeactivated(long userId) {
+        List<Long> admins = usersByRoles(ADMIN_ROLE);
+        notificationService.sendToUser(
+                userId,
+                "Account deactivated",
+                "Your account has been deactivated.",
+                Map.of("type", "account_deactivated"),
+                "ACCOUNT_DEACTIVATED"
+        );
+        notificationService.sendToUsers(
+                admins,
+                "Account deactivated",
+                "User account deactivated: " + userId,
+                Map.of("type", "account_deactivated", "userId", String.valueOf(userId)),
+                "ACCOUNT_DEACTIVATED_ADMIN"
+        );
+    }
+
+    @Scheduled(cron = "${notifications.daily-reminder-cron:0 0 7 * * *}", zone = "Asia/Saigon")
+    public void dailyEventReminders() {
+        LocalDate today = LocalDate.now(VIETNAM_ZONE);
+        List<Map<String, Object>> events = jdbc.queryForList(
+                """
+                SELECT id, name FROM campaign_events
+                WHERE DATE(starts_at) = ? AND status <> 'ARCHIVED'
+                """,
+                today
+        );
+        for (Map<String, Object> event : events) {
+            Long eventId = ((Number) event.get("id")).longValue();
+            String eventName = (String) event.get("name");
+            notificationService.sendToUsers(
+                    assignedUsersForEvent(eventId),
+                    "Today's event",
+                    "You have an event today: " + eventName,
+                    Map.of("type", "today_event_reminder", EVENT_ID_KEY, String.valueOf(eventId)),
+                    "TODAY_EVENT_REMINDER"
+            );
+            notificationService.sendToUsers(
+                    studentUsersForEvent(eventId),
+                    "Campaign event today",
+                    "A campaign event linked to your registration is scheduled today: " + eventName,
+                    Map.of("type", "today_event_reminder", EVENT_ID_KEY, String.valueOf(eventId)),
+                    "TODAY_EVENT_REMINDER_STUDENT"
+            );
+        }
+    }
+
+    /** Role placeholders are generated by cardinality only; role values remain bound parameters. */
+    @SuppressWarnings("java:S2077")
+    private List<Long> usersByRoles(String... roles) {
+        String placeholders = String.join(",", java.util.Arrays.stream(roles).map(role -> "?").toList());
+        return new java.util.ArrayList<>(jdbc.queryForList(
+                "SELECT id FROM app_users WHERE role IN (" + placeholders + ") AND status = 'ACTIVE'",
+                Long.class,
+                (Object[]) roles
+        ));
+    }
+
+    private List<Long> assignedUsersForEvent(long eventId) {
+        return new java.util.ArrayList<>(jdbc.queryForList(
+                """
+                SELECT u.id
+                FROM event_assignments ea
+                JOIN app_users u ON u.employee_id = ea.employee_id
+                WHERE ea.event_id = ? AND u.status = 'ACTIVE'
+                """,
+                Long.class,
+                eventId
+        ));
+    }
+
+    private String employeeName(long employeeId) {
+        List<String> names = jdbc.queryForList(
+                "SELECT full_name FROM employees WHERE id = ?", String.class, employeeId
+        );
+        return names.isEmpty() ? "An employee" : names.get(0);
+    }
+
+    private List<Long> studentUsersForEvent(long eventId) {
+        return jdbc.queryForList(
+                """
+                SELECT DISTINCT u.id
+                FROM campaign_events e
+                JOIN campaign_student_registrations r ON r.campaign_id = e.campaign_id
+                JOIN app_users u ON u.student_id = r.student_id
+                WHERE e.id = ? AND u.status = 'ACTIVE'
+                """,
+                Long.class,
+                eventId
+        );
+    }
+}

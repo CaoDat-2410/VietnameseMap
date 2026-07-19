@@ -40,6 +40,10 @@ class SchoolModel {
     required this.schoolName,
     required this.address,
     required this.areaType,
+    this.latitude,
+    this.longitude,
+    this.geocodeStatus,
+    this.geocodeNote,
   });
 
   final String schoolUid;
@@ -51,6 +55,10 @@ class SchoolModel {
   final String schoolName;
   final String address;
   final String areaType;
+  final double? latitude;
+  final double? longitude;
+  final String? geocodeStatus;
+  final String? geocodeNote;
 
   factory SchoolModel.fromJson(Map<String, dynamic> json) {
     return SchoolModel(
@@ -63,8 +71,28 @@ class SchoolModel {
       schoolName: json['schoolName'] as String? ?? '',
       address: json['address'] as String? ?? '',
       areaType: json['areaType'] as String? ?? '',
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
+      geocodeStatus: json['geocodeStatus'] as String?,
+      geocodeNote: json['geocodeNote'] as String?,
     );
   }
+
+  String get geocodeStatusDisplay {
+    switch (geocodeStatus) {
+      case 'FULL':
+        return 'Chính xác';
+      case 'APPROXIMATE':
+        return 'Ước lượng';
+      case 'PENDING':
+      default:
+        return 'Chưa xác định';
+    }
+  }
+
+  bool get hasCoordinates => latitude != null && longitude != null;
+
+  bool get isApproximate => geocodeStatus == 'APPROXIMATE';
 }
 
 class StudentModel {
@@ -72,6 +100,10 @@ class StudentModel {
     required this.id,
     required this.schoolUid,
     required this.fullName,
+    required this.email,
+    required this.phone,
+    required this.dateOfBirth,
+    required this.address,
     required this.grade,
     required this.className,
   });
@@ -79,6 +111,10 @@ class StudentModel {
   final int id;
   final String schoolUid;
   final String fullName;
+  final String email;
+  final String phone;
+  final String dateOfBirth;
+  final String address;
   final String grade;
   final String className;
 
@@ -86,6 +122,10 @@ class StudentModel {
         id: json['id'] as int? ?? 0,
         schoolUid: json['schoolUid'] as String? ?? '',
         fullName: json['fullName'] as String? ?? '',
+        email: json['email'] as String? ?? '',
+        phone: json['phone'] as String? ?? '',
+        dateOfBirth: json['dateOfBirth'] as String? ?? '',
+        address: json['address'] as String? ?? '',
         grade: json['grade'] as String? ?? '',
         className: json['className'] as String? ?? '',
       );
@@ -154,8 +194,14 @@ class SchoolDetailModel {
   final List<StudentRelativeModel> relatives;
 
   factory SchoolDetailModel.fromJson(Map<String, dynamic> json) {
+    final schoolJson = json['school'];
     return SchoolDetailModel(
-      school: SchoolModel.fromJson(json['school'] as Map<String, dynamic>),
+      school: schoolJson is Map<String, dynamic>
+          ? SchoolModel.fromJson(schoolJson)
+          : const SchoolModel(
+              schoolUid: '', provinceCode: '', provinceName: '',
+              communeCode: '', communeName: '', schoolCode: '',
+              schoolName: '', address: '', areaType: ''),
       students: (json['students'] as List<dynamic>? ?? [])
           .map((e) => StudentModel.fromJson(e as Map<String, dynamic>))
           .toList(),

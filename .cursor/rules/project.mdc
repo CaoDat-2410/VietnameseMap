@@ -1,0 +1,21 @@
+---
+description:
+Global workflow
+alwaysApply: true
+---
+
+Always:
+
+Read project instructions.
+
+Use tools in order:
+
+1 harness-creator
+2 ui-ux-pro-max-skill
+3 Context7
+
+Never modify architecture automatically.
+
+Never implement multiple features.
+
+Stop after one completed task.

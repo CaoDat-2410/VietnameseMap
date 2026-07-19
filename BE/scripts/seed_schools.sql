@@ -1,0 +1,29 @@
+-- Seed schools from existing communes in database
+DO $$
+DECLARE
+  commune_record RECORD;
+  school_counter INT := 1;
+  school_types TEXT[] := ARRAY['THPT', 'THCS', 'TH', 'MN'];
+  school_suffixes TEXT[] := ARRAY['Quang Trung', 'Le Loi', 'Nguyen Trai', 'Ton Duc Thang', 'Dien Bien Phu'];
+BEGIN
+  FOR commune_record IN
+    SELECT code, name FROM administrative_units WHERE kind = 'commune' LIMIT 50
+  LOOP
+    INSERT INTO schools (school_uid, school_name, school_type, address, commune_code, district_code, province_code, phone, email)
+    SELECT 
+      'SCH' || LPAD(school_counter::text, 6, '0'),
+      'Truong ' || school_types[1 + (school_counter % 4)] || ' ' || school_suffixes[1 + (school_counter % 5)] || ' ' || LEFT(commune_record.name, 20),
+      school_types[1 + (school_counter % 4)],
+      commune_record.name || ', Viet Nam',
+      commune_record.code,
+      LEFT(commune_record.code, 4),
+      LEFT(commune_record.code, 2),
+      '09' || LPAD((school_counter % 100000000)::text, 8, '0'),
+      'truong' || school_counter || '@vnmap.edu.vn'
+    ON CONFLICT (school_uid) DO NOTHING;
+    
+    school_counter := school_counter + 1;
+  END LOOP;
+END $$;
+
+SELECT 'Schools seeded: ' || COUNT(*) AS status FROM schools;

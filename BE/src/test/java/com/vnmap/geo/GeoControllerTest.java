@@ -3,13 +3,13 @@ package com.vnmap.geo;
 import com.vnmap.geo.controller.GeoController;
 import com.vnmap.geo.dto.AdministrativeUnitDto;
 import com.vnmap.geo.dto.AdministrativeUnitSummaryDto;
-import com.vnmap.geo.dto.CommitteeLocationDto;
 import com.vnmap.geo.dto.GeoJsonFeatureDto;
 import com.vnmap.geo.service.GeoService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
@@ -21,8 +21,6 @@ import java.util.List;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.anyDouble;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -30,6 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(GeoController.class)
+@AutoConfigureMockMvc(addFilters = false)
 @DisplayName("GeoController Tests (2025 Reform)")
 class GeoControllerTest {
 

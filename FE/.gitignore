@@ -11,15 +11,29 @@ build/
 
 # Environment
 .env
+.env.firebase-dev
+.env.firebase-prod
+.env.development
+.env.production
 
-# IDE
-.idea/
-.vscode/
-*.iml
+# Firebase (generated config — contains non-secret but env-specific values)
+lib/core/config/firebase_options.dart
+lib/core/config/firebase_options_dev.dart
+lib/core/config/firebase_options_prod.dart
 
-# OS
-.DS_Store
-Thumbs.db
+# Google services (mobile — contain env-specific Firebase config)
+android/app/google-services.json
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+
+# Sentry
+.sentryclirc
+sentry.properties
+
+# Patrol (E2E test artifacts)
+integration_test/.patrol/
+patrol/
+*.mobilelab-session
 
 # Large generated/local GeoJSON files. Boundaries are served by the backend API
 # after Docker import downloads them from HuggingFace.

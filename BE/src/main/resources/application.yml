@@ -14,6 +14,10 @@ spring:
       idle-timeout: 600000
       max-lifetime: 1800000
 
+  sql:
+    init:
+      mode: always
+
   # JPA / Hibernate Configuration
   jpa:
     hibernate:
@@ -61,6 +65,23 @@ weather:
     base-url: ${OWM_BASE_URL:https://api.openweathermap.org}
     api-key: ${OWM_API_KEY:}
     timeout: 5000
+
+# Firebase Configuration
+# Service account JSON can be set as a multi-line env var or path to file
+firebase:
+  service-account-json: ${FIREBASE_SERVICE_ACCOUNT_JSON:}
+  service-account-file: ${FIREBASE_SERVICE_ACCOUNT_FILE:}
+  storage-bucket: ${FIREBASE_STORAGE_BUCKET:vnmap-campaign.appspot.com}
+
+# MinIO Configuration (replaces Firebase Storage for object uploads/reports)
+minio:
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9002}
+  public-endpoint: ${MINIO_PUBLIC_ENDPOINT:http://localhost:9002}
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  region: ${MINIO_REGION:us-east-1}
+  bucket: ${MINIO_BUCKET:vnmap-campaign}
+  reports-bucket: ${MINIO_REPORTS_BUCKET:vnmap-campaign-reports}
 
 # Geo Configuration
 geo:

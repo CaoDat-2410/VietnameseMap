@@ -11,9 +11,11 @@ abstract interface class GeoRepository {
 
   Future<Result<GeoJsonFeature>> getProvinceBoundary(String code);
 
-  Future<Result<List<AdministrativeUnitSummary>>> getCommunes(String provinceCode);
+  Future<Result<List<AdministrativeUnitSummary>>> getCommunes(
+      String provinceCode);
 
-  Future<Result<List<GeoJsonFeature>>> getCommunesBoundaries(String provinceCode);
+  Future<Result<List<GeoJsonFeature>>> getCommunesBoundaries(
+      String provinceCode);
 
   Future<Result<List<AdministrativeUnitSummary>>> getCommunesPaginated(
       String provinceCode, int page, int size);
@@ -28,5 +30,6 @@ abstract interface class GeoRepository {
 
   Future<Result<List<CommitteeModel>>> getCommittees();
 
-  Future<Result<List<CommitteeModel>>> getCommitteesByProvince(String provinceCode);
+  Future<Result<List<CommitteeModel>>> getCommitteesByProvince(
+      String provinceCode);
 }

@@ -1,0 +1,4 @@
+INSERT INTO employees (id, full_name, role) VALUES (100, 'Admin User', 'ADMIN') ON CONFLICT DO NOTHING;
+INSERT INTO app_users (id, email, password_hash, role, status, employee_id) 
+VALUES (100, 'admin@vnmap.local', '$2b$12$DAVv.8eiGpIqRpPAc/qz6uvjB5yrJKpgvmjmVDDnEAHkx0FExzqA6', 'ADMIN', 'ACTIVE', 100) 
+ON CONFLICT (email) DO UPDATE SET password_hash = '$2b$12$DAVv.8eiGpIqRpPAc/qz6uvjB5yrJKpgvmjmVDDnEAHkx0FExzqA6', role = 'ADMIN';

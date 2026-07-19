@@ -31,6 +31,5 @@ class CurrentWeather {
   final String? source;
   final bool cached;
 
-  String get iconUrl =>
-      'https://openweathermap.org/img/wn/$iconCode@2x.png';
+  String get iconUrl => 'https://openweathermap.org/img/wn/$iconCode@2x.png';
 }

@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 @Data
 @Builder
@@ -26,7 +27,7 @@ public class ApiResponse<T> {
                 .success(true)
                 .message("Success")
                 .data(data)
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(ZoneOffset.UTC))
                 .build();
     }
 
@@ -35,15 +36,21 @@ public class ApiResponse<T> {
                 .success(true)
                 .message(message)
                 .data(data)
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(ZoneOffset.UTC))
                 .build();
     }
 
     public static <T> ApiResponse<T> error(String message) {
+        return error(message, null, null);
+    }
+
+    public static <T> ApiResponse<T> error(String message, T data, String traceId) {
         return ApiResponse.<T>builder()
                 .success(false)
                 .message(message)
-                .timestamp(LocalDateTime.now())
+                .data(data)
+                .timestamp(LocalDateTime.now(ZoneOffset.UTC))
+                .traceId(traceId)
                 .build();
     }
 }

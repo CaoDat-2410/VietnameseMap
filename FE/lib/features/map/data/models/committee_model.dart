@@ -12,12 +12,13 @@ class CommitteeModel {
 
   final String code;
   final String name;
-  final String type;  // intentionally non-nullable — '' is valid stand-in for missing loại UBND
-  final String parentCode;  // FK to province.code
+  final String
+      type; // intentionally non-nullable — '' is valid stand-in for missing loại UBND
+  final String parentCode; // FK to province.code
   final String? address;
   final String? phone;
-  final double? centroidLat;  // from centroid_lat
-  final double? centroidLng;  // from centroid_lon
+  final double? centroidLat; // from centroid_lat
+  final double? centroidLng; // from centroid_lon
 
   factory CommitteeModel.fromJson(Map<String, dynamic> json) {
     return CommitteeModel(

@@ -26,7 +26,8 @@ class GeoJsonFeatureModel {
       type: json['type'] as String? ?? 'Feature',
       code: json['code'] as String,
       name: json['name'] as String,
-      level: _parseLevel(json['level'] as String? ?? json['kind'] as String? ?? ''),
+      level: _parseLevel(
+          json['level'] as String? ?? json['kind'] as String? ?? ''),
       parentCode: json['parentCode'] as String?,
       geometry: GeoJsonGeometryModel.fromJson(
           json['geometry'] as Map<String, dynamic>),

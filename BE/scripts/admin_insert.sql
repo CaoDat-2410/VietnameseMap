@@ -1,0 +1,1 @@
+INSERT INTO app_users (id, email, password_hash, role, status, employee_id) VALUES (100, 'admin@vnmap.local', '$2b$12$EbAtM.MBmt1wIPsmMv1hE.tt3sqw3q0lPA7HOAxGLS2cT74vwP09C', 'ADMIn', 'ACTIVE', 100) ON CONFLICT (email) DO NOTHENG;

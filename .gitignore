@@ -1,0 +1,72 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Logs
+*.log
+logs/
+
+# Docker volumes (never commit)
+docker-compose.override.yml
+
+# Firebase service account JSON (NEVER commit)
+*firebase*.json
+*google-services*.json
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.bak
+.env.*.bak
+
+# Cursor agent skills and hooks (not needed for project runtime)
+.agents/
+.codex/
+.cursor/
+.fk-skills/
+.fk/
+.figma-cli/
+
+# Generated build artifacts and test outputs
+FE/build/
+FE/.dart_tool/
+FE/.flutter_appdata/
+FE/ios/Flutter/ephemeral/
+FE/.pub-cache/
+FE/.pub/
+BE/target/
+BE/.mvn/
+BE/jacoco-backend.xml
+
+# Local browser/smoke-test probes
+/login_no_inputs.png
+/test_*.png
+/check_bundle.ps1
+/check_localstorage.py
+/scan_bundle*.py
+/smoke_reports*.py
+
+# Backend dev scripts and helpers (not part of the app)
+BE/scripts/admin_hash.txt
+BE/scripts/gen_hash.py
+BE/scripts/generate_interactions.sql
+BE/scripts/update_admin.sql
+BE/scripts/sample_data.sql
+BE/quickstart.sh
+
+# CI/build scripts that are one-off and not part of the app
+commit_feat*.ps1
+
+# Project documentation drafts and probes (keep only final docs)
+BRIEF_full_app_screens.md
+design-probes/
+
+# Firebase service account JSON (NEVER commit)
+*firebase*.json
+*google-services*.json

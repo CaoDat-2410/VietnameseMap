@@ -1,0 +1,109 @@
+Flutter crash report.
+Please report a bug at https://github.com/flutter/flutter/issues.
+
+## command
+
+flutter gen-l10n
+
+## exception
+
+ProcessException: ProcessException: `dart format` failed with exit code 65
+
+stdout:
+Formatted no files in 0.01 seconds.
+
+
+stderr:
+Could not format because the source could not be parsed:
+
+line 286, column 14 of d:/Project%202026/Flutter%20Project/PRM393/CP1_RE/FE/lib/l10n/app_localizations_en.dart: 'class' can't be used as an identifier because it's a keyword.
+    â•·
+286 â”‚   String get class => 'Class';
+    â”‚              ^^^^^
+    â•µ
+Could not format because the source could not be parsed:
+
+line 286, column 14 of d:/Project%202026/Flutter%20Project/PRM393/CP1_RE/FE/lib/l10n/app_localizations_vi.dart: 'class' can't be used as an identifier because it's a keyword.
+    â•·
+286 â”‚   String get class => 'Lá»›p';
+    â”‚              ^^^^^
+    â•µ
+Could not format because the source could not be parsed:
+
+line 642, column 14 of d:/Project%202026/Flutter%20Project/PRM393/CP1_RE/FE/lib/l10n/app_localizations.dart: 'class' can't be used as an identifier because it's a keyword.
+    â•·
+642 â”‚   String get class;
+    â”‚              ^^^^^
+    â•µ
+
+  Command: D:\Flutter\flutter\bin\cache\dart-sdk\bin\dart.exe D:\Flutter\flutter\bin\cache\dart-sdk\bin\dart.exe format D:\Project 2026\Flutter Project\PRM393\CP1_RE\FE\lib\l10n\app_localizations_en.dart D:\Project 2026\Flutter Project\PRM393\CP1_RE\FE\lib\l10n\app_localizations_vi.dart D:\Project 2026\Flutter Project\PRM393\CP1_RE\FE\lib\l10n\app_localizations.dart
+
+```
+#0      generateLocalizations (package:flutter_tools/src/localizations/gen_l10n.dart:96:7)
+<asynchronous suspension>
+#1      GenerateLocalizationsCommand.runCommand (package:flutter_tools/src/commands/generate_localizations.dart:263:5)
+<asynchronous suspension>
+#2      FlutterCommand.run.<anonymous closure> (package:flutter_tools/src/runner/flutter_command.dart:1590:27)
+<asynchronous suspension>
+#3      AppContext.run.<anonymous closure> (package:flutter_tools/src/base/context.dart:154:19)
+<asynchronous suspension>
+#4      CommandRunner.runCommand (package:args/command_runner.dart:212:13)
+<asynchronous suspension>
+#5      FlutterCommandRunner.runCommand.<anonymous closure> (package:flutter_tools/src/runner/flutter_command_runner.dart:496:9)
+<asynchronous suspension>
+#6      AppContext.run.<anonymous closure> (package:flutter_tools/src/base/context.dart:154:19)
+<asynchronous suspension>
+#7      FlutterCommandRunner.runCommand (package:flutter_tools/src/runner/flutter_command_runner.dart:431:5)
+<asynchronous suspension>
+#8      FlutterCommandRunner.run.<anonymous closure> (package:flutter_tools/src/runner/flutter_command_runner.dart:307:33)
+<asynchronous suspension>
+#9      run.<anonymous closure>.<anonymous closure> (package:flutter_tools/runner.dart:104:11)
+<asynchronous suspension>
+#10     AppContext.run.<anonymous closure> (package:flutter_tools/src/base/context.dart:154:19)
+<asynchronous suspension>
+#11     main (package:flutter_tools/executable.dart:103:3)
+<asynchronous suspension>
+```
+
+## flutter doctor
+
+```
+[✓] Flutter (Channel stable, 3.41.9, on Microsoft Windows [Version 10.0.26200.8655], locale en-US) [519ms]
+    • Flutter version 3.41.9 on channel stable at D:\Flutter\flutter
+    • Upstream repository https://github.com/flutter/flutter.git
+    • Framework revision 00b0c91f06 (8 weeks ago), 2026-04-29 10:03:19 -0700
+    • Engine revision 42d3d75a56
+    • Dart version 3.11.5
+    • DevTools version 2.54.2
+    • Feature flags: enable-web, enable-linux-desktop, enable-macos-desktop, enable-windows-desktop, enable-android, enable-ios, cli-animations, enable-native-assets, omit-legacy-version-file, enable-lldb-debugging, enable-uiscene-migration
+
+[✓] Windows Version (Windows 11 or higher, 25H2, 2009) [3.2s]
+
+[!] Android toolchain - develop for Android devices (Android SDK version 36.1.0) [884ms]
+    • Android SDK at C:\Users\docao\AppData\Local\Android\sdk
+    • Emulator version 36.5.11.0 (build_id 15261927) (CL:N/A)
+    ✗ cmdline-tools component is missing.
+      Try installing or updating Android Studio.
+      Alternatively, download the tools from https://developer.android.com/studio#command-line-tools-only and make sure to set the ANDROID_HOME environment variable.
+      See https://developer.android.com/studio/command-line for more details.
+    ✗ Android license status unknown.
+      Run `flutter doctor --android-licenses` to accept the SDK licenses.
+      See https://flutter.dev/to/windows-android-setup for more details.
+
+[✗] Chrome - develop for the web (Cannot find Chrome executable at .\Google\Chrome\Application\chrome.exe) [157ms]
+    ! Cannot find Chrome. Try setting CHROME_EXECUTABLE to a Chrome executable.
+
+[✓] Visual Studio - develop Windows apps (Visual Studio Community 2026 18.5.2) [155ms]
+    • Visual Studio at C:\Program Files\Microsoft Visual Studio\18\Community
+    • Visual Studio Community 2026 version 18.5.11723.231
+    • Windows 10 SDK version 10.0.26100.0
+
+[✓] Connected device (2 available) [195ms]
+    • Windows (desktop) • windows • windows-x64    • Microsoft Windows [Version 10.0.26200.8655]
+    • Edge (web)        • edge    • web-javascript • Microsoft Edge 149.0.4022.80
+
+[✓] Network resources [718ms]
+    • All expected network resources are available.
+
+! Doctor found issues in 2 categories.
+```

@@ -1,3 +1,6 @@
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
+
 allprojects {
     repositories {
         google()
@@ -17,6 +20,9 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
+    tasks.withType<KotlinCompilationTask<*>>().configureEach {
+        compilerOptions.languageVersion.set(KotlinVersion.KOTLIN_1_8)
+    }
 }
 
 tasks.register<Delete>("clean") {

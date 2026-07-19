@@ -1,0 +1,24 @@
+-- VN Map Campaign - Admin Account Seeds
+-- Default password for all accounts: "admin123"
+-- BCrypt hash generated using Python bcrypt
+
+-- Insert employees
+INSERT INTO employees (id, full_name, role) VALUES (100, 'Admin User', 'ADMIN') ON CONFLICT DO NOTHING;
+INSERT INTO employees (id, full_name, role) VALUES (101, 'Manager User', 'MANAGER') ON CONFLICT DO NOTHING;
+INSERT INTO employees (id, full_name, role) VALUES (102, 'Staff User', 'STAFF') ON CONFLICT DO NOTHING;
+
+-- Insert admin users with BCrypt hash for "admin123"
+INSERT INTO app_users (id, email, password_hash, role, status, employee_id)
+VALUES (100, 'admin@vnmap.local', '$2b$12$EbAtM.MBmt1wIPsmMv1hE.tt3sqw3q0lPA7HOAxGLS2cT74vwP09C', 'ADMIN', 'ACTIVE', 100)
+ON CONFLICT (email) DO UPDATE SET password_hash = '$2b$12$EbAtM.MBmt1wIPsmMv1hE.tt3sqw3q0lPA7HOAxGLS2cT74vwP09C', role = 'ADMIN';
+
+INSERT INTO app_users (id, email, password_hash, role, status, employee_id)
+VALUES (101, 'manager@vnmap.local', '$2b$12$EbAtM.MBmt1wIPsmMv1hE.tt3sqw3q0lPA7HOAxGLS2cT74vwP09C', 'MANAGER', 'ACTIVE', 101)
+ON CONFLICT (email) DO UPDATE SET password_hash = '$2b$12$EbAtM.MBmt1wIPsmMv1hE.tt3sqw3q0lPA7HOAxGLS2cT74vwP09C', role = 'MANAGER';
+
+INSERT INTO app_users (id, email, password_hash, role, status, employee_id)
+VALUES (102, 'staff@vnmap.local', '$2b$12$EbAtM.MBmt1wIPsmMv1hE.tt3sqw3q0lPA7HOAxGLS2cT74vwP09C', 'STAFF', 'ACTIVE', 102)
+ON CONFLICT (email) DO UPDATE SET password_hash = '$2b$12$EbAtM.MBmt1wIPsmMv1hE.tt3sqw3q0lPA7HOAxGLS2cT74vwP09C', role = 'STAFF';
+
+SELECT 'Admin accounts seeded!' AS status;
+SELECT id, email, role, status FROM app_users WHERE email LIKE '%@vnmap.local';
