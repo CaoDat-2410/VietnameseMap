@@ -48,17 +48,7 @@ class CampaignRepository {
     return api.data!;
   }
 
-  Future<CampaignModel> getCampaign(int campaignId) async {
-    final res = await _client.get<Map<String, dynamic>>(
-      '/api/v1/campaigns/$campaignId',
-    );
-    final api = ApiResponse.fromJson(
-      res.data!,
-      (json) => CampaignModel.fromJson(json as Map<String, dynamic>),
-    );
-    _assertSuccess(api);
-    return api.data!;
-  }
+
 
   Future<CampaignModel> updateCampaign(
     int campaignId,

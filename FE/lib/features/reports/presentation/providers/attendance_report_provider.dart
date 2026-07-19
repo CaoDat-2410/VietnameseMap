@@ -50,7 +50,7 @@ final attendanceReportDataProvider =
     status: f.status,
     from: f.from,
     to: f.to,
-    limit: 500,
+    limit: 199,
   );
 
   var items = page.items;

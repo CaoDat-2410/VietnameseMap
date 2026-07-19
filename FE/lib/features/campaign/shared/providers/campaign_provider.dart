@@ -23,10 +23,7 @@ final campaignDashboardProvider =
   return ref.watch(campaignRepositoryProvider).getDashboard(campaignId);
 });
 
-final campaignDetailProvider =
-    FutureProvider.family<CampaignModel, int>((ref, campaignId) {
-  return ref.watch(campaignRepositoryProvider).getCampaign(campaignId);
-});
+
 
 final campaignEventsProvider =
     FutureProvider.family<List<CampaignEventModel>, int>((ref, campaignId) {

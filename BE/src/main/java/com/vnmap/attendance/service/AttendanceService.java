@@ -66,7 +66,7 @@ public class AttendanceService {
                     INSERT INTO staff_attendance
                         (employee_id, campaign_id, event_id, check_in_at, check_in_note, check_in_lat, check_in_lng, status)
                     VALUES (?, ?, ?, CURRENT_TIMESTAMP, ?, ?, ?, 'OPEN')
-                    """, Statement.RETURN_GENERATED_KEYS);
+                    """, new String[]{"id"});
             ps.setLong(1, employeeId);
             ps.setLong(2, request.campaignId());
             setNullableLong(ps, 3, request.eventId());
@@ -141,7 +141,7 @@ public class AttendanceService {
                     INSERT INTO staff_attendance
                         (employee_id, campaign_id, event_id, check_in_at, check_out_at, check_in_note, check_out_note, status)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                    """, Statement.RETURN_GENERATED_KEYS);
+                    """, new String[]{"id"});
             ps.setLong(1, request.employeeId());
             ps.setLong(2, request.campaignId());
             setNullableLong(ps, 3, request.eventId());

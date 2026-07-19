@@ -94,7 +94,6 @@ class _VietnameseMapAppState extends ConsumerState<VietnameseMapApp> {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'Vietnamese Map',
-      debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeMode,

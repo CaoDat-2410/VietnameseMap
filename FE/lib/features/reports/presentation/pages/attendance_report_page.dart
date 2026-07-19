@@ -374,7 +374,7 @@ class _EmployeeHoursChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) return const BaseChartCard(title: 'Giờ làm theo nhân viên', child: ChartEmptyState(message: 'Không có dữ liệu'));
+    if (items.isEmpty) return const BaseChartCard(title: 'Giờ làm theo nhân viên', height: 300, child: ChartEmptyState(message: 'Không có dữ liệu'));
 
     final map = <String, double>{};
     for (final r in items) {
@@ -383,13 +383,14 @@ class _EmployeeHoursChart extends StatelessWidget {
       }
     }
     
-    if (map.isEmpty) return const BaseChartCard(title: 'Giờ làm theo nhân viên', child: ChartEmptyState(message: 'Chưa có giờ làm'));
+    if (map.isEmpty) return const BaseChartCard(title: 'Giờ làm theo nhân viên', height: 300, child: ChartEmptyState(message: 'Chưa có giờ làm'));
 
     final sorted = map.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
     final top = sorted.take(10).toList();
 
     return BaseChartCard(
       title: 'Giờ làm theo nhân viên (Top 10)',
+      height: 300,
       child: BarChart(
         BarChartData(
           alignment: BarChartAlignment.spaceAround,
@@ -460,7 +461,7 @@ class _CheckInsByDayChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (items.isEmpty) return const BaseChartCard(title: 'Check-in theo ngày', child: ChartEmptyState(message: 'Không có dữ liệu'));
+    if (items.isEmpty) return const BaseChartCard(title: 'Check-in theo ngày', height: 300, child: ChartEmptyState(message: 'Không có dữ liệu'));
 
     final map = <String, int>{};
     for (final r in items) {
@@ -469,10 +470,11 @@ class _CheckInsByDayChart extends StatelessWidget {
     }
 
     final sorted = map.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
-    if (sorted.isEmpty) return const BaseChartCard(title: 'Check-in theo ngày', child: ChartEmptyState(message: 'Không có dữ liệu'));
+    if (sorted.isEmpty) return const BaseChartCard(title: 'Check-in theo ngày', height: 300, child: ChartEmptyState(message: 'Không có dữ liệu'));
 
     return BaseChartCard(
       title: 'Check-in theo ngày',
+      height: 300,
       child: LineChart(
         LineChartData(
           lineTouchData: LineTouchData(
