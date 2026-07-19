@@ -2,9 +2,36 @@
 
 ## Current State
 
-**Last Updated:** 2026-07-04 21:30
-**Session ID:** session-20260704-feat-082-bugfixes
-**Active Feature:** feat-082 (MinIO storage migration + 404 handler + reports list)
+**Last Updated:** 2026-07-19 15:48
+**Session ID:** session-20260719-attendance
+**Active Feature:** feat-089 (Attendance Report)
+
+## Status: feat-089 COMPLETE
+
+### Completed in this session
+
+- Added Attendance Report to the Reports module on Frontend without requiring Backend modifications.
+- Modified `reports_landing_page.dart` to add the "Báo cáo chấm công" card.
+- Created `attendance_report_provider.dart` for filter state and fetching attendance data (`GET /api/v1/attendance`).
+- Created `attendance_report_page.dart` with KPI cards (total records, hours, average hours/day, open sessions), charts (bar chart for hours by employee, line chart for check-ins by day), and detailed data table.
+- Added English and Vietnamese localization keys to `app_en.arb` and `app_vi.arb`.
+- Updated `router.dart` with the new route `/reports/attendance` (MANAGER/ADMIN only).
+- Verified with `flutter analyze`.
+
+## Status: feat-088 COMPLETE
+
+### Completed in this session
+
+- Implemented Data Models (`AttendanceRecord`, `AttendancePage`) in `attendance_models.dart`.
+- Created `AttendanceRepository` in `attendance_repository.dart` for CRUD operations via `DioClient`.
+- Configured Riverpod providers in `attendance_providers.dart`: `myAttendanceProvider`, `teamAttendanceProvider`, `attendanceFilterProvider`, and `attendanceActionsProvider`.
+- Added localized strings for EN and VI (`app_en.arb`, `app_vi.arb`).
+- Created `AttendanceSelfCard` (check-in/check-out for staff/managers) checking `campaignsProvider` for active campaigns.
+- Created `AttendanceTable` (manager/admin view using `DataTable2`).
+- Created dialogs for CRUD: `AttendanceCreateDialog`, `AttendanceEditDialog`.
+- Created main `AttendancePage` mapping to roles.
+- Updated `router.dart` (`/attendance` route, role guards, sidebar entry).
+- Verified via `flutter analyze` and `flutter build web --release` (Built build/web in 87.5s).
 
 ## Status: feat-082 COMPLETE
 

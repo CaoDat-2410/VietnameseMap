@@ -1463,6 +1463,43 @@
                 "FE/lib/app/widgets/app_sidebar.dart",
                 "progress.md"
             ]
+        },
+        {
+            "id": "feat-088",
+            "name": "Attendance Module",
+            "description": "Implemented FE for attendance module: models, repository, providers, check-in/out self service card, attendance table for manager/admin with CRUD operations, localization and router.",
+            "dependencies": [],
+            "status": "completed",
+            "evidence": "Flutter analyzer passed. flutter build web release successful.",
+            "files": [
+                "FE/lib/features/attendance/data/models/attendance_models.dart",
+                "FE/lib/features/attendance/data/repositories/attendance_repository.dart",
+                "FE/lib/features/attendance/presentation/providers/attendance_providers.dart",
+                "FE/lib/features/attendance/presentation/widgets/attendance_self_card.dart",
+                "FE/lib/features/attendance/presentation/widgets/attendance_table.dart",
+                "FE/lib/features/attendance/presentation/widgets/attendance_create_dialog.dart",
+                "FE/lib/features/attendance/presentation/widgets/attendance_edit_dialog.dart",
+                "FE/lib/features/attendance/presentation/pages/attendance_page.dart",
+                "FE/lib/app/router.dart",
+                "FE/lib/l10n/app_en.arb",
+                "FE/lib/l10n/app_vi.arb"
+            ]
+        },
+        {
+            "id": "feat-089",
+            "name": "Attendance Report",
+            "description": "Implemented attendance report on FE: added card to reports landing page, created attendance report page with filter, KPIs, charts, and data table. No backend changes required.",
+            "dependencies": ["feat-088"],
+            "status": "completed",
+            "evidence": "Flutter analyzer passed. flutter build web release successful.",
+            "files": [
+                "FE/lib/features/reports/presentation/pages/reports_landing_page.dart",
+                "FE/lib/features/reports/presentation/providers/attendance_report_provider.dart",
+                "FE/lib/features/reports/presentation/pages/attendance_report_page.dart",
+                "FE/lib/app/router.dart",
+                "FE/lib/l10n/app_en.arb",
+                "FE/lib/l10n/app_vi.arb"
+            ]
         }
     ]
 }

@@ -33,6 +33,8 @@ import '../features/reports/presentation/pages/event_report_type_page.dart';
 import '../features/reports/presentation/pages/region_report_type_page.dart';
 import '../features/reports/presentation/pages/reports_landing_page.dart';
 import '../features/reports/presentation/pages/school_report_type_page.dart';
+import '../features/reports/presentation/pages/attendance_report_page.dart';
+import '../features/attendance/presentation/pages/attendance_page.dart';
 import '../features/staff/presentation/pages/staff_registrations_page.dart';
 import '../features/student/presentation/pages/event_registration_page.dart';
 import '../features/student/presentation/pages/my_registrations_page.dart';
@@ -383,6 +385,17 @@ final router = GoRouter(
           ),
         ),
         GoRoute(
+          path: '/attendance',
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
+            child: _RoleGate(
+              allowedRoles: const {'STAFF', 'MANAGER', 'ADMIN'},
+              child: const AttendancePage(),
+            ),
+          ),
+        ),
+        GoRoute(
           path: '/reports',
           pageBuilder: (context, state) => _buildPageWithSlideTransition(
             context: context,
@@ -437,6 +450,17 @@ final router = GoRouter(
             ),
           ),
         ),
+        GoRoute(
+          path: '/reports/attendance',
+          pageBuilder: (context, state) => _buildPageWithSlideTransition(
+            context: context,
+            state: state,
+            child: _RoleGate(
+              allowedRoles: const {'MANAGER', 'ADMIN'},
+              child: const AttendanceReportPage(),
+            ),
+          ),
+        ),
       ],
     ),
   ],
@@ -475,6 +499,7 @@ class _AppShell extends ConsumerWidget {
     }
     if (location.startsWith('/schools')) return '/schools';
     if (location.startsWith('/reports')) return '/reports';
+    if (location.startsWith('/attendance')) return '/attendance';
     if (location.startsWith('/staff/registrations'))
       return '/staff/registrations';
     if (location.startsWith('/student/my-registrations')) {
@@ -542,6 +567,8 @@ class _AppShell extends ConsumerWidget {
           Icons.campaign));
       items.add(_NavItem('/analytics', l10n.analytics, Icons.analytics_outlined,
           Icons.analytics));
+      items.add(_NavItem('/attendance', l10n.attendance,
+          Icons.access_time_outlined, Icons.access_time));
       items.add(_NavItem('/staff/registrations', l10n.registrationReview,
           Icons.assignment_turned_in_outlined, Icons.assignment_turned_in));
       items.add(_NavItem(

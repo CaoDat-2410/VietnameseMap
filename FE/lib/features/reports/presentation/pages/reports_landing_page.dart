@@ -45,6 +45,14 @@ class ReportsLandingPage extends ConsumerWidget {
         color: AppColors.info,
         route: '/reports/region',
       ),
+      _ReportTypeInfo(
+        type: 'ATTENDANCE',
+        title: 'Báo cáo chấm công',
+        subtitle: 'Tổng hợp giờ làm, check-in/check-out theo nhân viên, chiến dịch, khoảng thời gian',
+        icon: Icons.access_time_outlined,
+        color: AppColors.success,
+        route: '/reports/attendance',
+      ),
     ];
 
     return Scaffold(
@@ -56,12 +64,12 @@ class ReportsLandingPage extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Báo cáo PDF',
+                'Hệ thống Báo cáo',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
               Text(
-                'Chọn loại báo cáo, thiết lập bộ lọc riêng và xuất file PDF có biểu đồ nhúng sẵn.',
+                'Chọn loại báo cáo, thiết lập bộ lọc riêng để xem thống kê hoặc xuất file PDF.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
               ),
               const SizedBox(height: 24),

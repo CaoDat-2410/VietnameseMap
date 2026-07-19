@@ -741,4 +741,79 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get notificationJustNow => 'Just now';
+
+  @override
+  String get attendance => 'Attendance';
+
+  @override
+  String get checkIn => 'Check in';
+
+  @override
+  String get checkOut => 'Check out';
+
+  @override
+  String get openSession => 'Currently checked in';
+
+  @override
+  String get noOpenSession => 'Not checked in';
+
+  @override
+  String get workedHours => 'Worked hours';
+
+  @override
+  String get attendanceCorrectionNote => 'Correction note';
+
+  @override
+  String get alreadyCheckedIn => 'You are already checked in';
+
+  @override
+  String get noOpenSessionToCheckOut => 'No open session to check out';
+
+  @override
+  String get employeeNotLinked =>
+      'Your account is not linked to an employee record';
+
+  @override
+  String get noActiveCampaign => 'No campaign is currently open';
+
+  @override
+  String get campaignNotOpenForCheckIn =>
+      'This campaign is not open for check-in';
+
+  @override
+  String get selectCampaign => 'Select campaign';
+
+  @override
+  String get selectEventOptional => 'Select event (optional)';
+
+  @override
+  String get attendanceReport => 'Attendance Report';
+
+  @override
+  String get attendanceReportSubtitle =>
+      'Summary of work hours, check-in/out by employee, campaign, date range';
+
+  @override
+  String get totalRecords => 'Total records';
+
+  @override
+  String get totalWorkHours => 'Total work hours';
+
+  @override
+  String get avgHoursPerDay => 'Avg hours/day';
+
+  @override
+  String get openSessions => 'Open sessions';
+
+  @override
+  String get hoursByEmployee => 'Work hours by employee';
+
+  @override
+  String get checkInsByDay => 'Check-ins by day';
+
+  @override
+  String get generateReport => 'Generate report';
+
+  @override
+  String get attendanceDetails => 'Attendance details';
 }

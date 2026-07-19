@@ -745,4 +745,79 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get notificationJustNow => 'Vừa xong';
+
+  @override
+  String get attendance => 'Chấm công';
+
+  @override
+  String get checkIn => 'Check-in';
+
+  @override
+  String get checkOut => 'Check-out';
+
+  @override
+  String get openSession => 'Đang trong ca';
+
+  @override
+  String get noOpenSession => 'Chưa check-in';
+
+  @override
+  String get workedHours => 'Số giờ làm';
+
+  @override
+  String get attendanceCorrectionNote => 'Ghi chú điều chỉnh';
+
+  @override
+  String get alreadyCheckedIn => 'Bạn đã check-in rồi';
+
+  @override
+  String get noOpenSessionToCheckOut => 'Không có phiên đang mở để check-out';
+
+  @override
+  String get employeeNotLinked =>
+      'Tài khoản của bạn chưa được liên kết với hồ sơ nhân viên';
+
+  @override
+  String get noActiveCampaign => 'Hiện không có chiến dịch nào đang mở';
+
+  @override
+  String get campaignNotOpenForCheckIn =>
+      'Chiến dịch này hiện không mở để check-in';
+
+  @override
+  String get selectCampaign => 'Chọn chiến dịch';
+
+  @override
+  String get selectEventOptional => 'Chọn sự kiện (không bắt buộc)';
+
+  @override
+  String get attendanceReport => 'Báo cáo chấm công';
+
+  @override
+  String get attendanceReportSubtitle =>
+      'Tổng hợp giờ làm, check-in/check-out theo nhân viên, chiến dịch, khoảng thời gian';
+
+  @override
+  String get totalRecords => 'Tổng bản ghi';
+
+  @override
+  String get totalWorkHours => 'Tổng giờ làm';
+
+  @override
+  String get avgHoursPerDay => 'TB giờ/ngày';
+
+  @override
+  String get openSessions => 'Phiên đang mở';
+
+  @override
+  String get hoursByEmployee => 'Giờ làm theo nhân viên';
+
+  @override
+  String get checkInsByDay => 'Check-in theo ngày';
+
+  @override
+  String get generateReport => 'Tạo báo cáo';
+
+  @override
+  String get attendanceDetails => 'Chi tiết chấm công';
 }

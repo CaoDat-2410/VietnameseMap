@@ -1519,6 +1519,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Just now'**
   String get notificationJustNow;
+
+  /// No description provided for @attendance.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendance'**
+  String get attendance;
+
+  /// No description provided for @checkIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Check in'**
+  String get checkIn;
+
+  /// No description provided for @checkOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Check out'**
+  String get checkOut;
+
+  /// No description provided for @openSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Currently checked in'**
+  String get openSession;
+
+  /// No description provided for @noOpenSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Not checked in'**
+  String get noOpenSession;
+
+  /// No description provided for @workedHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Worked hours'**
+  String get workedHours;
+
+  /// No description provided for @attendanceCorrectionNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Correction note'**
+  String get attendanceCorrectionNote;
+
+  /// No description provided for @alreadyCheckedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'You are already checked in'**
+  String get alreadyCheckedIn;
+
+  /// No description provided for @noOpenSessionToCheckOut.
+  ///
+  /// In en, this message translates to:
+  /// **'No open session to check out'**
+  String get noOpenSessionToCheckOut;
+
+  /// No description provided for @employeeNotLinked.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account is not linked to an employee record'**
+  String get employeeNotLinked;
+
+  /// No description provided for @noActiveCampaign.
+  ///
+  /// In en, this message translates to:
+  /// **'No campaign is currently open'**
+  String get noActiveCampaign;
+
+  /// No description provided for @campaignNotOpenForCheckIn.
+  ///
+  /// In en, this message translates to:
+  /// **'This campaign is not open for check-in'**
+  String get campaignNotOpenForCheckIn;
+
+  /// No description provided for @selectCampaign.
+  ///
+  /// In en, this message translates to:
+  /// **'Select campaign'**
+  String get selectCampaign;
+
+  /// No description provided for @selectEventOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Select event (optional)'**
+  String get selectEventOptional;
+
+  /// No description provided for @attendanceReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendance Report'**
+  String get attendanceReport;
+
+  /// No description provided for @attendanceReportSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Summary of work hours, check-in/out by employee, campaign, date range'**
+  String get attendanceReportSubtitle;
+
+  /// No description provided for @totalRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'Total records'**
+  String get totalRecords;
+
+  /// No description provided for @totalWorkHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Total work hours'**
+  String get totalWorkHours;
+
+  /// No description provided for @avgHoursPerDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Avg hours/day'**
+  String get avgHoursPerDay;
+
+  /// No description provided for @openSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'Open sessions'**
+  String get openSessions;
+
+  /// No description provided for @hoursByEmployee.
+  ///
+  /// In en, this message translates to:
+  /// **'Work hours by employee'**
+  String get hoursByEmployee;
+
+  /// No description provided for @checkInsByDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Check-ins by day'**
+  String get checkInsByDay;
+
+  /// No description provided for @generateReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate report'**
+  String get generateReport;
+
+  /// No description provided for @attendanceDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendance details'**
+  String get attendanceDetails;
 }
 
 class _AppLocalizationsDelegate
