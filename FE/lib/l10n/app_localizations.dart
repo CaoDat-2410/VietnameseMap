@@ -1741,6 +1741,174 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Attendance details'**
   String get attendanceDetails;
+
+  /// No description provided for @attendanceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Track your shift and review recent attendance.'**
+  String get attendanceSubtitle;
+
+  /// No description provided for @attendanceReadyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to start your shift?'**
+  String get attendanceReadyTitle;
+
+  /// No description provided for @attendanceRecentShifts.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent shifts'**
+  String get attendanceRecentShifts;
+
+  /// No description provided for @attendanceNoRecentShifts.
+  ///
+  /// In en, this message translates to:
+  /// **'No completed shifts yet'**
+  String get attendanceNoRecentShifts;
+
+  /// No description provided for @attendanceNoRecentShiftsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your completed shifts will appear here.'**
+  String get attendanceNoRecentShiftsHint;
+
+  /// No description provided for @attendanceShiftDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Shift details'**
+  String get attendanceShiftDetails;
+
+  /// No description provided for @attendanceStartedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Started at'**
+  String get attendanceStartedAt;
+
+  /// No description provided for @attendanceEndedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Ended at'**
+  String get attendanceEndedAt;
+
+  /// No description provided for @attendanceDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get attendanceDuration;
+
+  /// No description provided for @attendanceStatusOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Shift in progress'**
+  String get attendanceStatusOpen;
+
+  /// No description provided for @attendanceStatusClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'Shift completed'**
+  String get attendanceStatusClosed;
+
+  /// No description provided for @attendanceAddNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a note'**
+  String get attendanceAddNote;
+
+  /// No description provided for @attendanceHideNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide note'**
+  String get attendanceHideNote;
+
+  /// No description provided for @attendanceNoEvent.
+  ///
+  /// In en, this message translates to:
+  /// **'No specific event'**
+  String get attendanceNoEvent;
+
+  /// No description provided for @attendanceEndShift.
+  ///
+  /// In en, this message translates to:
+  /// **'End shift'**
+  String get attendanceEndShift;
+
+  /// No description provided for @attendanceKeepWorking.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep working'**
+  String get attendanceKeepWorking;
+
+  /// No description provided for @attendanceViewShiftDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'View shift details'**
+  String get attendanceViewShiftDetails;
+
+  /// No description provided for @attendanceCheckoutPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Review this shift before recording your check-out.'**
+  String get attendanceCheckoutPrompt;
+
+  /// No description provided for @attendanceRecordedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Recorded at'**
+  String get attendanceRecordedAt;
+
+  /// No description provided for @attendanceTeamTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Team attendance'**
+  String get attendanceTeamTitle;
+
+  /// No description provided for @attendanceStatusAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All statuses'**
+  String get attendanceStatusAll;
+
+  /// No description provided for @attendanceStatusOpenLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get attendanceStatusOpenLabel;
+
+  /// No description provided for @attendanceStatusClosedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get attendanceStatusClosedLabel;
+
+  /// No description provided for @attendanceLoadingStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading your attendance status...'**
+  String get attendanceLoadingStatus;
+
+  /// No description provided for @attendanceLoadingTargets.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading assigned campaigns...'**
+  String get attendanceLoadingTargets;
+
+  /// No description provided for @attendanceNoTeamRecords.
+  ///
+  /// In en, this message translates to:
+  /// **'No team attendance found'**
+  String get attendanceNoTeamRecords;
+
+  /// No description provided for @attendanceNoTeamRecordsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Try another status or refresh the list.'**
+  String get attendanceNoTeamRecordsHint;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
 }
 
 class _AppLocalizationsDelegate

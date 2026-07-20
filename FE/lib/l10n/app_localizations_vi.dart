@@ -865,4 +865,93 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get attendanceDetails => 'Chi tiết chấm công';
+
+  @override
+  String get attendanceSubtitle =>
+      'Theo dõi ca làm và xem lại lịch sử chấm công gần đây.';
+
+  @override
+  String get attendanceReadyTitle => 'Sẵn sàng bắt đầu ca làm?';
+
+  @override
+  String get attendanceRecentShifts => 'Ca làm gần đây';
+
+  @override
+  String get attendanceNoRecentShifts => 'Chưa có ca đã hoàn thành';
+
+  @override
+  String get attendanceNoRecentShiftsHint =>
+      'Các ca đã hoàn thành sẽ xuất hiện tại đây.';
+
+  @override
+  String get attendanceShiftDetails => 'Chi tiết ca làm';
+
+  @override
+  String get attendanceStartedAt => 'Bắt đầu lúc';
+
+  @override
+  String get attendanceEndedAt => 'Kết thúc lúc';
+
+  @override
+  String get attendanceDuration => 'Thời lượng';
+
+  @override
+  String get attendanceStatusOpen => 'Ca đang diễn ra';
+
+  @override
+  String get attendanceStatusClosed => 'Ca đã hoàn thành';
+
+  @override
+  String get attendanceAddNote => 'Thêm ghi chú';
+
+  @override
+  String get attendanceHideNote => 'Ẩn ghi chú';
+
+  @override
+  String get attendanceNoEvent => 'Không chọn sự kiện cụ thể';
+
+  @override
+  String get attendanceEndShift => 'Kết thúc ca';
+
+  @override
+  String get attendanceKeepWorking => 'Tiếp tục làm việc';
+
+  @override
+  String get attendanceViewShiftDetails => 'Xem chi tiết ca';
+
+  @override
+  String get attendanceCheckoutPrompt =>
+      'Kiểm tra lại ca làm trước khi ghi nhận check-out.';
+
+  @override
+  String get attendanceRecordedAt => 'Ghi nhận lúc';
+
+  @override
+  String get attendanceTeamTitle => 'Chấm công đội ngũ';
+
+  @override
+  String get attendanceStatusAll => 'Tất cả trạng thái';
+
+  @override
+  String get attendanceStatusOpenLabel => 'Đang trong ca';
+
+  @override
+  String get attendanceStatusClosedLabel => 'Đã kết thúc';
+
+  @override
+  String get attendanceLoadingStatus => 'Đang tải trạng thái chấm công...';
+
+  @override
+  String get attendanceLoadingTargets =>
+      'Đang tải chiến dịch được phân công...';
+
+  @override
+  String get attendanceNoTeamRecords => 'Không có dữ liệu chấm công đội ngũ';
+
+  @override
+  String get attendanceNoTeamRecordsHint =>
+      'Thử trạng thái khác hoặc làm mới danh sách.';
+
+  @override
+  String get close => 'Đóng';
 }

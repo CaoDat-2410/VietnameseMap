@@ -62,21 +62,25 @@ class _AttendanceActions {
   final Ref _ref;
   AttendanceRepository get _repo => _ref.read(attendanceRepositoryProvider);
 
-  Future<void> checkIn({
+  Future<AttendanceRecord> checkIn({
     required int campaignId,
     int? eventId,
     String? note,
   }) async {
     try {
-      await _repo.checkIn(campaignId: campaignId, eventId: eventId, note: note);
+      return await _repo.checkIn(
+        campaignId: campaignId,
+        eventId: eventId,
+        note: note,
+      );
     } finally {
       _ref.invalidate(myAttendanceProvider);
     }
   }
 
-  Future<void> checkOut({String? note}) async {
+  Future<AttendanceRecord> checkOut({String? note}) async {
     try {
-      await _repo.checkOut(note: note);
+      return await _repo.checkOut(note: note);
     } finally {
       _ref.invalidate(myAttendanceProvider);
     }

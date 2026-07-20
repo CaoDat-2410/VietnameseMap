@@ -1525,6 +1525,28 @@
                 "FE/lib/l10n/app_vi.arb",
                 "output/attendance-ui-verification-20260720"
             ]
+        },
+        {
+            "id": "feat-091",
+            "name": "Attendance Field Command Center UI",
+            "description": "Redesigned attendance as a responsive field command center with a focused ready/active workflow, live timer, compact recent-shift history, desktop confirmation dialog, mobile check-out bottom sheet, success panel, shift details, localized states, and a polished team attendance table.",
+            "dependencies": [
+                "feat-090"
+            ],
+            "status": "completed",
+            "evidence": "Attendance-targeted Dart analysis completed with 0 errors and 0 warnings (13 info lints, mostly pre-existing dialogs). Flutter web release built successfully; final main.dart.js is 5,090,631 bytes. Release artifact was loaded into vnmap_frontend and snapshotted as vnmap-fe:latest (bdf888c0d308); backend health returned UP. Browser runtime verified desktop and 390x844 mobile ready, check-in, active timer, cancel check-out, desktop dialog, mobile bottom sheet, check-out success, history, and shift details. Console had 0 errors; four pre-existing assets/.env 404 warnings were observed across reloads. Attendance #21 and #22 created by browser testing were soft-deleted with an audit reason; visible records returned to 0. Screenshots: output/attendance-ui-implementation-20260720/.",
+            "files": [
+                "FE/lib/features/attendance/presentation/pages/attendance_page.dart",
+                "FE/lib/features/attendance/presentation/providers/attendance_providers.dart",
+                "FE/lib/features/attendance/presentation/widgets/attendance_self_card.dart",
+                "FE/lib/features/attendance/presentation/widgets/attendance_history_panel.dart",
+                "FE/lib/features/attendance/presentation/widgets/attendance_record_details.dart",
+                "FE/lib/features/attendance/presentation/widgets/attendance_table.dart",
+                "FE/lib/l10n/app_en.arb",
+                "FE/lib/l10n/app_vi.arb",
+                "output/attendance-ui-concepts-20260720",
+                "output/attendance-ui-implementation-20260720"
+            ]
         }
     ]
 }

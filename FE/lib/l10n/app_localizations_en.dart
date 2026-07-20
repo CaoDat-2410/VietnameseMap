@@ -861,4 +861,92 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get attendanceDetails => 'Attendance details';
+
+  @override
+  String get attendanceSubtitle =>
+      'Track your shift and review recent attendance.';
+
+  @override
+  String get attendanceReadyTitle => 'Ready to start your shift?';
+
+  @override
+  String get attendanceRecentShifts => 'Recent shifts';
+
+  @override
+  String get attendanceNoRecentShifts => 'No completed shifts yet';
+
+  @override
+  String get attendanceNoRecentShiftsHint =>
+      'Your completed shifts will appear here.';
+
+  @override
+  String get attendanceShiftDetails => 'Shift details';
+
+  @override
+  String get attendanceStartedAt => 'Started at';
+
+  @override
+  String get attendanceEndedAt => 'Ended at';
+
+  @override
+  String get attendanceDuration => 'Duration';
+
+  @override
+  String get attendanceStatusOpen => 'Shift in progress';
+
+  @override
+  String get attendanceStatusClosed => 'Shift completed';
+
+  @override
+  String get attendanceAddNote => 'Add a note';
+
+  @override
+  String get attendanceHideNote => 'Hide note';
+
+  @override
+  String get attendanceNoEvent => 'No specific event';
+
+  @override
+  String get attendanceEndShift => 'End shift';
+
+  @override
+  String get attendanceKeepWorking => 'Keep working';
+
+  @override
+  String get attendanceViewShiftDetails => 'View shift details';
+
+  @override
+  String get attendanceCheckoutPrompt =>
+      'Review this shift before recording your check-out.';
+
+  @override
+  String get attendanceRecordedAt => 'Recorded at';
+
+  @override
+  String get attendanceTeamTitle => 'Team attendance';
+
+  @override
+  String get attendanceStatusAll => 'All statuses';
+
+  @override
+  String get attendanceStatusOpenLabel => 'In progress';
+
+  @override
+  String get attendanceStatusClosedLabel => 'Completed';
+
+  @override
+  String get attendanceLoadingStatus => 'Loading your attendance status...';
+
+  @override
+  String get attendanceLoadingTargets => 'Loading assigned campaigns...';
+
+  @override
+  String get attendanceNoTeamRecords => 'No team attendance found';
+
+  @override
+  String get attendanceNoTeamRecordsHint =>
+      'Try another status or refresh the list.';
+
+  @override
+  String get close => 'Close';
 }
