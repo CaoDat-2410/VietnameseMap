@@ -2,11 +2,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/attendance_models.dart';
 import '../../data/repositories/attendance_repository.dart';
 
+const _unset = Object();
+
 final attendanceRepositoryProvider = Provider((ref) => AttendanceRepository());
 
 // --- Self-service (STAFF/MANAGER) ---
 final myAttendanceProvider = FutureProvider.autoDispose<AttendancePage>((ref) {
   return ref.read(attendanceRepositoryProvider).myAttendance(limit: 20);
+});
+final eligibleAttendanceTargetsProvider =
+    FutureProvider.autoDispose<List<AttendanceTarget>>((ref) {
+  return ref.read(attendanceRepositoryProvider).eligibleTargets();
 });
 
 // --- Team view (MANAGER/ADMIN) ---
@@ -18,16 +24,18 @@ class AttendanceFilter {
   final DateTime? to;
 
   AttendanceFilter copyWith({
-    int? employeeId,
-    String? status,
-    DateTime? from,
-    DateTime? to,
+    Object? employeeId = _unset,
+    Object? status = _unset,
+    Object? from = _unset,
+    Object? to = _unset,
   }) =>
       AttendanceFilter(
-        employeeId: employeeId ?? this.employeeId,
-        status: status ?? this.status,
-        from: from ?? this.from,
-        to: to ?? this.to,
+        employeeId: identical(employeeId, _unset)
+            ? this.employeeId
+            : employeeId as int?,
+        status: identical(status, _unset) ? this.status : status as String?,
+        from: identical(from, _unset) ? this.from : from as DateTime?,
+        to: identical(to, _unset) ? this.to : to as DateTime?,
       );
 }
 
@@ -59,13 +67,19 @@ class _AttendanceActions {
     int? eventId,
     String? note,
   }) async {
-    await _repo.checkIn(campaignId: campaignId, eventId: eventId, note: note);
-    _ref.invalidate(myAttendanceProvider);
+    try {
+      await _repo.checkIn(campaignId: campaignId, eventId: eventId, note: note);
+    } finally {
+      _ref.invalidate(myAttendanceProvider);
+    }
   }
 
   Future<void> checkOut({String? note}) async {
-    await _repo.checkOut(note: note);
-    _ref.invalidate(myAttendanceProvider);
+    try {
+      await _repo.checkOut(note: note);
+    } finally {
+      _ref.invalidate(myAttendanceProvider);
+    }
   }
 
   Future<void> createManual({
@@ -76,6 +90,7 @@ class _AttendanceActions {
     DateTime? checkOutAt,
     String? checkInNote,
     String? checkOutNote,
+    required String correctionReason,
   }) async {
     await _repo.createManual(
       employeeId: employeeId,
@@ -85,6 +100,7 @@ class _AttendanceActions {
       checkOutAt: checkOutAt,
       checkInNote: checkInNote,
       checkOutNote: checkOutNote,
+      correctionReason: correctionReason,
     );
     _ref.invalidate(teamAttendanceProvider);
   }
@@ -93,25 +109,35 @@ class _AttendanceActions {
     int id, {
     int? campaignId,
     int? eventId,
+    bool clearEvent = false,
     DateTime? checkInAt,
     DateTime? checkOutAt,
+    bool clearCheckOutAt = false,
     String? checkInNote,
+    bool clearCheckInNote = false,
     String? checkOutNote,
+    bool clearCheckOutNote = false,
+    required String correctionReason,
   }) async {
     await _repo.update(
       id,
       campaignId: campaignId,
+      clearEvent: clearEvent,
       eventId: eventId,
       checkInAt: checkInAt,
+      clearCheckOutAt: clearCheckOutAt,
       checkOutAt: checkOutAt,
+      clearCheckInNote: clearCheckInNote,
       checkInNote: checkInNote,
+      clearCheckOutNote: clearCheckOutNote,
+      correctionReason: correctionReason,
       checkOutNote: checkOutNote,
     );
     _ref.invalidate(teamAttendanceProvider);
   }
 
-  Future<void> delete(int id) async {
-    await _repo.delete(id);
+  Future<void> delete(int id, {required String reason}) async {
+    await _repo.delete(id, reason: reason);
     _ref.invalidate(teamAttendanceProvider);
   }
 }

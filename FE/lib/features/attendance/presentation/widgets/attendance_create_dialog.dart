@@ -22,12 +22,14 @@ class _AttendanceCreateDialogState
   DateTime? _checkOutAt;
   final _checkInNoteCtrl = TextEditingController();
   final _checkOutNoteCtrl = TextEditingController();
+  final _reasonCtrl = TextEditingController();
   bool _isLoading = false;
 
   @override
   void dispose() {
     _checkInNoteCtrl.dispose();
     _checkOutNoteCtrl.dispose();
+    _reasonCtrl.dispose();
     super.dispose();
   }
 
@@ -59,7 +61,8 @@ class _AttendanceCreateDialogState
   }
 
   Future<void> _submit() async {
-    if (_employeeId == null || _campaignId == null) {
+    final reason = _reasonCtrl.text.trim();
+    if (_employeeId == null || _campaignId == null || reason.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(AppLocalizations.of(context)!.required)),
       );
@@ -79,12 +82,15 @@ class _AttendanceCreateDialogState
             checkOutNote: _checkOutNoteCtrl.text.trim().isEmpty
                 ? null
                 : _checkOutNoteCtrl.text.trim(),
+            correctionReason: reason,
           );
       if (mounted) Navigator.pop(context);
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(
+              content:
+                  Text(AppLocalizations.of(context)!.attendanceActionFailed)),
         );
       }
     } finally {
@@ -106,7 +112,7 @@ class _AttendanceCreateDialogState
           children: [
             employeesAsync.when(
               loading: () => const CircularProgressIndicator(),
-              error: (e, _) => Text('Error: $e'),
+              error: (_, __) => Text(l10n.attendanceLoadFailed),
               data: (employees) {
                 return DropdownButtonFormField<int>(
                   value: _employeeId,
@@ -126,7 +132,7 @@ class _AttendanceCreateDialogState
             const SizedBox(height: 16),
             campaignsAsync.when(
               loading: () => const CircularProgressIndicator(),
-              error: (e, _) => Text('Error: $e'),
+              error: (_, __) => Text(l10n.attendanceLoadFailed),
               data: (campaigns) {
                 return DropdownButtonFormField<int>(
                   value: _campaignId,
@@ -147,12 +153,12 @@ class _AttendanceCreateDialogState
             if (_campaignId != null)
               ref.watch(campaignEventsProvider(_campaignId!)).when(
                     loading: () => const CircularProgressIndicator(),
-                    error: (e, _) => Text('Error: $e'),
+                    error: (_, __) => Text(l10n.attendanceLoadFailed),
                     data: (events) {
                       return DropdownButtonFormField<int>(
                         value: _eventId,
-                        decoration:
-                            InputDecoration(labelText: l10n.selectEventOptional),
+                        decoration: InputDecoration(
+                            labelText: l10n.selectEventOptional),
                         items: [
                           DropdownMenuItem<int>(
                             value: null,
@@ -182,7 +188,8 @@ class _AttendanceCreateDialogState
             const SizedBox(height: 16),
             TextField(
               controller: _checkInNoteCtrl,
-              decoration: InputDecoration(labelText: '${l10n.checkIn} ${l10n.note}'),
+              decoration:
+                  InputDecoration(labelText: '${l10n.checkIn} ${l10n.note}'),
             ),
             const SizedBox(height: 16),
             ListTile(
@@ -197,7 +204,16 @@ class _AttendanceCreateDialogState
             const SizedBox(height: 16),
             TextField(
               controller: _checkOutNoteCtrl,
-              decoration: InputDecoration(labelText: '${l10n.checkOut} ${l10n.note}'),
+              decoration:
+                  InputDecoration(labelText: '${l10n.checkOut} ${l10n.note}'),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _reasonCtrl,
+              decoration: InputDecoration(
+                labelText: '${l10n.correctionReason} *',
+              ),
+              maxLength: 500,
             ),
           ],
         ),

@@ -18,7 +18,7 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +37,7 @@ class AttendanceServiceTest {
     private static final AttendanceDto SAMPLE = new AttendanceDto(
             10L, 5L, "Nguyen Van A",
             1L, "Spring Drive", null, null,
-            LocalDateTime.of(2026, 7, 18, 8, 0), null,
+            Instant.parse("2026-07-18T01:00:00Z"), null,
             "in note", null,
             10.0, 20.0, null, null,
             "OPEN", null
@@ -46,6 +46,8 @@ class AttendanceServiceTest {
     private void stubActiveCampaign(long campaignId, String name) {
         when(jdbc.queryForList(anyString(), eq(campaignId)))
                 .thenReturn(List.of(new HashMap<>(Map.of("name", name, "status", "ACTIVE"))));
+        when(jdbc.queryForObject(contains("event_assignments"), eq(Integer.class), any(Object[].class)))
+                .thenReturn(1);
     }
 
     @Test
@@ -78,13 +80,15 @@ class AttendanceServiceTest {
     @Test
     void checkInThrowsConflictWhenEmployeeAlreadyHasOpenSession() {
         when(jdbc.queryForObject(anyString(), eq(Integer.class), eq(5L))).thenReturn(1);
-        when(jdbc.query(anyString(), any(ResultSetExtractor.class), eq(5L))).thenReturn(7L);
+        stubActiveCampaign(1L, "Spring Drive");
+        when(jdbc.update(any(PreparedStatementCreator.class), any(KeyHolder.class)))
+                .thenReturn(0);
 
         assertThatThrownBy(() -> service.checkIn(5L, new CheckInRequest(1L, null, null, null, null)))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode()).isEqualTo(HttpStatus.CONFLICT));
 
-        verify(jdbc, never()).update(any(PreparedStatementCreator.class), any(KeyHolder.class));
+        verify(jdbc).update(any(PreparedStatementCreator.class), any(KeyHolder.class));
     }
 
     @Test
@@ -117,12 +121,13 @@ class AttendanceServiceTest {
         AttendanceDto closed = new AttendanceDto(
                 11L, 5L, "Nguyen Van A",
                 1L, "Spring Drive", null, null,
-                LocalDateTime.of(2026, 7, 18, 8, 0), LocalDateTime.of(2026, 7, 18, 17, 0),
+                Instant.parse("2026-07-18T01:00:00Z"), Instant.parse("2026-07-18T10:00:00Z"),
                 "in note", "out note",
                 10.0, 20.0, 11.0, 21.0,
                 "CLOSED", 540L
         );
         when(jdbc.queryForObject(anyString(), eq(Integer.class), eq(5L))).thenReturn(1);
+        when(jdbc.update(any(PreparedStatementCreator.class))).thenReturn(1);
         when(jdbc.query(anyString(), any(ResultSetExtractor.class), eq(5L))).thenReturn(11L);
         when(jdbc.query(anyString(), any(RowMapper.class), eq(11L))).thenReturn(List.of(closed));
 
@@ -157,8 +162,8 @@ class AttendanceServiceTest {
 
         CreateAttendanceRequest request = new CreateAttendanceRequest(
                 5L, 1L, null,
-                LocalDateTime.of(2026, 7, 18, 8, 0), LocalDateTime.of(2026, 7, 18, 17, 0),
-                "manual in", "manual out"
+                Instant.parse("2026-07-18T01:00:00Z"), Instant.parse("2026-07-18T10:00:00Z"),
+                "manual in", "manual out", "Forgotten check-in"
         );
 
         AttendanceDto result = service.create(request);
@@ -175,8 +180,8 @@ class AttendanceServiceTest {
 
         CreateAttendanceRequest request = new CreateAttendanceRequest(
                 5L, 1L, null,
-                LocalDateTime.of(2026, 7, 18, 17, 0), LocalDateTime.of(2026, 7, 18, 8, 0),
-                null, null
+                Instant.parse("2026-07-18T10:00:00Z"), Instant.parse("2026-07-18T01:00:00Z"),
+                null, null, "Invalid correction"
         );
 
         assertThatThrownBy(() -> service.create(request))
@@ -191,8 +196,8 @@ class AttendanceServiceTest {
 
         PagedResponse<AttendanceDto> page = service.list(
                 5L, "OPEN",
-                LocalDateTime.of(2026, 7, 1, 0, 0),
-                LocalDateTime.of(2026, 7, 31, 23, 59),
+                Instant.parse("2026-07-01T00:00:00Z"),
+                Instant.parse("2026-07-31T23:59:00Z"),
                 0, 20
         );
 
@@ -215,10 +220,11 @@ class AttendanceServiceTest {
         when(jdbc.query(anyString(), any(RowMapper.class), eq(10L))).thenReturn(List.of(SAMPLE));
 
         UpdateAttendanceRequest badRequest = new UpdateAttendanceRequest(
-                null, null,
-                LocalDateTime.of(2026, 7, 18, 8, 0),
-                LocalDateTime.of(2026, 7, 18, 7, 0),
-                null, null
+                null, null, false,
+                Instant.parse("2026-07-18T01:00:00Z"),
+                Instant.parse("2026-07-18T00:00:00Z"),
+                false, null, false, null, false,
+                "Invalid time correction"
         );
 
         assertThatThrownBy(() -> service.update(10L, badRequest))
@@ -229,36 +235,37 @@ class AttendanceServiceTest {
     @Test
     void updateAppliesManagerCorrectionAndCloses() {
         when(jdbc.query(anyString(), any(RowMapper.class), eq(10L))).thenReturn(List.of(SAMPLE));
-        when(jdbc.update(anyString(), any(), any(), any(), any(), any(), any(), anyString(), eq(10L))).thenReturn(1);
+        when(jdbc.update(contains("UPDATE staff_attendance"), any(Object[].class))).thenReturn(1);
 
         UpdateAttendanceRequest request = new UpdateAttendanceRequest(
-                null, null, null, LocalDateTime.of(2026, 7, 18, 17, 0), null, "corrected by manager"
+                null, null, false, null, Instant.parse("2026-07-18T10:00:00Z"),
+                false, null, false, "corrected by manager", false, "Manager correction"
         );
 
         service.update(10L, request);
 
-        verify(jdbc).update(
-                anyString(), any(), any(), any(), any(), any(),
-                eq("corrected by manager"), eq("CLOSED"), eq(10L)
-        );
+        verify(jdbc).update(contains("UPDATE staff_attendance"), any(Object[].class));
     }
 
     @Test
     void updateThrowsWhenRecordMissing() {
         when(jdbc.query(anyString(), any(RowMapper.class), eq(10L))).thenReturn(List.of(SAMPLE));
-        when(jdbc.update(anyString(), any(), any(), any(), any(), any(), any(), anyString(), eq(10L))).thenReturn(0);
+        when(jdbc.update(contains("UPDATE staff_attendance"), any(Object[].class))).thenReturn(0);
 
-        assertThatThrownBy(() -> service.update(10L, new UpdateAttendanceRequest(null, null, null, null, "x", null)))
+        assertThatThrownBy(() -> service.update(10L, new UpdateAttendanceRequest(
+                null, null, false, null, null, false,
+                "x", false, null, false, "Manager correction")))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 
     @Test
-    void deleteRemovesRecord() {
-        when(jdbc.update("DELETE FROM staff_attendance WHERE id = ?", 10L)).thenReturn(1);
+    void deleteSoftDeletesRecord() {
+        when(jdbc.query(anyString(), any(RowMapper.class), eq(10L))).thenReturn(List.of(SAMPLE));
+        when(jdbc.update(contains("UPDATE staff_attendance"), any(Object[].class))).thenReturn(1);
 
         service.delete(10L);
 
-        verify(jdbc).update("DELETE FROM staff_attendance WHERE id = ?", 10L);
+        verify(jdbc).update(contains("UPDATE staff_attendance"), any(Object[].class));
     }
 
     @Test

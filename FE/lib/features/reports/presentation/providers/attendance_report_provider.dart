@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../attendance/data/models/attendance_models.dart';
 import '../../../attendance/presentation/providers/attendance_providers.dart';
 
+const _reportUnset = Object();
+
 class AttendanceReportFilter {
   const AttendanceReportFilter({
     this.employeeId,
@@ -19,18 +21,22 @@ class AttendanceReportFilter {
   final DateTime? to;
 
   AttendanceReportFilter copyWith({
-    int? employeeId,
-    int? campaignId,
-    String? status,
-    DateTime? from,
-    DateTime? to,
+    Object? employeeId = _reportUnset,
+    Object? campaignId = _reportUnset,
+    Object? status = _reportUnset,
+    Object? from = _reportUnset,
+    Object? to = _reportUnset,
   }) {
     return AttendanceReportFilter(
-      employeeId: employeeId ?? this.employeeId,
-      campaignId: campaignId ?? this.campaignId,
-      status: status ?? this.status,
-      from: from ?? this.from,
-      to: to ?? this.to,
+      employeeId: identical(employeeId, _reportUnset)
+          ? this.employeeId
+          : employeeId as int?,
+      campaignId: identical(campaignId, _reportUnset)
+          ? this.campaignId
+          : campaignId as int?,
+      status: identical(status, _reportUnset) ? this.status : status as String?,
+      from: identical(from, _reportUnset) ? this.from : from as DateTime?,
+      to: identical(to, _reportUnset) ? this.to : to as DateTime?,
     );
   }
 }
@@ -42,23 +48,25 @@ final attendanceReportDataProvider =
     FutureProvider.autoDispose<List<AttendanceRecord>>((ref) async {
   final f = ref.watch(attendanceReportFilterProvider);
   final repo = ref.read(attendanceRepositoryProvider);
-  
-  // We use a large limit (e.g. 500) to fetch data for reporting.
-  // In a real huge app, we might need pagination in the report or aggregate endpoints.
-  final page = await repo.listAttendance(
-    employeeId: f.employeeId,
-    status: f.status,
-    from: f.from,
-    to: f.to,
-    limit: 199,
-  );
 
-  var items = page.items;
-  
-  // Client-side filtering for campaignId since backend listAttendance doesn't filter by it.
-  if (f.campaignId != null) {
-    items = items.where((e) => e.campaignId == f.campaignId).toList();
+  final items = <AttendanceRecord>[];
+  var pageNumber = 0;
+  while (true) {
+    final page = await repo.listAttendance(
+      employeeId: f.employeeId,
+      campaignId: f.campaignId,
+      status: f.status,
+      from: f.from,
+      to: f.to,
+      page: pageNumber,
+      limit: 200,
+    );
+    items.addAll(page.items);
+    pageNumber += 1;
+    if (pageNumber >= page.totalPages) {
+      break;
+    }
   }
-  
+
   return items;
 });

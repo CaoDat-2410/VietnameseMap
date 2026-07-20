@@ -8,6 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -103,6 +104,21 @@ class GlobalExceptionHandlerTest {
 
             assertResponse(response, 400, "VALIDATION_FAILED");
             assertThat(response.getBody().getData().fieldErrors()).containsKey("email");
+        }
+    }
+
+    @Nested
+    @DisplayName("HttpMessageNotReadableException")
+    class HandleUnreadableMessage {
+
+        @Test
+        @DisplayName("should return 400 for malformed or unsupported JSON")
+        void shouldReturn400() {
+            HttpMessageNotReadableException ex = new HttpMessageNotReadableException("Unknown field");
+
+            ResponseEntity<ApiResponse<ApiError>> response = handler.handleUnreadableMessage(ex, request);
+
+            assertResponse(response, 400, "MALFORMED_REQUEST");
         }
     }
 

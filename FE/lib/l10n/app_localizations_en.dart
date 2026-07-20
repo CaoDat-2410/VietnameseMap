@@ -787,6 +787,51 @@ class AppLocalizationsEn extends AppLocalizations {
   String get selectEventOptional => 'Select event (optional)';
 
   @override
+  String get checkInSuccess => 'Check-in recorded successfully';
+
+  @override
+  String get checkOutSuccess => 'Check-out recorded successfully';
+
+  @override
+  String get confirmCheckOut => 'Confirm check-out';
+
+  @override
+  String get confirmCheckOutMessage =>
+      'Check out now? The end time will be recorded immediately.';
+
+  @override
+  String get notAssignedAttendanceTarget =>
+      'You are not assigned to this campaign event';
+
+  @override
+  String get noAssignedAttendanceTarget =>
+      'No assigned campaign event is currently open for check-in';
+
+  @override
+  String get attendanceActionFailed =>
+      'Unable to update attendance. Your latest status will be reloaded.';
+
+  @override
+  String get attendanceLoadFailed =>
+      'Unable to load your current attendance status.';
+
+  @override
+  String get attendanceTargetsLoadFailed =>
+      'Unable to load assigned campaign events.';
+
+  @override
+  String get correctionReason => 'Correction reason';
+
+  @override
+  String get deleteReason => 'Reason for removal';
+
+  @override
+  String get reasonRequired => 'Please provide a reason';
+
+  @override
+  String get clearCheckOutTime => 'Clear check-out time';
+
+  @override
   String get attendanceReport => 'Attendance Report';
 
   @override

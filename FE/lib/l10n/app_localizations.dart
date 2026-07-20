@@ -1604,6 +1604,84 @@ abstract class AppLocalizations {
   /// **'Select event (optional)'**
   String get selectEventOptional;
 
+  /// No description provided for @checkInSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Check-in recorded successfully'**
+  String get checkInSuccess;
+
+  /// No description provided for @checkOutSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Check-out recorded successfully'**
+  String get checkOutSuccess;
+
+  /// No description provided for @confirmCheckOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm check-out'**
+  String get confirmCheckOut;
+
+  /// No description provided for @confirmCheckOutMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Check out now? The end time will be recorded immediately.'**
+  String get confirmCheckOutMessage;
+
+  /// No description provided for @notAssignedAttendanceTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'You are not assigned to this campaign event'**
+  String get notAssignedAttendanceTarget;
+
+  /// No description provided for @noAssignedAttendanceTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'No assigned campaign event is currently open for check-in'**
+  String get noAssignedAttendanceTarget;
+
+  /// No description provided for @attendanceActionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to update attendance. Your latest status will be reloaded.'**
+  String get attendanceActionFailed;
+
+  /// No description provided for @attendanceLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load your current attendance status.'**
+  String get attendanceLoadFailed;
+
+  /// No description provided for @attendanceTargetsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to load assigned campaign events.'**
+  String get attendanceTargetsLoadFailed;
+
+  /// No description provided for @correctionReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Correction reason'**
+  String get correctionReason;
+
+  /// No description provided for @deleteReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason for removal'**
+  String get deleteReason;
+
+  /// No description provided for @reasonRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please provide a reason'**
+  String get reasonRequired;
+
+  /// No description provided for @clearCheckOutTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear check-out time'**
+  String get clearCheckOutTime;
+
   /// No description provided for @attendanceReport.
   ///
   /// In en, this message translates to:

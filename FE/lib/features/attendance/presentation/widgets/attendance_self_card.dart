@@ -1,9 +1,10 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../l10n/app_localizations.dart';
-import '../../../campaign/shared/providers/campaign_provider.dart';
 import '../providers/attendance_providers.dart';
 
 class AttendanceSelfCard extends ConsumerStatefulWidget {
@@ -17,11 +18,22 @@ class _AttendanceSelfCardState extends ConsumerState<AttendanceSelfCard> {
   int? _selectedCampaignId;
   int? _selectedEventId;
   final _noteController = TextEditingController();
+  Timer? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
   bool _isLoading = false;
 
   @override
   void dispose() {
     _noteController.dispose();
+    _ticker?.cancel();
     super.dispose();
   }
 
@@ -40,6 +52,11 @@ class _AttendanceSelfCardState extends ConsumerState<AttendanceSelfCard> {
       _selectedCampaignId = null;
       _selectedEventId = null;
     } on DioException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.checkInSuccess)),
+        );
+      }
       if (!mounted) return;
       final code = e.response?.statusCode;
       final serverMessage = e.response?.data?['message']?.toString();
@@ -48,9 +65,10 @@ class _AttendanceSelfCardState extends ConsumerState<AttendanceSelfCard> {
         409 when serverMessage?.contains('open for check-in') == true =>
           l10n.campaignNotOpenForCheckIn,
         409 => l10n.alreadyCheckedIn,
+        403 => l10n.notAssignedAttendanceTarget,
         404 => l10n.noActiveCampaign,
         400 => l10n.employeeNotLinked,
-        _ => serverMessage ?? e.message ?? 'Error',
+        _ => serverMessage ?? l10n.attendanceActionFailed,
       };
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(msg)),
@@ -61,6 +79,26 @@ class _AttendanceSelfCardState extends ConsumerState<AttendanceSelfCard> {
   }
 
   Future<void> _handleCheckOut() async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.confirmCheckOut),
+        content: Text(l10n.confirmCheckOutMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(l10n.checkOut),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
     setState(() => _isLoading = true);
     try {
       await ref.read(attendanceActionsProvider).checkOut(
@@ -69,15 +107,19 @@ class _AttendanceSelfCardState extends ConsumerState<AttendanceSelfCard> {
                 : _noteController.text.trim(),
           );
       _noteController.clear();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.checkOutSuccess)),
+        );
+      }
     } on DioException catch (e) {
       if (!mounted) return;
       final code = e.response?.statusCode;
       final serverMessage = e.response?.data?['message']?.toString();
-      final l10n = AppLocalizations.of(context)!;
       final msg = switch (code) {
         409 => l10n.noOpenSessionToCheckOut,
         400 => l10n.employeeNotLinked,
-        _ => serverMessage ?? e.message ?? 'Error',
+        _ => serverMessage ?? l10n.attendanceActionFailed,
       };
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(msg)),
@@ -100,7 +142,19 @@ class _AttendanceSelfCardState extends ConsumerState<AttendanceSelfCard> {
         padding: const EdgeInsets.all(24.0),
         child: myAttendance.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Center(child: Text('Error: $error')),
+          error: (_, __) => Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(l10n.attendanceLoadFailed),
+                TextButton.icon(
+                  onPressed: () => ref.invalidate(myAttendanceProvider),
+                  icon: const Icon(Icons.refresh),
+                  label: Text(l10n.retry),
+                ),
+              ],
+            ),
+          ),
           data: (page) {
             final latest = page.items.isNotEmpty ? page.items.first : null;
             final hasOpenSession = latest?.isOpen == true;
@@ -227,7 +281,7 @@ class _AttendanceSelfCardState extends ConsumerState<AttendanceSelfCard> {
 
   Widget _buildCheckInView(BuildContext context, AppLocalizations l10n) {
     final theme = Theme.of(context);
-    final campaignsAsync = ref.watch(campaignsProvider);
+    final targetsAsync = ref.watch(eligibleAttendanceTargetsProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -259,14 +313,20 @@ class _AttendanceSelfCardState extends ConsumerState<AttendanceSelfCard> {
           ],
         ),
         const SizedBox(height: 24),
-        campaignsAsync.when(
+        targetsAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(child: Text('Error: $e')),
-          data: (campaigns) {
-            final activeCampaigns =
-                campaigns.where((c) => c.status == 'ACTIVE').toList();
+          error: (_, __) =>
+              Center(child: Text(l10n.attendanceTargetsLoadFailed)),
+          data: (targets) {
+            final campaigns = {
+              for (final target in targets)
+                target.campaignId: target.campaignName
+            };
+            final events = targets
+                .where((target) => target.campaignId == _selectedCampaignId)
+                .toList();
 
-            if (activeCampaigns.isEmpty) {
+            if (campaigns.isEmpty) {
               return Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -280,7 +340,7 @@ class _AttendanceSelfCardState extends ConsumerState<AttendanceSelfCard> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        l10n.noActiveCampaign,
+                        l10n.noAssignedAttendanceTarget,
                         style: TextStyle(
                             color: theme.colorScheme.onErrorContainer),
                       ),
@@ -300,10 +360,10 @@ class _AttendanceSelfCardState extends ConsumerState<AttendanceSelfCard> {
                     border: const OutlineInputBorder(),
                     prefixIcon: const Icon(Icons.campaign),
                   ),
-                  items: activeCampaigns.map((c) {
+                  items: campaigns.entries.map((entry) {
                     return DropdownMenuItem(
-                      value: c.id,
-                      child: Text(c.name),
+                      value: entry.key,
+                      child: Text(entry.value),
                     );
                   }).toList(),
                   onChanged: (val) {
@@ -315,40 +375,37 @@ class _AttendanceSelfCardState extends ConsumerState<AttendanceSelfCard> {
                 ),
                 const SizedBox(height: 16),
                 if (_selectedCampaignId != null)
-                  ref.watch(campaignEventsProvider(_selectedCampaignId!)).when(
-                        loading: () =>
-                            const Center(child: CircularProgressIndicator()),
-                        error: (e, _) => Text('Error: $e'),
-                        data: (events) {
-                          if (events.isEmpty) return const SizedBox.shrink();
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: DropdownButtonFormField<int>(
-                              value: _selectedEventId,
-                              decoration: InputDecoration(
-                                labelText: l10n.selectEventOptional,
-                                border: const OutlineInputBorder(),
-                                prefixIcon: const Icon(Icons.event),
-                              ),
-                              items: [
-                                DropdownMenuItem<int>(
-                                  value: null,
-                                  child: Text('--- ${l10n.clear} ---'),
-                                ),
-                                ...events.map((e) {
-                                  return DropdownMenuItem(
-                                    value: e.id,
-                                    child: Text(e.name),
-                                  );
-                                }).toList(),
-                              ],
-                              onChanged: (val) {
-                                setState(() => _selectedEventId = val);
-                              },
+                  Builder(
+                    builder: (_) {
+                      if (events.isEmpty) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: DropdownButtonFormField<int>(
+                          value: _selectedEventId,
+                          decoration: InputDecoration(
+                            labelText: l10n.selectEventOptional,
+                            border: const OutlineInputBorder(),
+                            prefixIcon: const Icon(Icons.event),
+                          ),
+                          items: [
+                            DropdownMenuItem<int>(
+                              value: null,
+                              child: Text('--- ${l10n.clear} ---'),
                             ),
-                          );
-                        },
-                      ),
+                            ...events.map((event) {
+                              return DropdownMenuItem(
+                                value: event.eventId,
+                                child: Text(event.eventName),
+                              );
+                            }).toList(),
+                          ],
+                          onChanged: (val) {
+                            setState(() => _selectedEventId = val);
+                          },
+                        ),
+                      );
+                    },
+                  ),
                 TextField(
                   controller: _noteController,
                   decoration: InputDecoration(

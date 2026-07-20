@@ -1,17 +1,25 @@
 package com.vnmap.attendance.dto;
 
-import java.time.LocalDateTime;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+import java.time.Instant;
 
 /**
  * Manager/admin correction of an attendance record.
- * Any null field is left unchanged.
+ * Explicit clear flags distinguish an omitted field from a deliberate clear.
  */
 public record UpdateAttendanceRequest(
         Long campaignId,
         Long eventId,
-        LocalDateTime checkInAt,
-        LocalDateTime checkOutAt,
-        String checkInNote,
-        String checkOutNote
+        Boolean clearEvent,
+        Instant checkInAt,
+        Instant checkOutAt,
+        Boolean clearCheckOutAt,
+        @Size(max = 500) String checkInNote,
+        Boolean clearCheckInNote,
+        @Size(max = 500) String checkOutNote,
+        Boolean clearCheckOutNote,
+        @NotBlank @Size(max = 500) String correctionReason
 ) {
 }

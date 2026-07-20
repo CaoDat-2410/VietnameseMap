@@ -23,6 +23,7 @@ class _AttendanceEditDialogState extends ConsumerState<AttendanceEditDialog> {
   DateTime? _checkOutAt;
   final _checkInNoteCtrl = TextEditingController();
   final _checkOutNoteCtrl = TextEditingController();
+  final _reasonCtrl = TextEditingController();
   bool _isLoading = false;
 
   @override
@@ -40,6 +41,7 @@ class _AttendanceEditDialogState extends ConsumerState<AttendanceEditDialog> {
   void dispose() {
     _checkInNoteCtrl.dispose();
     _checkOutNoteCtrl.dispose();
+    _reasonCtrl.dispose();
     super.dispose();
   }
 
@@ -71,26 +73,41 @@ class _AttendanceEditDialogState extends ConsumerState<AttendanceEditDialog> {
   }
 
   Future<void> _submit() async {
+    final l10n = AppLocalizations.of(context)!;
+    final reason = _reasonCtrl.text.trim();
+    if (reason.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.reasonRequired)),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       await ref.read(attendanceActionsProvider).update(
             widget.record.id,
             campaignId: _campaignId,
             eventId: _eventId,
+            clearEvent: _eventId == null,
             checkInAt: _checkInAt,
             checkOutAt: _checkOutAt,
+            clearCheckOutAt:
+                _checkOutAt == null && widget.record.checkOutAt != null,
             checkInNote: _checkInNoteCtrl.text.trim().isEmpty
                 ? null
                 : _checkInNoteCtrl.text.trim(),
+            clearCheckInNote: _checkInNoteCtrl.text.trim().isEmpty,
             checkOutNote: _checkOutNoteCtrl.text.trim().isEmpty
                 ? null
                 : _checkOutNoteCtrl.text.trim(),
+            clearCheckOutNote: _checkOutNoteCtrl.text.trim().isEmpty,
+            correctionReason: reason,
           );
       if (mounted) Navigator.pop(context);
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(content: Text(l10n.attendanceActionFailed)),
         );
       }
     } finally {
@@ -111,7 +128,7 @@ class _AttendanceEditDialogState extends ConsumerState<AttendanceEditDialog> {
           children: [
             campaignsAsync.when(
               loading: () => const CircularProgressIndicator(),
-              error: (e, _) => Text('Error: $e'),
+              error: (e, _) => Text(l10n.attendanceLoadFailed),
               data: (campaigns) {
                 return DropdownButtonFormField<int>(
                   value: _campaignId,
@@ -132,12 +149,12 @@ class _AttendanceEditDialogState extends ConsumerState<AttendanceEditDialog> {
             if (_campaignId != null)
               ref.watch(campaignEventsProvider(_campaignId!)).when(
                     loading: () => const CircularProgressIndicator(),
-                    error: (e, _) => Text('Error: $e'),
+                    error: (e, _) => Text(l10n.attendanceLoadFailed),
                     data: (events) {
                       return DropdownButtonFormField<int>(
                         value: _eventId,
-                        decoration:
-                            InputDecoration(labelText: l10n.selectEventOptional),
+                        decoration: InputDecoration(
+                            labelText: l10n.selectEventOptional),
                         items: [
                           DropdownMenuItem<int>(
                             value: null,
@@ -167,13 +184,25 @@ class _AttendanceEditDialogState extends ConsumerState<AttendanceEditDialog> {
             const SizedBox(height: 16),
             TextField(
               controller: _checkInNoteCtrl,
-              decoration: InputDecoration(labelText: '${l10n.checkIn} ${l10n.note}'),
+              decoration:
+                  InputDecoration(labelText: '${l10n.checkIn} ${l10n.note}'),
             ),
             const SizedBox(height: 16),
             ListTile(
               title: Text(l10n.checkOut),
               subtitle: Text(_checkOutAt?.toString() ?? '---'),
-              trailing: const Icon(Icons.calendar_today),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_checkOutAt != null)
+                    IconButton(
+                      tooltip: l10n.clearCheckOutTime,
+                      onPressed: () => setState(() => _checkOutAt = null),
+                      icon: const Icon(Icons.clear),
+                    ),
+                  const Icon(Icons.calendar_today),
+                ],
+              ),
               onTap: () => _pickDateTime(false),
               shape: RoundedRectangleBorder(
                   side: BorderSide(color: Colors.grey.shade300),
@@ -182,7 +211,16 @@ class _AttendanceEditDialogState extends ConsumerState<AttendanceEditDialog> {
             const SizedBox(height: 16),
             TextField(
               controller: _checkOutNoteCtrl,
-              decoration: InputDecoration(labelText: '${l10n.checkOut} ${l10n.note}'),
+              decoration:
+                  InputDecoration(labelText: '${l10n.checkOut} ${l10n.note}'),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _reasonCtrl,
+              decoration: InputDecoration(
+                labelText: '${l10n.correctionReason} *',
+              ),
+              maxLength: 500,
             ),
           ],
         ),

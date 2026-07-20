@@ -1,9 +1,10 @@
 package com.vnmap.attendance.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 /**
  * Manual attendance entry created by a MANAGER/ADMIN on behalf of an employee
@@ -14,9 +15,10 @@ public record CreateAttendanceRequest(
         @NotNull Long employeeId,
         @NotNull Long campaignId,
         Long eventId,
-        LocalDateTime checkInAt,
-        LocalDateTime checkOutAt,
+        Instant checkInAt,
+        Instant checkOutAt,
         @Size(max = 500) String checkInNote,
-        @Size(max = 500) String checkOutNote
+        @Size(max = 500) String checkOutNote,
+        @NotBlank @Size(max = 500) String correctionReason
 ) {
 }

@@ -791,6 +791,51 @@ class AppLocalizationsVi extends AppLocalizations {
   String get selectEventOptional => 'Chọn sự kiện (không bắt buộc)';
 
   @override
+  String get checkInSuccess => 'Đã ghi nhận check-in';
+
+  @override
+  String get checkOutSuccess => 'Đã ghi nhận check-out';
+
+  @override
+  String get confirmCheckOut => 'Xác nhận check-out';
+
+  @override
+  String get confirmCheckOutMessage =>
+      'Check-out ngay bây giờ? Hệ thống sẽ ghi nhận thời gian kết thúc tức thời.';
+
+  @override
+  String get notAssignedAttendanceTarget =>
+      'Bạn chưa được phân công vào sự kiện của chiến dịch này';
+
+  @override
+  String get noAssignedAttendanceTarget =>
+      'Hiện không có sự kiện được phân công và đang mở để check-in';
+
+  @override
+  String get attendanceActionFailed =>
+      'Không thể cập nhật chấm công. Hệ thống sẽ tải lại trạng thái mới nhất.';
+
+  @override
+  String get attendanceLoadFailed =>
+      'Không thể tải trạng thái chấm công hiện tại.';
+
+  @override
+  String get attendanceTargetsLoadFailed =>
+      'Không thể tải các sự kiện được phân công.';
+
+  @override
+  String get correctionReason => 'Lý do điều chỉnh';
+
+  @override
+  String get deleteReason => 'Lý do xóa bản ghi';
+
+  @override
+  String get reasonRequired => 'Vui lòng nhập lý do';
+
+  @override
+  String get clearCheckOutTime => 'Xóa thời gian check-out';
+
+  @override
   String get attendanceReport => 'Báo cáo chấm công';
 
   @override

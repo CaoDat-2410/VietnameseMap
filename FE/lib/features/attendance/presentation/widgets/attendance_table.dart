@@ -68,12 +68,15 @@ class AttendanceTable extends ConsumerWidget {
                     decoration: InputDecoration(
                       labelText: l10n.status,
                       border: const OutlineInputBorder(),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 12),
                     ),
                     items: [
                       DropdownMenuItem(value: null, child: Text(l10n.all)),
-                      const DropdownMenuItem(value: 'OPEN', child: Text('OPEN')),
-                      const DropdownMenuItem(value: 'CLOSED', child: Text('CLOSED')),
+                      const DropdownMenuItem(
+                          value: 'OPEN', child: Text('OPEN')),
+                      const DropdownMenuItem(
+                          value: 'CLOSED', child: Text('CLOSED')),
                     ],
                     onChanged: (val) {
                       ref.read(attendanceFilterProvider.notifier).state =
@@ -94,7 +97,20 @@ class AttendanceTable extends ConsumerWidget {
           Expanded(
             child: teamAttendance.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, _) => Center(child: Text('Error: $err')),
+              error: (_, __) => Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(l10n.attendanceLoadFailed),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => ref.invalidate(teamAttendanceProvider),
+                      icon: const Icon(Icons.refresh),
+                      label: Text(l10n.refresh),
+                    ),
+                  ],
+                ),
+              ),
               data: (page) {
                 if (page.items.isEmpty) {
                   return Center(child: Text(l10n.noData));
@@ -104,27 +120,37 @@ class AttendanceTable extends ConsumerWidget {
                   horizontalMargin: 16,
                   minWidth: 800,
                   columns: [
-                    DataColumn2(label: Text(l10n.employees), size: ColumnSize.L),
+                    DataColumn2(
+                        label: Text(l10n.employees), size: ColumnSize.L),
                     DataColumn2(label: Text(l10n.campaign), size: ColumnSize.L),
                     DataColumn2(label: Text(l10n.checkIn)),
                     DataColumn2(label: Text(l10n.checkOut)),
                     DataColumn2(label: Text(l10n.workedHours), numeric: true),
                     DataColumn2(label: Text(l10n.status)),
-                    if (canManage) const DataColumn2(label: Text(''), size: ColumnSize.S),
+                    if (canManage)
+                      const DataColumn2(label: Text(''), size: ColumnSize.S),
                   ],
                   rows: page.items.map((r) {
-                    final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
+                    final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
                     return DataRow(
                       cells: [
                         DataCell(Text(r.employeeName)),
-                        DataCell(Text('${r.campaignName ?? ''}${r.eventName != null ? ' - ${r.eventName}' : ''}')),
+                        DataCell(Text(
+                            '${r.campaignName ?? ''}${r.eventName != null ? ' - ${r.eventName}' : ''}')),
                         DataCell(Text(dateFormat.format(r.checkInAt))),
-                        DataCell(Text(r.checkOutAt != null ? dateFormat.format(r.checkOutAt!) : '')),
-                        DataCell(Text(r.workedMinutes != null ? (r.workedMinutes! / 60).toStringAsFixed(1) : '')),
+                        DataCell(Text(r.checkOutAt != null
+                            ? dateFormat.format(r.checkOutAt!)
+                            : '')),
+                        DataCell(Text(r.workedMinutes != null
+                            ? (r.workedMinutes! / 60).toStringAsFixed(1)
+                            : '')),
                         DataCell(
                           Chip(
-                            label: Text(r.status, style: const TextStyle(fontSize: 12)),
-                            backgroundColor: r.isOpen ? Colors.green.shade100 : Colors.grey.shade200,
+                            label: Text(r.status,
+                                style: const TextStyle(fontSize: 12)),
+                            backgroundColor: r.isOpen
+                                ? Colors.green.shade100
+                                : Colors.grey.shade200,
                           ),
                         ),
                         if (canManage)
@@ -137,31 +163,52 @@ class AttendanceTable extends ConsumerWidget {
                                   onPressed: () {
                                     showDialog(
                                       context: context,
-                                      builder: (_) => AttendanceEditDialog(record: r),
+                                      builder: (_) =>
+                                          AttendanceEditDialog(record: r),
                                     );
                                   },
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.delete, size: 20, color: Colors.red),
+                                  icon: const Icon(Icons.delete,
+                                      size: 20, color: Colors.red),
                                   onPressed: () async {
-                                    final confirm = await showDialog<bool>(
+                                    final reasonController =
+                                        TextEditingController();
+                                    final reason = await showDialog<String>(
                                       context: context,
                                       builder: (ctx) => AlertDialog(
                                         title: Text(l10n.confirmDelete),
+                                        content: TextField(
+                                          controller: reasonController,
+                                          autofocus: true,
+                                          maxLength: 500,
+                                          decoration: InputDecoration(
+                                            labelText: '${l10n.deleteReason} *',
+                                          ),
+                                        ),
                                         actions: [
                                           TextButton(
-                                            onPressed: () => Navigator.pop(ctx, false),
+                                            onPressed: () => Navigator.pop(ctx),
                                             child: Text(l10n.cancel),
                                           ),
                                           FilledButton(
-                                            onPressed: () => Navigator.pop(ctx, true),
+                                            onPressed: () {
+                                              final value =
+                                                  reasonController.text.trim();
+                                              if (value.isNotEmpty) {
+                                                Navigator.pop(ctx, value);
+                                              }
+                                            },
                                             child: Text(l10n.delete),
                                           ),
                                         ],
                                       ),
                                     );
-                                    if (confirm == true) {
-                                      await ref.read(attendanceActionsProvider).delete(r.id);
+                                    reasonController.dispose();
+                                    if (reason != null && reason.isNotEmpty) {
+                                      await ref
+                                          .read(attendanceActionsProvider)
+                                          .delete(r.id, reason: reason);
                                     }
                                   },
                                 ),

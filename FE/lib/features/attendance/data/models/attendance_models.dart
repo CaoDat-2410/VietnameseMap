@@ -47,9 +47,9 @@ class AttendanceRecord {
         campaignName: j['campaignName']?.toString(),
         eventId: (j['eventId'] as num?)?.toInt(),
         eventName: j['eventName']?.toString(),
-        checkInAt: DateTime.parse(j['checkInAt'] as String),
+        checkInAt: DateTime.parse(j['checkInAt'] as String).toLocal(),
         checkOutAt: j['checkOutAt'] != null
-            ? DateTime.parse(j['checkOutAt'] as String)
+            ? DateTime.parse(j['checkOutAt'] as String).toLocal()
             : null,
         checkInNote: j['checkInNote']?.toString(),
         checkOutNote: j['checkOutNote']?.toString(),
@@ -83,4 +83,42 @@ class AttendancePage {
         totalItems: (j['totalItems'] as num).toInt(),
         totalPages: (j['totalPages'] as num).toInt(),
       );
+}
+
+class AttendanceTarget {
+  const AttendanceTarget({
+    required this.campaignId,
+    required this.campaignName,
+    this.campaignStartDate,
+    this.campaignEndDate,
+    required this.eventId,
+    required this.eventName,
+    this.eventStartsAt,
+    this.eventEndsAt,
+  });
+
+  final int campaignId;
+  final String campaignName;
+  final DateTime? campaignStartDate;
+  final DateTime? campaignEndDate;
+  final int eventId;
+  final String eventName;
+  final DateTime? eventStartsAt;
+  final DateTime? eventEndsAt;
+
+  factory AttendanceTarget.fromJson(Map<String, dynamic> json) {
+    DateTime? parseDate(Object? value) =>
+        value == null ? null : DateTime.parse(value.toString()).toLocal();
+
+    return AttendanceTarget(
+      campaignId: (json['campaignId'] as num).toInt(),
+      campaignName: json['campaignName']?.toString() ?? '',
+      campaignStartDate: parseDate(json['campaignStartDate']),
+      campaignEndDate: parseDate(json['campaignEndDate']),
+      eventId: (json['eventId'] as num).toInt(),
+      eventName: json['eventName']?.toString() ?? '',
+      eventStartsAt: parseDate(json['eventStartsAt']),
+      eventEndsAt: parseDate(json['eventEndsAt']),
+    );
+  }
 }

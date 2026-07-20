@@ -1500,6 +1500,31 @@
                 "FE/lib/l10n/app_en.arb",
                 "FE/lib/l10n/app_vi.arb"
             ]
+        },
+        {
+            "id": "feat-090",
+            "name": "Attendance production hardening across backend and frontend",
+            "description": "Hardened the full attendance workflow with atomic and idempotent check-in/check-out, assignment and campaign-window enforcement, GPS and request validation, timezone-safe instants, database constraints, manual-correction audit and soft delete, eligible-target discovery, complete report pagination, and safer staff/manager UI states.",
+            "dependencies": [
+                "feat-088",
+                "feat-089"
+            ],
+            "status": "completed",
+            "evidence": "Backend Docker image built and deployed healthy; 37 targeted AttendanceService, AttendanceController, and GlobalExceptionHandler tests passed. Runtime verified eligible targets, check-in idempotency, duplicate conflict, check-out replay, validation, soft delete/audit, and malformed JSON returning 400. PostgreSQL check-in/out columns are timestamptz with 11 attendance constraints. Flutter attendance-targeted analysis has zero errors/warnings, release web build and Docker frontend build passed, and browser check-in/check-out completed with zero console errors. Screenshots: output/attendance-ui-verification-20260720/.",
+            "files": [
+                "BE/src/main/java/com/vnmap/attendance",
+                "BE/src/main/java/com/vnmap/common/config/SecurityConfig.java",
+                "BE/src/main/java/com/vnmap/common/exception/GlobalExceptionHandler.java",
+                "BE/src/main/resources/schema.sql",
+                "BE/scripts/migration_staff_attendance.sql",
+                "BE/src/test/java/com/vnmap/attendance",
+                "BE/src/test/java/com/vnmap/common/exception/GlobalExceptionHandlerTest.java",
+                "FE/lib/features/attendance",
+                "FE/lib/features/reports/presentation/providers/attendance_report_provider.dart",
+                "FE/lib/l10n/app_en.arb",
+                "FE/lib/l10n/app_vi.arb",
+                "output/attendance-ui-verification-20260720"
+            ]
         }
     ]
 }

@@ -1,6 +1,6 @@
 package com.vnmap.attendance.dto;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record AttendanceDto(
         Long id,
@@ -10,8 +10,8 @@ public record AttendanceDto(
         String campaignName,
         Long eventId,
         String eventName,
-        LocalDateTime checkInAt,
-        LocalDateTime checkOutAt,
+        Instant checkInAt,
+        Instant checkOutAt,
         String checkInNote,
         String checkOutNote,
         Double checkInLat,
